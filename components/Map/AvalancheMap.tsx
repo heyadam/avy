@@ -5,10 +5,13 @@ import Map, { Source, Layer, NavigationControl, GeolocateControl } from 'react-m
 import type { MapMouseEvent, MapGeoJSONFeature } from 'react-map-gl/mapbox';
 import type { GeolocateControl as GeolocateControlType } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { Loader2 } from 'lucide-react';
 
 import { AvalanchePopup } from './AvalanchePopup';
 import { avalancheFillLayer, avalancheLineLayer } from './map-layers';
 import type { AvalancheGeoJSON, AvalancheZoneProperties, HoverInfo, ClickInfo } from '@/types/avalanche';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 const AVALANCHE_API_URL = 'https://api.avalanche.org/v2/public/products/map-layer';
@@ -129,10 +132,10 @@ export function AvalancheMap() {
 
   if (isLoading || !locationLoaded) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-gray-100">
+      <div className="fixed inset-0 flex items-center justify-center bg-muted">
         <div className="text-center px-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">
             {!locationLoaded ? 'Getting your location...' : 'Loading avalanche data...'}
           </p>
         </div>
@@ -142,16 +145,15 @@ export function AvalancheMap() {
 
   if (error) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-gray-100 px-4">
-        <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md w-full">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 active:bg-blue-800"
-          >
-            Retry
-          </button>
-        </div>
+      <div className="fixed inset-0 flex items-center justify-center bg-muted px-4">
+        <Card className="max-w-md w-full text-center">
+          <CardContent>
+            <p className="text-destructive mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -187,13 +189,13 @@ export function AvalancheMap() {
 
       {/* Hide hover tooltip on touch devices - they don't have hover */}
       {hoverInfo && !clickInfo && !isTouchDevice && (
-        <div
-          className="absolute pointer-events-none bg-white px-3 py-2 rounded-md shadow-lg text-sm z-10"
+        <Card
+          className="absolute pointer-events-none px-3 py-2 text-sm z-10 gap-1"
           style={{ left: 10, top: 10 }}
         >
           <p className="font-semibold">{hoverInfo.properties.name}</p>
-          <p className="text-gray-600">Danger: {hoverInfo.properties.danger}</p>
-        </div>
+          <p className="text-muted-foreground">Danger: {hoverInfo.properties.danger}</p>
+        </Card>
       )}
 
       {clickInfo && (
