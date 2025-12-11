@@ -2,38 +2,46 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Commands
+## Build Commands
 
 ```bash
 npm run dev      # Start development server (http://localhost:3000)
 npm run build    # Production build
 npm run lint     # Run ESLint
+npm run start    # Start production server
 ```
 
 ## Environment Setup
 
-Requires `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` environment variable for Mapbox functionality.
+Requires `OPENAI_API_KEY` environment variable for flow execution (prompt and condition nodes use OpenAI API).
 
-## Architecture
+## Architecture Overview
 
-This is a Next.js 16 application displaying avalanche danger zones on an interactive map. Single-page app using the App Router.
+This is an AI agent workflow builder using Next.js 16 App Router with React Flow for visual flow editing.
 
-### Key Components
+### Core Components
 
-- **`app/page.tsx`**: Entry point, dynamically imports AvalancheMap with SSR disabled (Mapbox requires browser APIs)
-- **`components/Map/AvalancheMap.tsx`**: Main map component using react-map-gl/mapbox. Fetches GeoJSON from avalanche.org API, handles geolocation, click/hover interactions
-- **`components/Map/AvalanchePopup.tsx`**: Popup displaying zone details and danger level
-- **`components/Map/map-layers.ts`**: Mapbox layer definitions for fill and line styling
-- **`types/avalanche.ts`**: TypeScript types for avalanche API response (GeoJSON features with danger levels, travel advice, etc.)
+**Flow Editor** (`components/Flow/AgentFlow.tsx`): Main visual editor using @xyflow/react. Handles drag-and-drop node creation, edge connections, and flow execution controls.
 
-### UI Framework
+**Node Types** (`components/Flow/nodes/`): Five custom node components:
+- `InputNode`: Entry point, receives user input
+- `OutputNode`: Exit point, displays final result
+- `PromptNode`: LLM prompt execution (configurable model, default gpt-4o)
+- `ToolNode`: External tool calls (web_search, calculator, current_time)
+- `ConditionNode`: Branching logic with true/false outputs
 
-Uses shadcn/ui components (`components/ui/`) with Tailwind CSS v4. The `cn()` utility in `lib/utils.ts` merges class names.
+**Execution Engine** (`lib/execution/engine.ts`): Graph traversal that:
+1. Finds input node as start
+2. Executes nodes sequentially via `/api/execute`
+3. Handles condition branching by following matching edges
+4. Tracks execution state (running/success/error) per node
 
-### External API
+**API Route** (`app/api/execute/route.ts`): Server-side execution handler for prompt, tool, and condition node types. Uses OpenAI SDK directly.
 
-Fetches from `https://api.avalanche.org/v2/public/products/map-layer` - returns GeoJSON FeatureCollection with avalanche zones. See `api-docs.md` for full API documentation including danger levels (1-5 scale) and zone properties.
+### Type System
 
-### Path Aliases
+Flow types in `types/flow.ts` define node data interfaces with execution state tracking (`ExecutionStatus`, `executionOutput`, `executionError`).
 
-`@/*` maps to project root (e.g., `@/components/Map/AvalancheMap`).
+### UI Components
+
+Uses shadcn/ui components in `components/ui/` with Tailwind CSS v4. Import alias `@/*` maps to project root.

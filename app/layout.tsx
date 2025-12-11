@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Avalanche Danger Map",
-  description: "Interactive map showing avalanche danger zones across North America",
+  title: "Agent Flow Builder",
+  description: "Visual editor for designing AI agent workflows",
 };
 
 export const viewport: Viewport = {

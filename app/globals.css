@@ -49,25 +49,6 @@ html, body {
   overflow: hidden;
 }
 
-/* Mapbox controls - larger touch targets */
-.mapboxgl-ctrl-group button {
-  width: 44px !important;
-  height: 44px !important;
-}
-
-/* Mapbox popup styling */
-.mapboxgl-popup-content {
-  padding: 0 !important;
-  border-radius: 12px !important;
-}
-
-.mapboxgl-popup-close-button {
-  font-size: 24px !important;
-  padding: 8px 12px !important;
-  min-width: 44px;
-  min-height: 44px;
-}
-
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
