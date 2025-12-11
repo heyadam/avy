@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Avy - AI Agent Workflow Builder
+
+A visual workflow builder for creating AI agent pipelines using drag-and-drop nodes.
+
+## Features
+
+- **Visual Flow Editor**: Build AI workflows by connecting nodes in a React Flow canvas
+- **Node Types**:
+  - **Input**: Entry point that receives user input
+  - **Prompt**: Execute LLM prompts with configurable models
+  - **Tool**: Call external tools (web search, calculator, current time)
+  - **Condition**: Branch logic with true/false paths
+  - **Response**: Exit point that displays results in the preview window
+- **Live Preview**: Floating preview modal shows Response node outputs in real-time
+- **Execution Tracking**: Visual feedback showing node execution status (running/success/error)
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- OpenAI API key
+
+### Installation
+
+```bash
+npm install
+```
+
+### Environment Setup
+
+Create a `.env.local` file:
+
+```
+OPENAI_API_KEY=your_api_key_here
+```
+
+### Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to use the workflow builder.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Drag nodes from the sidebar onto the canvas
+2. Connect nodes by dragging from output handles to input handles
+3. Configure node properties (prompts, conditions, tools)
+4. Enter input text in the top bar
+5. Click "Run Flow" to execute the workflow
+6. View results in the floating preview window
 
-## Learn More
+## Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js 16](https://nextjs.org/) - React framework
+- [React Flow](https://reactflow.dev/) - Node-based flow editor
+- [OpenAI API](https://openai.com/) - LLM execution
+- [Tailwind CSS v4](https://tailwindcss.com/) - Styling
+- [shadcn/ui](https://ui.shadcn.com/) - UI components

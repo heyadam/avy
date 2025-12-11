@@ -25,10 +25,15 @@ This is an AI agent workflow builder using Next.js 16 App Router with React Flow
 
 **Node Types** (`components/Flow/nodes/`): Five custom node components:
 - `InputNode`: Entry point, receives user input
-- `OutputNode`: Exit point, displays final result
-- `PromptNode`: LLM prompt execution (configurable model, default gpt-4o)
+- `ResponseNode` (OutputNode): Exit point, displays final result and sends to preview
+- `PromptNode`: LLM prompt execution (configurable model)
 - `ToolNode`: External tool calls (web_search, calculator, current_time)
 - `ConditionNode`: Branching logic with true/false outputs
+
+**Preview Modal** (`components/Flow/PreviewModal/`): Floating preview window that displays Response node outputs:
+- Always visible in top-right corner
+- Draggable and resizable with session persistence
+- Auto-grows with content, scrolls when exceeding max height
 
 **Execution Engine** (`lib/execution/engine.ts`): Graph traversal that:
 1. Finds input node as start

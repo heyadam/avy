@@ -5,7 +5,6 @@ import {
   ReactFlow,
   Background,
   Controls,
-  MiniMap,
   Panel,
   addEdge,
   useNodesState,
@@ -24,14 +23,15 @@ import type { NodeExecutionState } from "@/lib/execution/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Play, RotateCcw, Loader2 } from "lucide-react";
+import { PreviewModal, type PreviewEntry } from "./PreviewModal";
 
 let id = 0;
 const getId = () => `node_${id++}`;
 
 const defaultNodeData: Record<NodeType, Record<string, unknown>> = {
   input: { label: "Input" },
-  output: { label: "Output" },
-  prompt: { label: "Prompt", prompt: "", model: "gpt-4o" },
+  output: { label: "Response" },
+  prompt: { label: "Prompt", prompt: "", model: "gpt-5.2-2025-12-11" },
   tool: { label: "Tool", toolName: "custom_tool", description: "Tool description" },
   condition: { label: "Condition", condition: "value === true" },
 };
@@ -45,6 +45,24 @@ export function AgentFlow() {
   const [userInput, setUserInput] = useState("What is the weather like today?");
   const [isRunning, setIsRunning] = useState(false);
   const [finalOutput, setFinalOutput] = useState<string | null>(null);
+  const [previewEntries, setPreviewEntries] = useState<PreviewEntry[]>([]);
+  const addedPreviewIds = useRef<Set<string>>(new Set());
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+
+  const addPreviewEntry = useCallback(
+    (entry: Omit<PreviewEntry, "id" | "timestamp">) => {
+      setPreviewEntries((prev) => [
+        ...prev,
+        {
+          ...entry,
+          id: `${entry.nodeId}-${Date.now()}`,
+          timestamp: Date.now(),
+        },
+      ]);
+    },
+    []
+  );
 
   const onConnect: OnConnect = useCallback(
     (params) => setEdges((eds) => addEdge(params, eds)),
@@ -89,6 +107,7 @@ export function AgentFlow() {
 
   const updateNodeExecutionState = useCallback(
     (nodeId: string, state: NodeExecutionState) => {
+      // Update node state
       setNodes((nds) =>
         nds.map((node) =>
           node.id === nodeId
@@ -104,8 +123,28 @@ export function AgentFlow() {
             : node
         )
       );
+
+      // Add to preview if this is an output node with results (dedupe with ref)
+      if (state.status !== "running" && state.output) {
+        const previewId = `${nodeId}-${state.output}`;
+        if (!addedPreviewIds.current.has(previewId)) {
+          addedPreviewIds.current.add(previewId);
+          const targetNode = nodesRef.current.find((n) => n.id === nodeId);
+          if (targetNode?.type === "output") {
+            const nodeLabel = (targetNode.data as { label?: string }).label || "Response";
+            addPreviewEntry({
+              nodeId,
+              nodeLabel,
+              nodeType: "output",
+              status: state.status,
+              output: state.output,
+              error: state.error,
+            });
+          }
+        }
+      }
     },
-    [setNodes]
+    [setNodes, addPreviewEntry]
   );
 
   const resetExecution = useCallback(() => {
@@ -121,6 +160,8 @@ export function AgentFlow() {
       }))
     );
     setFinalOutput(null);
+    setPreviewEntries([]);
+    addedPreviewIds.current.clear();
   }, [setNodes]);
 
   const runFlow = useCallback(async () => {
@@ -140,9 +181,9 @@ export function AgentFlow() {
   }, [nodes, edges, userInput, isRunning, updateNodeExecutionState, resetExecution]);
 
   return (
-    <div className="flex h-screen w-full">
-      <NodeSidebar />
-      <div ref={reactFlowWrapper} className="flex-1 bg-muted/10">
+    <div className="relative h-screen w-full">
+      <div ref={reactFlowWrapper} className="h-full w-full bg-muted/10">
+        <NodeSidebar />
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -156,29 +197,11 @@ export function AgentFlow() {
           fitView
           fitViewOptions={{ padding: 0.2 }}
           deleteKeyCode={["Backspace", "Delete"]}
+          proOptions={{ hideAttribution: true }}
         >
           <Background />
           <Controls />
-          <MiniMap
-            nodeColor={(node) => {
-              switch (node.type) {
-                case "input":
-                  return "#22c55e";
-                case "output":
-                  return "#ef4444";
-                case "prompt":
-                  return "#3b82f6";
-                case "tool":
-                  return "#a855f7";
-                case "condition":
-                  return "#eab308";
-                default:
-                  return "#6b7280";
-              }
-            }}
-            maskColor="rgba(0, 0, 0, 0.1)"
-          />
-
+          
           {/* Execution Controls */}
           <Panel
             position="top-center"
@@ -209,19 +232,11 @@ export function AgentFlow() {
             </Button>
           </Panel>
 
-          {/* Final Output */}
-          {finalOutput && (
-            <Panel
-              position="bottom-center"
-              className="rounded-xl border bg-background/95 backdrop-blur p-4 shadow-sm max-w-xl"
-            >
-              <h3 className="text-sm font-medium mb-2">Final Output</h3>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap max-h-48 overflow-auto">
-                {finalOutput}
-              </p>
-            </Panel>
-          )}
         </ReactFlow>
+        <PreviewModal
+          entries={previewEntries}
+          onClear={() => setPreviewEntries([])}
+        />
       </div>
     </div>
   );

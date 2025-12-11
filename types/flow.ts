@@ -97,7 +97,7 @@ export const nodeDefinitions: NodeDefinition[] = [
   },
   {
     type: "output",
-    label: "Output",
+    label: "Response",
     description: "Exit point for the flow",
     color: "bg-red-500/10 text-red-700 dark:text-red-300",
   },
