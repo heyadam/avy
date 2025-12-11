@@ -32,9 +32,14 @@ export function OutputNode({ data }: NodeProps<OutputNodeType>) {
     >
       <Handle
         type="target"
-        position={Position.Top}
-        className="!bg-red-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
+        position={Position.Left}
+        className="!bg-teal-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
       />
+      <div className="pointer-events-none absolute top-1/2 -translate-y-1/2 -left-10">
+        <span className="rounded bg-background/80 px-1 py-0.5 text-[10px] text-muted-foreground shadow-xs border">
+          string
+        </span>
+      </div>
       {/* no body content */}
     </NodeFrame>
   );

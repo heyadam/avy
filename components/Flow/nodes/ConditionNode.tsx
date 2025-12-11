@@ -30,9 +30,14 @@ export function ConditionNode({ data }: NodeProps<ConditionNodeType>) {
     >
       <Handle
         type="target"
-        position={Position.Top}
-        className="!bg-yellow-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
+        position={Position.Left}
+        className="!bg-teal-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
       />
+      <div className="pointer-events-none absolute top-1/2 -translate-y-1/2 -left-10">
+        <span className="rounded bg-background/80 px-1 py-0.5 text-[10px] text-muted-foreground shadow-xs border">
+          string
+        </span>
+      </div>
 
       <div className="space-y-2">
         <p className="text-xs font-mono bg-muted px-2 py-1.5 rounded-md whitespace-pre-wrap line-clamp-4">
@@ -47,16 +52,28 @@ export function ConditionNode({ data }: NodeProps<ConditionNodeType>) {
 
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         id="true"
-        className="!bg-emerald-500 !w-2.5 !h-2.5 !left-[25%] !border-2 !border-background !shadow-sm"
+        style={{ top: "42%" }}
+        className="!bg-emerald-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
       />
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         id="false"
-        className="!bg-red-500 !w-2.5 !h-2.5 !left-[75%] !border-2 !border-background !shadow-sm"
+        style={{ top: "58%" }}
+        className="!bg-red-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
       />
+      <div className="pointer-events-none absolute top-[42%] -translate-y-1/2 -right-12">
+        <span className="rounded bg-background/80 px-1 py-0.5 text-[10px] text-emerald-700 dark:text-emerald-300 shadow-xs border">
+          true
+        </span>
+      </div>
+      <div className="pointer-events-none absolute top-[58%] -translate-y-1/2 -right-12">
+        <span className="rounded bg-background/80 px-1 py-0.5 text-[10px] text-red-700 dark:text-red-300 shadow-xs border">
+          false
+        </span>
+      </div>
     </NodeFrame>
   );
 }

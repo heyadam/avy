@@ -13,8 +13,6 @@ export async function POST(request: NextRequest) {
     switch (type) {
       case "prompt": {
         const { prompt, model } = body;
-        const userInput = context?.userInput || input;
-
         const messages: { role: "system" | "user"; content: string }[] = [];
         if (typeof prompt === "string" && prompt.trim().length > 0) {
           messages.push({ role: "system", content: prompt.trim() });
@@ -22,12 +20,8 @@ export async function POST(request: NextRequest) {
 
         const completion = await openai.chat.completions.create({
           model: model || "gpt-4",
-          messages: messages.concat([
-            {
-              role: "user",
-              content: `Original user question: ${userInput}\n\nCurrent input from previous step: ${input}`,
-            },
-          ]),
+          // Each node is string-in -> string-out. The user message is just the incoming string.
+          messages: messages.concat([{ role: "user", content: String(input ?? "") }]),
           max_tokens: 1000,
         });
 

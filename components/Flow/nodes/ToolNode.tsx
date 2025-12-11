@@ -31,9 +31,14 @@ export function ToolNode({ data }: NodeProps<ToolNodeType>) {
     >
       <Handle
         type="target"
-        position={Position.Top}
-        className="!bg-purple-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
+        position={Position.Left}
+        className="!bg-teal-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
       />
+      <div className="pointer-events-none absolute top-1/2 -translate-y-1/2 -left-10">
+        <span className="rounded bg-background/80 px-1 py-0.5 text-[10px] text-muted-foreground shadow-xs border">
+          string
+        </span>
+      </div>
 
       <div className="space-y-2">
         <Badge variant="outline" className="font-mono text-[11px]">
@@ -48,9 +53,14 @@ export function ToolNode({ data }: NodeProps<ToolNodeType>) {
 
       <Handle
         type="source"
-        position={Position.Bottom}
-        className="!bg-purple-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
+        position={Position.Right}
+        className="!bg-teal-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
       />
+      <div className="pointer-events-none absolute top-1/2 -translate-y-1/2 -right-10">
+        <span className="rounded bg-background/80 px-1 py-0.5 text-[10px] text-muted-foreground shadow-xs border">
+          string
+        </span>
+      </div>
     </NodeFrame>
   );
 }

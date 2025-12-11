@@ -48,15 +48,20 @@ export function PromptNode({ id, data }: NodeProps<PromptNodeType>) {
     >
       <Handle
         type="target"
-        position={Position.Top}
-        className="!bg-blue-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
+        position={Position.Left}
+        className="!bg-teal-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
       />
+      <div className="pointer-events-none absolute top-1/2 -translate-y-1/2 -left-10">
+        <span className="rounded bg-background/80 px-1 py-0.5 text-[10px] text-muted-foreground shadow-xs border">
+          string
+        </span>
+      </div>
 
       <div className="space-y-2">
         <textarea
           value={typeof data.prompt === "string" ? data.prompt : ""}
           onChange={(e) => updateNodeData(id, { prompt: e.target.value })}
-          placeholder="Enter instructions (optional)…"
+          placeholder="System instructions (optional)…"
           className={cn(
             "nodrag w-full min-h-[84px] resize-y rounded-md border border-input bg-background/60 dark:bg-muted/40 px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none",
             "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
@@ -85,9 +90,14 @@ export function PromptNode({ id, data }: NodeProps<PromptNodeType>) {
 
       <Handle
         type="source"
-        position={Position.Bottom}
-        className="!bg-blue-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
+        position={Position.Right}
+        className="!bg-teal-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
       />
+      <div className="pointer-events-none absolute top-1/2 -translate-y-1/2 -right-10">
+        <span className="rounded bg-background/80 px-1 py-0.5 text-[10px] text-muted-foreground shadow-xs border">
+          string
+        </span>
+      </div>
     </NodeFrame>
   );
 }
