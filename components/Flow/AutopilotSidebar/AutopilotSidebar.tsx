@@ -28,6 +28,7 @@ export function AutopilotSidebar({
   nodes,
   edges,
   onApplyChanges,
+  onUndoChanges,
   isOpen,
   onToggle,
 }: AutopilotSidebarProps) {
@@ -40,9 +41,9 @@ export function AutopilotSidebar({
     isLoading,
     error,
     sendMessage,
-    applyPendingChanges,
+    undoChanges,
     clearHistory,
-  } = useAutopilotChat({ nodes, edges, onApplyChanges });
+  } = useAutopilotChat({ nodes, edges, onApplyChanges, onUndoChanges });
 
   // Save width to localStorage when it changes
   useEffect(() => {
@@ -95,7 +96,7 @@ export function AutopilotSidebar({
   return (
     <div
       ref={sidebarRef}
-      className="flex flex-col h-full border-r bg-background relative"
+      className="flex flex-col h-full border-r bg-background relative overflow-hidden"
       style={{ width }}
     >
       <AutopilotHeader
@@ -108,7 +109,7 @@ export function AutopilotSidebar({
         isLoading={isLoading}
         error={error}
         onSendMessage={sendMessage}
-        onApplyChanges={applyPendingChanges}
+        onUndoChanges={undoChanges}
       />
       {/* Resize handle - on the right edge for left sidebar */}
       <div

@@ -24,7 +24,7 @@ import { initialNodes, initialEdges } from "@/lib/example-flow";
 import type { NodeType } from "@/types/flow";
 import { executeFlow } from "@/lib/execution/engine";
 import type { NodeExecutionState } from "@/lib/execution/types";
-import type { FlowChanges, AddNodeAction, AddEdgeAction } from "@/lib/autopilot/types";
+import type { FlowChanges, AddNodeAction, AddEdgeAction, AppliedChangesInfo } from "@/lib/autopilot/types";
 import { ResponsesSidebar, type PreviewEntry } from "./ResponsesSidebar";
 
 let id = 0;
@@ -90,23 +90,30 @@ export function AgentFlow() {
 
   // Autopilot sidebar state
   const [autopilotOpen, setAutopilotOpen] = useState(false);
+  const [autopilotHighlightedIds, setAutopilotHighlightedIds] = useState<Set<string>>(new Set());
 
   // Apply changes from autopilot
   const applyAutopilotChanges = useCallback(
-    (changes: FlowChanges) => {
+    (changes: FlowChanges): AppliedChangesInfo => {
+      const nodeIds: string[] = [];
+      const edgeIds: string[] = [];
+
       for (const action of changes.actions) {
         if (action.type === "addNode") {
           const nodeAction = action as AddNodeAction;
+          nodeIds.push(nodeAction.node.id);
           setNodes((nds) =>
             nds.concat({
               id: nodeAction.node.id,
               type: nodeAction.node.type,
               position: nodeAction.node.position,
               data: nodeAction.node.data,
+              className: "autopilot-added",
             })
           );
         } else if (action.type === "addEdge") {
           const edgeAction = action as AddEdgeAction;
+          edgeIds.push(edgeAction.edge.id);
           setEdges((eds) =>
             addEdge(
               {
@@ -121,8 +128,51 @@ export function AgentFlow() {
           );
         }
       }
+
+      // Track highlighted nodes
+      setAutopilotHighlightedIds((prev) => new Set([...prev, ...nodeIds]));
+
+      return { nodeIds, edgeIds };
     },
     [setNodes, setEdges]
+  );
+
+  // Undo changes from autopilot
+  const undoAutopilotChanges = useCallback(
+    (applied: AppliedChangesInfo) => {
+      setNodes((nds) => nds.filter((n) => !applied.nodeIds.includes(n.id)));
+      setEdges((eds) => eds.filter((e) => !applied.edgeIds.includes(e.id)));
+      // Remove from highlighted set
+      setAutopilotHighlightedIds((prev) => {
+        const next = new Set(prev);
+        applied.nodeIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    },
+    [setNodes, setEdges]
+  );
+
+  // Wrap onNodesChange to clear autopilot highlight when nodes are dragged
+  const handleNodesChange = useCallback(
+    (changes: Parameters<typeof onNodesChange>[0]) => {
+      // Clear highlight for any nodes being dragged
+      for (const change of changes) {
+        if (change.type === "position" && change.dragging && autopilotHighlightedIds.has(change.id)) {
+          setNodes((nds) =>
+            nds.map((n) =>
+              n.id === change.id ? { ...n, className: undefined } : n
+            )
+          );
+          setAutopilotHighlightedIds((prev) => {
+            const next = new Set(prev);
+            next.delete(change.id);
+            return next;
+          });
+        }
+      }
+      onNodesChange(changes);
+    },
+    [onNodesChange, autopilotHighlightedIds, setNodes]
   );
 
   const addPreviewEntry = useCallback(
@@ -321,6 +371,7 @@ export function AgentFlow() {
         nodes={nodes}
         edges={edges}
         onApplyChanges={applyAutopilotChanges}
+        onUndoChanges={undoAutopilotChanges}
         isOpen={autopilotOpen}
         onToggle={() => setAutopilotOpen(!autopilotOpen)}
       />
@@ -329,7 +380,7 @@ export function AgentFlow() {
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          onNodesChange={onNodesChange}
+          onNodesChange={handleNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onInit={onInit}

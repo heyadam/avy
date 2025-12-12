@@ -45,6 +45,11 @@ export interface FlowChanges {
 }
 
 // Chat message types
+export interface AppliedChangesInfo {
+  nodeIds: string[];
+  edgeIds: string[];
+}
+
 export interface AutopilotMessage {
   id: string;
   role: "user" | "assistant";
@@ -52,6 +57,7 @@ export interface AutopilotMessage {
   timestamp: number;
   pendingChanges?: FlowChanges;
   applied?: boolean;
+  appliedInfo?: AppliedChangesInfo;
 }
 
 // API request/response types

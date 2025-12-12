@@ -4,18 +4,20 @@ import { useState, useCallback, useRef } from "react";
 import type { Node, Edge } from "@xyflow/react";
 import { createFlowSnapshot } from "@/lib/autopilot/snapshot";
 import { parseFlowChanges } from "@/lib/autopilot/parser";
-import type { AutopilotMessage, FlowChanges } from "@/lib/autopilot/types";
+import type { AutopilotMessage, FlowChanges, AppliedChangesInfo } from "@/lib/autopilot/types";
 
 interface UseAutopilotChatOptions {
   nodes: Node[];
   edges: Edge[];
-  onApplyChanges: (changes: FlowChanges) => void;
+  onApplyChanges: (changes: FlowChanges) => AppliedChangesInfo;
+  onUndoChanges: (applied: AppliedChangesInfo) => void;
 }
 
 export function useAutopilotChat({
   nodes,
   edges,
   onApplyChanges,
+  onUndoChanges,
 }: UseAutopilotChatOptions) {
   const [messages, setMessages] = useState<AutopilotMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -105,11 +107,23 @@ export function useAutopilotChat({
         // Parse flow changes from completed response
         const changes = parseFlowChanges(fullOutput);
 
-        // Update message with parsed changes
+        // Auto-apply changes if any
+        let appliedInfo: AppliedChangesInfo | undefined;
+        if (changes) {
+          appliedInfo = onApplyChanges(changes);
+        }
+
+        // Update message with parsed changes and applied info
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantMessageId
-              ? { ...m, content: fullOutput, pendingChanges: changes ?? undefined }
+              ? {
+                  ...m,
+                  content: fullOutput,
+                  pendingChanges: changes ?? undefined,
+                  applied: !!changes,
+                  appliedInfo,
+                }
               : m
           )
         );
@@ -138,24 +152,24 @@ export function useAutopilotChat({
         abortControllerRef.current = null;
       }
     },
-    [messages, nodes, edges, isLoading]
+    [messages, nodes, edges, isLoading, onApplyChanges]
   );
 
-  const applyPendingChanges = useCallback(
+  const undoChanges = useCallback(
     (messageId: string) => {
       const message = messages.find((m) => m.id === messageId);
-      if (message?.pendingChanges && !message.applied) {
-        onApplyChanges(message.pendingChanges);
+      if (message?.applied && message.appliedInfo) {
+        onUndoChanges(message.appliedInfo);
 
-        // Mark as applied
+        // Mark as not applied
         setMessages((prev) =>
           prev.map((m) =>
-            m.id === messageId ? { ...m, applied: true } : m
+            m.id === messageId ? { ...m, applied: false, appliedInfo: undefined } : m
           )
         );
       }
     },
-    [messages, onApplyChanges]
+    [messages, onUndoChanges]
   );
 
   const clearHistory = useCallback(() => {
@@ -174,7 +188,7 @@ export function useAutopilotChat({
     isLoading,
     error,
     sendMessage,
-    applyPendingChanges,
+    undoChanges,
     clearHistory,
     cancelRequest,
   };

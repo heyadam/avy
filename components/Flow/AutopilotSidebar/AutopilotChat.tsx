@@ -1,13 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Conversation,
-  ConversationContent,
-  ConversationEmptyState,
-  ConversationScrollButton,
-} from "@/components/ai-elements/conversation";
 import {
   Message,
   MessageContent,
@@ -20,7 +14,7 @@ import {
   PromptInputSubmit,
 } from "@/components/ai-elements/prompt-input";
 import { Loader } from "@/components/ai-elements/loader";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Sparkles, Undo2 } from "lucide-react";
 import type { AutopilotMessage } from "@/lib/autopilot/types";
 
 interface AutopilotChatProps {
@@ -28,7 +22,7 @@ interface AutopilotChatProps {
   isLoading: boolean;
   error: string | null;
   onSendMessage: (content: string) => void;
-  onApplyChanges: (messageId: string) => void;
+  onUndoChanges: (messageId: string) => void;
 }
 
 export function AutopilotChat({
@@ -36,48 +30,67 @@ export function AutopilotChat({
   isLoading,
   error,
   onSendMessage,
-  onApplyChanges,
+  onUndoChanges,
 }: AutopilotChatProps) {
   const [inputValue, setInputValue] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
-      <Conversation className="flex-1">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
-          <ConversationEmptyState
-            title="Flow Autopilot"
-            description="Describe what you want to add to your flow and I'll create the nodes and connections for you."
-            icon={<Sparkles className="h-8 w-8" />}
-          />
+          <div className="flex size-full flex-col items-center justify-center gap-3 p-8 text-center">
+            <div className="text-muted-foreground">
+              <Sparkles className="h-8 w-8" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-medium text-sm">Flow Autopilot</h3>
+              <p className="text-muted-foreground text-sm">
+                Describe what you want to add to your flow and I&apos;ll create the nodes and connections for you.
+              </p>
+            </div>
+          </div>
         ) : (
-          <ConversationContent className="gap-4 p-3">
+          <div className="flex flex-col gap-4 p-3">
             {messages.map((message) => (
               <Message key={message.id} from={message.role}>
                 <MessageContent>
                   {message.role === "assistant" ? (
                     <>
-                      <MessageResponse>{message.content}</MessageResponse>
+                      <MessageResponse className="[&_pre]:text-[8px] [&_pre]:leading-[1.2] [&_pre]:p-1.5 [&_code]:text-[8px]">{message.content}</MessageResponse>
                       {message.pendingChanges && (
                         <div className="mt-3 pt-3 border-t">
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-xs text-muted-foreground">
                               {message.pendingChanges.actions.length} change
-                              {message.pendingChanges.actions.length !== 1 ? "s" : ""} ready
+                              {message.pendingChanges.actions.length !== 1 ? "s" : ""}
                             </span>
                             {message.applied ? (
-                              <span className="flex items-center gap-1 text-xs text-green-600">
-                                <Check className="h-3 w-3" />
-                                Applied
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="flex items-center gap-1 text-xs text-green-600">
+                                  <Check className="h-3 w-3" />
+                                  Applied
+                                </span>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                  onClick={() => onUndoChanges(message.id)}
+                                >
+                                  <Undo2 className="h-3 w-3 mr-1" />
+                                  Undo
+                                </Button>
+                              </div>
                             ) : (
-                              <Button
-                                size="sm"
-                                variant="default"
-                                className="h-7 text-xs bg-purple-600 hover:bg-purple-700"
-                                onClick={() => onApplyChanges(message.id)}
-                              >
-                                Apply Changes
-                              </Button>
+                              <span className="text-xs text-muted-foreground">
+                                Undone
+                              </span>
                             )}
                           </div>
                         </div>
@@ -95,10 +108,10 @@ export function AutopilotChat({
                 <span className="text-sm">Thinking...</span>
               </div>
             )}
-          </ConversationContent>
+            <div ref={bottomRef} />
+          </div>
         )}
-        <ConversationScrollButton />
-      </Conversation>
+      </div>
 
       {error && (
         <div className="px-3 py-2 text-xs text-red-600 bg-red-50 dark:bg-red-950/20">
