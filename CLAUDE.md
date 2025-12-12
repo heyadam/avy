@@ -14,9 +14,11 @@ npm run start    # Start production server
 ## Environment Setup
 
 Requires API keys for the AI providers you want to use:
-- `OPENAI_API_KEY` - For OpenAI models (GPT-5, GPT-5 Mini, GPT-5 Nano)
+- `OPENAI_API_KEY` - For OpenAI models
 - `GOOGLE_GENERATIVE_AI_API_KEY` - For Google Gemini models
 - `ANTHROPIC_API_KEY` - For Anthropic Claude models
+
+See `AI_MODELS.md` for the full list of supported models per provider.
 
 ## Architecture Overview
 
@@ -29,27 +31,34 @@ This is an AI agent workflow builder using Next.js 16 App Router with React Flow
 **Node Types** (`components/Flow/nodes/`): Four custom node components with editable labels:
 - `InputNode`: Entry point, receives user input
 - `PromptNode`: LLM prompt execution with multi-provider support
-- `ImageNode`: AI image generation using OpenAI Responses API with streaming partial images
+- `ImageNode`: AI image generation (OpenAI with streaming partial images, Google Gemini)
 - `OutputNode`: Exit point, displays final result and sends to preview
 
-**Provider Configuration** (`lib/providers.ts`): Centralized config for AI providers and models:
-- OpenAI: GPT-5, GPT-5 Mini, GPT-5 Nano (with verbosity and thinking options)
-- Google: Gemini 2.5 Flash, Gemini 2.5 Pro, Gemini 2.0 Flash
-- Anthropic: Claude Sonnet 4.5, Claude 3.5 Haiku
+**Provider Configuration** (`lib/providers.ts`): Centralized config for AI providers and models. Supports OpenAI, Google, and Anthropic with provider-specific options (verbosity, thinking).
+
+**IMPORTANT: Always consult `AI_MODELS.md` for the authoritative list of model IDs.** Do not hardcode or assume model names - refer to AI_MODELS.md for correct, up-to-date model identifiers when working with providers.
+
+### Documentation Lookup
+
+Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__context7__get-library-docs`) to fetch the latest documentation for any libraries or SDKs (Vercel AI SDK, OpenAI SDK, etc.).
+
+**IMPORTANT: `AI_MODELS.md` supersedes Context7 for model information.** If Context7 returns different model IDs or model names, always defer to `AI_MODELS.md` as the authoritative source for this project.
 
 **NodeFrame** (`components/Flow/nodes/NodeFrame.tsx`): Shared wrapper for all nodes providing consistent styling, status badges, and inline title editing.
 
 **NodeStatusBadge** (`components/Flow/nodes/NodeStatusBadge.tsx`): Visual indicator for node execution status (running/success/error).
 
-**Preview Modal** (`components/Flow/PreviewModal/`): Floating preview window that displays output node results:
-- `PreviewModal.tsx`: Main container with drag/resize functionality
-- `PreviewHeader.tsx`: Title bar with close button
-- `PreviewContent.tsx`: Scrollable content area
-- `PreviewEntry.tsx`: Individual output entry display
-- Always visible in top-right corner
-- Draggable and resizable with session persistence
-- Auto-grows with content, scrolls when exceeding max height
+**Responses Sidebar** (`components/Flow/ResponsesSidebar/`): Fixed right sidebar that displays output node results:
+- `ResponsesSidebar.tsx`: Main container with run/reset controls
+- `ResponsesHeader.tsx`: Header with action buttons
+- `ResponsesContent.tsx`: Scrollable content area for responses
 - Streams responses in real-time as they generate
+
+**Colored Edges** (`components/Flow/edges/ColoredEdge.tsx`): Custom edge component with data-type based coloring:
+- Cyan for string data
+- Purple for image data
+- Amber for response data
+- Multi-layer glow effect and pulse animation on selection
 
 **Execution Engine** (`lib/execution/engine.ts`): Recursive graph traversal that:
 1. Finds input node as start
@@ -64,7 +73,7 @@ This is an AI agent workflow builder using Next.js 16 App Router with React Flow
 
 **API Route** (`app/api/execute/route.ts`): Server-side execution handler for prompt and image nodes:
 - Prompt nodes: Uses Vercel AI SDK with `streamText` for real-time streaming responses. Supports OpenAI, Google, and Anthropic providers with provider-specific options (verbosity, thinking).
-- Image nodes: Uses OpenAI SDK directly with Responses API for streaming partial images. Configurable quality, size, format, and partial image count (0-3).
+- Image nodes: OpenAI (Responses API with streaming partial images) and Google Gemini. Configurable aspect ratio, quality, format, and partial image count.
 
 ### Type System
 

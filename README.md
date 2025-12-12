@@ -8,29 +8,38 @@ A visual workflow builder for creating AI agent pipelines using drag-and-drop no
 - **Node Types**:
   - **Input**: Entry point that receives user input
   - **Prompt**: Execute LLM prompts with multi-provider support
-  - **Output**: Exit point that displays results in the preview window
+  - **Image**: AI image generation with OpenAI and Google Gemini
+  - **Output**: Exit point that displays results in the responses sidebar
 - **Multi-Provider Support**: Choose from OpenAI, Google Gemini, or Anthropic Claude models
 - **OpenAI-Specific Options**: Verbosity control (low/medium/high) and thinking mode for supported models
-- **Streaming Responses**: See AI responses appear word-by-word in real-time
-- **Live Preview**: Floating preview modal shows output node results as they stream
+- **Streaming Responses**: See AI responses and images appear in real-time
+- **Responses Sidebar**: Fixed sidebar shows output node results as they stream
 - **Parallel Execution**: Branches execute independently, responses appear as each completes
+- **Color-Coded Edges**: Visual data flow with colored connections (cyan=string, purple=image, amber=response)
 - **Editable Labels**: Click any node title to rename it inline
 - **Execution Tracking**: Visual feedback showing node execution status (running/success/error)
 
 ### Supported Models
 
+**Text Models:**
 | Provider | Models |
 |----------|--------|
 | OpenAI | GPT-5, GPT-5 Mini, GPT-5 Nano |
 | Google | Gemini 2.5 Flash, Gemini 2.5 Pro, Gemini 2.0 Flash |
 | Anthropic | Claude Sonnet 4.5, Claude 3.5 Haiku |
 
+**Image Models:**
+| Provider | Models |
+|----------|--------|
+| OpenAI | GPT-5 (streaming partial images) |
+| Google | Gemini 2.5 Flash |
+
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+
-- OpenAI API key
+- API key(s) for the providers you want to use
 
 ### Installation
 
@@ -40,10 +49,12 @@ npm install
 
 ### Environment Setup
 
-Create a `.env.local` file:
+Create a `.env.local` file with API keys for the providers you want to use:
 
 ```
-OPENAI_API_KEY=your_api_key_here
+OPENAI_API_KEY=your_openai_key
+GOOGLE_GENERATIVE_AI_API_KEY=your_google_key
+ANTHROPIC_API_KEY=your_anthropic_key
 ```
 
 ### Development
@@ -58,16 +69,17 @@ Open [http://localhost:3000](http://localhost:3000) to use the workflow builder.
 
 1. Click "Add Node" and drag nodes onto the canvas
 2. Connect nodes by dragging from output handles to input handles
-3. Configure node properties (prompts, models)
-4. Enter input text in the top bar
-5. Click "Run Flow" to execute the workflow
-6. View results in the floating preview window
+3. Configure node properties (prompts, models, image settings)
+4. Enter input text in the Input node
+5. Click "Run" in the responses sidebar to execute the workflow
+6. View streaming results in the responses sidebar
 
 ## Tech Stack
 
 - [Next.js 16](https://nextjs.org/) - React framework
 - [React Flow](https://reactflow.dev/) - Node-based flow editor
 - [Vercel AI SDK](https://sdk.vercel.ai/) - Streaming LLM responses
+- [OpenAI SDK](https://platform.openai.com/docs/libraries) - Image generation with streaming
 - [Tailwind CSS v4](https://tailwindcss.com/) - Styling
 - [shadcn/ui](https://ui.shadcn.com/) - UI components
 - [AI Elements](https://registry.ai-sdk.dev/) - AI SDK component registry
