@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     // Stream response from Claude Sonnet 4.5
     const result = streamText({
-      model: anthropic("claude-sonnet-4-5-20241022"),
+      model: anthropic("claude-sonnet-4-5"),
       system: systemPrompt,
       messages: messages.map((msg) => ({
         role: msg.role,
