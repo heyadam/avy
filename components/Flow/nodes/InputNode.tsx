@@ -1,16 +1,19 @@
 "use client";
 
-import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
+import { Handle, Position, useReactFlow, type NodeProps, type Node } from "@xyflow/react";
 import type { InputNodeData } from "@/types/flow";
 import { Play } from "lucide-react";
 import { NodeFrame } from "./NodeFrame";
 
 type InputNodeType = Node<InputNodeData, "input">;
 
-export function InputNode({ data }: NodeProps<InputNodeType>) {
+export function InputNode({ id, data }: NodeProps<InputNodeType>) {
+  const { updateNodeData } = useReactFlow();
+
   return (
     <NodeFrame
       title={data.label}
+      onTitleChange={(label) => updateNodeData(id, { label })}
       icon={<Play className="h-4 w-4" />}
       iconClassName="bg-green-500/10 text-green-600 dark:text-green-300"
       accentBorderClassName="border-l-green-500"

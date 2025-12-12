@@ -16,11 +16,9 @@ import { cn } from "@/lib/utils";
 type PromptNodeType = Node<PromptNodeData, "prompt">;
 
 const MODELS = [
-  { value: "gpt-4o", label: "GPT-4o" },
-  { value: "gpt-4o-mini", label: "4o Mini" },
-  { value: "gpt-4-turbo", label: "4 Turbo" },
-  { value: "o1", label: "o1" },
-  { value: "o1-mini", label: "o1 Mini" },
+  { value: "gpt-5.2-2025-12-11", label: "GPT-5.2" },
+  { value: "gpt-5-mini-2025-08-07", label: "GPT-5 Mini" },
+  { value: "gpt-5-nano-2025-08-07", label: "GPT-5 Nano" },
 ];
 
 export function PromptNode({ id, data }: NodeProps<PromptNodeType>) {
@@ -29,6 +27,7 @@ export function PromptNode({ id, data }: NodeProps<PromptNodeType>) {
   return (
     <NodeFrame
       title={data.label}
+      onTitleChange={(label) => updateNodeData(id, { label })}
       icon={<MessageSquare className="h-4 w-4" />}
       iconClassName="bg-blue-500/10 text-blue-600 dark:text-blue-300"
       accentBorderClassName="border-l-blue-500"
@@ -71,7 +70,7 @@ export function PromptNode({ id, data }: NodeProps<PromptNodeType>) {
         <div className="flex items-center justify-between gap-2">
           <div className="text-[11px] text-muted-foreground">Model</div>
           <Select
-            value={data.model || "gpt-4o"}
+            value={data.model || "gpt-5.2-2025-12-11"}
             onValueChange={(model) => updateNodeData(id, { model })}
           >
             <SelectTrigger className="h-7 text-xs nodrag w-[120px]">

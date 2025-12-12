@@ -1,16 +1,19 @@
 "use client";
 
-import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
+import { Handle, Position, useReactFlow, type NodeProps, type Node } from "@xyflow/react";
 import type { OutputNodeData } from "@/types/flow";
 import { Square } from "lucide-react";
 import { NodeFrame } from "./NodeFrame";
 
 type OutputNodeType = Node<OutputNodeData, "output">;
 
-export function OutputNode({ data }: NodeProps<OutputNodeType>) {
+export function OutputNode({ id, data }: NodeProps<OutputNodeType>) {
+  const { updateNodeData } = useReactFlow();
+
   return (
     <NodeFrame
       title={data.label}
+      onTitleChange={(label) => updateNodeData(id, { label })}
       icon={<Square className="h-4 w-4" />}
       iconClassName="bg-red-500/10 text-red-600 dark:text-red-300"
       accentBorderClassName="border-l-red-500"

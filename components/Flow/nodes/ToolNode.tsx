@@ -1,6 +1,6 @@
 "use client";
 
-import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
+import { Handle, Position, useReactFlow, type NodeProps, type Node } from "@xyflow/react";
 import type { ToolNodeData } from "@/types/flow";
 import { Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -8,10 +8,13 @@ import { NodeFrame } from "./NodeFrame";
 
 type ToolNodeType = Node<ToolNodeData, "tool">;
 
-export function ToolNode({ data }: NodeProps<ToolNodeType>) {
+export function ToolNode({ id, data }: NodeProps<ToolNodeType>) {
+  const { updateNodeData } = useReactFlow();
+
   return (
     <NodeFrame
       title={data.label}
+      onTitleChange={(label) => updateNodeData(id, { label })}
       icon={<Wrench className="h-4 w-4" />}
       iconClassName="bg-purple-500/10 text-purple-600 dark:text-purple-300"
       accentBorderClassName="border-l-purple-500"

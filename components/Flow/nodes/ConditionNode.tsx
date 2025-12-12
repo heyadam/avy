@@ -1,16 +1,19 @@
 "use client";
 
-import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
+import { Handle, Position, useReactFlow, type NodeProps, type Node } from "@xyflow/react";
 import type { ConditionNodeData } from "@/types/flow";
 import { GitBranch } from "lucide-react";
 import { NodeFrame } from "./NodeFrame";
 
 type ConditionNodeType = Node<ConditionNodeData, "condition">;
 
-export function ConditionNode({ data }: NodeProps<ConditionNodeType>) {
+export function ConditionNode({ id, data }: NodeProps<ConditionNodeType>) {
+  const { updateNodeData } = useReactFlow();
+
   return (
     <NodeFrame
       title={data.label}
+      onTitleChange={(label) => updateNodeData(id, { label })}
       icon={<GitBranch className="h-4 w-4" />}
       iconClassName="bg-yellow-500/10 text-yellow-700 dark:text-yellow-300"
       accentBorderClassName="border-l-yellow-500"

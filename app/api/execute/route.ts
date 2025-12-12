@@ -19,10 +19,10 @@ export async function POST(request: NextRequest) {
         }
 
         const completion = await openai.chat.completions.create({
-          model: model || "gpt-4",
+          model: model || "gpt-5.2-2025-12-11",
           // Each node is string-in -> string-out. The user message is just the incoming string.
           messages: messages.concat([{ role: "user", content: String(input ?? "") }]),
-          max_tokens: 1000,
+          max_completion_tokens: 1000,
         });
 
         const output = completion.choices[0]?.message?.content || "";
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
         // Use LLM to evaluate the condition based on the input
         const completion = await openai.chat.completions.create({
-          model: "gpt-4",
+          model: "gpt-5-nano-2025-08-07",
           messages: [
             {
               role: "system",
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
               content: input,
             },
           ],
-          max_tokens: 10,
+          max_completion_tokens: 10,
         });
 
         const response = completion.choices[0]?.message?.content?.toLowerCase().trim();

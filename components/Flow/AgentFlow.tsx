@@ -64,6 +64,17 @@ export function AgentFlow() {
     []
   );
 
+  const updatePreviewEntry = useCallback(
+    (nodeId: string, updates: Partial<PreviewEntry>) => {
+      setPreviewEntries((prev) =>
+        prev.map((entry) =>
+          entry.nodeId === nodeId ? { ...entry, ...updates } : entry
+        )
+      );
+    },
+    []
+  );
+
   const onConnect: OnConnect = useCallback(
     (params) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
@@ -124,27 +135,33 @@ export function AgentFlow() {
         )
       );
 
-      // Add to preview if this is an output node with results (dedupe with ref)
-      if (state.status !== "running" && state.output) {
-        const previewId = `${nodeId}-${state.output}`;
-        if (!addedPreviewIds.current.has(previewId)) {
-          addedPreviewIds.current.add(previewId);
-          const targetNode = nodesRef.current.find((n) => n.id === nodeId);
-          if (targetNode?.type === "output") {
-            const nodeLabel = (targetNode.data as { label?: string }).label || "Response";
+      // Handle preview for output/response nodes
+      const targetNode = nodesRef.current.find((n) => n.id === nodeId);
+      if (targetNode?.type === "output") {
+        const nodeLabel = (targetNode.data as { label?: string }).label || "Response";
+
+        if (state.status === "running") {
+          // Add to preview immediately when running (dedupe by nodeId)
+          if (!addedPreviewIds.current.has(nodeId)) {
+            addedPreviewIds.current.add(nodeId);
             addPreviewEntry({
               nodeId,
               nodeLabel,
               nodeType: "output",
-              status: state.status,
-              output: state.output,
-              error: state.error,
+              status: "running",
             });
           }
+        } else {
+          // Update existing entry when complete
+          updatePreviewEntry(nodeId, {
+            status: state.status,
+            output: state.output,
+            error: state.error,
+          });
         }
       }
     },
-    [setNodes, addPreviewEntry]
+    [setNodes, addPreviewEntry, updatePreviewEntry]
   );
 
   const resetExecution = useCallback(() => {

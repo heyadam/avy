@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { ExecutionStatus } from "@/lib/execution/types";
 import { cn } from "@/lib/utils";
 import { NodeStatusBadge } from "./NodeStatusBadge";
@@ -14,6 +14,7 @@ export function NodeFrame({
   children,
   footer,
   className,
+  onTitleChange,
 }: {
   title: string;
   icon: ReactNode;
@@ -23,7 +24,10 @@ export function NodeFrame({
   children?: ReactNode;
   footer?: ReactNode;
   className?: string;
+  onTitleChange?: (newTitle: string) => void;
 }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(title);
   const statusClasses =
     status === "running"
       ? "ring-2 ring-primary/20"
@@ -48,7 +52,43 @@ export function NodeFrame({
             {icon}
           </div>
           <div className="min-w-0">
-            <div className="text-sm font-medium truncate">{title}</div>
+            {isEditing ? (
+              <input
+                autoFocus
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={() => {
+                  onTitleChange?.(editValue);
+                  setIsEditing(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    onTitleChange?.(editValue);
+                    setIsEditing(false);
+                  }
+                  if (e.key === "Escape") {
+                    setEditValue(title);
+                    setIsEditing(false);
+                  }
+                }}
+                className="nodrag text-sm font-medium bg-transparent border-none outline-none w-full"
+              />
+            ) : (
+              <div
+                onClick={() => {
+                  if (onTitleChange) {
+                    setEditValue(title);
+                    setIsEditing(true);
+                  }
+                }}
+                className={cn(
+                  "text-sm font-medium truncate",
+                  onTitleChange && "cursor-text hover:bg-muted/50 rounded px-1 -mx-1"
+                )}
+              >
+                {title}
+              </div>
+            )}
           </div>
         </div>
         <NodeStatusBadge status={status} className="ml-2" />
