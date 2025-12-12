@@ -8,9 +8,9 @@ A visual workflow builder for creating AI agent pipelines using drag-and-drop no
 - **Node Types**:
   - **Input**: Entry point that receives user input
   - **Prompt**: Execute LLM prompts with configurable models (GPT-5.2, GPT-5 Mini, GPT-5 Nano)
-  - **Response**: Exit point that displays results in the preview window
+  - **Output**: Exit point that displays results in the preview window
 - **Streaming Responses**: See AI responses appear word-by-word in real-time
-- **Live Preview**: Floating preview modal shows Response node outputs as they stream
+- **Live Preview**: Floating preview modal shows output node results as they stream
 - **Parallel Execution**: Branches execute independently, responses appear as each completes
 - **Editable Labels**: Click any node title to rename it inline
 - **Execution Tracking**: Visual feedback showing node execution status (running/success/error)
@@ -60,3 +60,4 @@ Open [http://localhost:3000](http://localhost:3000) to use the workflow builder.
 - [Vercel AI SDK](https://sdk.vercel.ai/) - Streaming LLM responses
 - [Tailwind CSS v4](https://tailwindcss.com/) - Styling
 - [shadcn/ui](https://ui.shadcn.com/) - UI components
+- [AI Elements](https://registry.ai-sdk.dev/) - AI SDK component registry
