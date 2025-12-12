@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { nodeDefinitions, type NodeType } from "@/types/flow";
-import { Play, Square, MessageSquare, Wrench, GitBranch, Plus, X } from "lucide-react";
+import { Play, Square, MessageSquare, Plus, X } from "lucide-react";
 import type { DragEvent } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -10,8 +10,6 @@ const iconMap = {
   input: Play,
   output: Square,
   prompt: MessageSquare,
-  tool: Wrench,
-  condition: GitBranch,
 };
 
 export function NodeSidebar() {

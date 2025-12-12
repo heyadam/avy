@@ -23,12 +23,10 @@ This is an AI agent workflow builder using Next.js 16 App Router with React Flow
 
 **Flow Editor** (`components/Flow/AgentFlow.tsx`): Main visual editor using @xyflow/react. Handles drag-and-drop node creation, edge connections, and flow execution controls.
 
-**Node Types** (`components/Flow/nodes/`): Five custom node components with editable labels:
+**Node Types** (`components/Flow/nodes/`): Three custom node components with editable labels:
 - `InputNode`: Entry point, receives user input
-- `ResponseNode` (OutputNode): Exit point, displays final result and sends to preview
 - `PromptNode`: LLM prompt execution (GPT-5.2, GPT-5 Mini, GPT-5 Nano)
-- `ToolNode`: External tool calls (web_search, calculator, current_time)
-- `ConditionNode`: Branching logic with true/false outputs
+- `ResponseNode` (OutputNode): Exit point, displays final result and sends to preview
 
 **NodeFrame** (`components/Flow/nodes/NodeFrame.tsx`): Shared wrapper for all nodes providing consistent styling, status badges, and inline title editing.
 

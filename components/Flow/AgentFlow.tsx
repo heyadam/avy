@@ -32,8 +32,6 @@ const defaultNodeData: Record<NodeType, Record<string, unknown>> = {
   input: { label: "Input" },
   output: { label: "Response" },
   prompt: { label: "Prompt", prompt: "", model: "gpt-5.2-2025-12-11" },
-  tool: { label: "Tool", toolName: "custom_tool", description: "Tool description" },
-  condition: { label: "Condition", condition: "value === true" },
 };
 
 export function AgentFlow() {

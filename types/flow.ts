@@ -23,41 +23,24 @@ export interface PromptNodeData extends Record<string, unknown>, ExecutionData {
   model?: string;
 }
 
-export interface ToolNodeData extends Record<string, unknown>, ExecutionData {
-  label: string;
-  toolName: string;
-  description?: string;
-}
-
-export interface ConditionNodeData extends Record<string, unknown>, ExecutionData {
-  label: string;
-  condition: string;
-}
-
 // Union type for all node data
 export type AgentNodeData =
   | InputNodeData
   | OutputNodeData
-  | PromptNodeData
-  | ToolNodeData
-  | ConditionNodeData;
+  | PromptNodeData;
 
 // Custom node types
-export type NodeType = "input" | "output" | "prompt" | "tool" | "condition";
+export type NodeType = "input" | "output" | "prompt";
 
 // Typed nodes
 export type InputNode = Node<InputNodeData, "input">;
 export type OutputNode = Node<OutputNodeData, "output">;
 export type PromptNode = Node<PromptNodeData, "prompt">;
-export type ToolNode = Node<ToolNodeData, "tool">;
-export type ConditionNode = Node<ConditionNodeData, "condition">;
 
 export type AgentNode =
   | InputNode
   | OutputNode
-  | PromptNode
-  | ToolNode
-  | ConditionNode;
+  | PromptNode;
 
 // Edge type
 export type AgentEdge = Edge;
@@ -82,18 +65,6 @@ export const nodeDefinitions: NodeDefinition[] = [
     label: "Prompt",
     description: "LLM prompt or instruction",
     color: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
-  },
-  {
-    type: "tool",
-    label: "Tool",
-    description: "External tool or function call",
-    color: "bg-purple-500/10 text-purple-700 dark:text-purple-300",
-  },
-  {
-    type: "condition",
-    label: "Condition",
-    description: "Branching logic (if/else)",
-    color: "bg-yellow-500/10 text-yellow-800 dark:text-yellow-300",
   },
   {
     type: "output",

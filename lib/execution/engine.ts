@@ -21,7 +21,7 @@ async function executeNode(
   node: Node,
   input: string,
   context: Record<string, unknown>
-): Promise<{ output: string; branchResult?: boolean }> {
+): Promise<{ output: string }> {
   switch (node.type) {
     case "input":
       return { output: input };
@@ -37,7 +37,7 @@ async function executeNode(
         body: JSON.stringify({
           type: "prompt",
           prompt: prompt,
-          model: node.data.model || "gpt-4",
+          model: node.data.model || "gpt-5.2-2025-12-11",
           input,
           context,
         }),
@@ -45,38 +45,6 @@ async function executeNode(
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to execute prompt");
       return { output: data.output };
-    }
-
-    case "tool": {
-      const response = await fetch("/api/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "tool",
-          toolName: node.data.toolName,
-          input,
-          context,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to execute tool");
-      return { output: data.output };
-    }
-
-    case "condition": {
-      const response = await fetch("/api/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "condition",
-          condition: node.data.condition,
-          input,
-          context,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to evaluate condition");
-      return { output: data.result ? "true" : "false", branchResult: data.result };
     }
 
     default:
@@ -129,21 +97,10 @@ export async function executeFlow(
       const nextPromises: Promise<void>[] = [];
 
       for (const edge of outgoingEdges) {
-        let shouldFollow = true;
-
-        // For condition nodes, check the branch
-        if (node.type === "condition") {
-          const isTrue = result.branchResult;
-          const edgeHandle = edge.sourceHandle;
-          shouldFollow = (edgeHandle === "true" && isTrue) || (edgeHandle === "false" && !isTrue);
-        }
-
-        if (shouldFollow) {
-          const targetNode = getTargetNode(edge, nodes);
-          if (targetNode) {
-            // Start executing the next node immediately (don't await)
-            nextPromises.push(executeNodeAndContinue(targetNode, result.output));
-          }
+        const targetNode = getTargetNode(edge, nodes);
+        if (targetNode) {
+          // Start executing the next node immediately (don't await)
+          nextPromises.push(executeNodeAndContinue(targetNode, result.output));
         }
       }
 

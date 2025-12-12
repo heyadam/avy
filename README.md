@@ -7,9 +7,7 @@ A visual workflow builder for creating AI agent pipelines using drag-and-drop no
 - **Visual Flow Editor**: Build AI workflows by connecting nodes in a React Flow canvas
 - **Node Types**:
   - **Input**: Entry point that receives user input
-  - **Prompt**: Execute LLM prompts with configurable models
-  - **Tool**: Call external tools (web search, calculator, current time)
-  - **Condition**: Branch logic with true/false paths
+  - **Prompt**: Execute LLM prompts with configurable models (GPT-5.2, GPT-5 Mini, GPT-5 Nano)
   - **Response**: Exit point that displays results in the preview window
 - **Live Preview**: Floating preview modal shows Response node outputs in real-time
 - **Parallel Execution**: Branches execute independently, responses appear as each completes
