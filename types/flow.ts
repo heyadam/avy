@@ -28,24 +28,35 @@ export interface PromptNodeData extends Record<string, unknown>, ExecutionData {
   thinking?: boolean;
 }
 
+export interface ImageNodeData extends Record<string, unknown>, ExecutionData {
+  label: string;
+  prompt?: string; // Optional additional instructions
+  outputFormat?: "webp" | "png" | "jpeg";
+  size?: "1024x1024" | "1024x1792" | "1792x1024";
+  quality?: "auto" | "low" | "medium" | "high";
+}
+
 // Union type for all node data
 export type AgentNodeData =
   | InputNodeData
   | OutputNodeData
-  | PromptNodeData;
+  | PromptNodeData
+  | ImageNodeData;
 
 // Custom node types
-export type NodeType = "input" | "output" | "prompt";
+export type NodeType = "input" | "output" | "prompt" | "image";
 
 // Typed nodes
 export type InputNode = Node<InputNodeData, "input">;
 export type OutputNode = Node<OutputNodeData, "output">;
 export type PromptNode = Node<PromptNodeData, "prompt">;
+export type ImageNode = Node<ImageNodeData, "image">;
 
 export type AgentNode =
   | InputNode
   | OutputNode
-  | PromptNode;
+  | PromptNode
+  | ImageNode;
 
 // Edge type
 export type AgentEdge = Edge;
@@ -70,6 +81,12 @@ export const nodeDefinitions: NodeDefinition[] = [
     label: "Prompt",
     description: "LLM prompt or instruction",
     color: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
+  },
+  {
+    type: "image",
+    label: "Image",
+    description: "Generate images with AI",
+    color: "bg-purple-500/10 text-purple-700 dark:text-purple-300",
   },
   {
     type: "output",

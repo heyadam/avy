@@ -10,6 +10,30 @@ import {
 import { Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Helper to detect if output is JSON image data
+function isImageOutput(output?: string): boolean {
+  if (!output) return false;
+  try {
+    const parsed = JSON.parse(output);
+    return parsed.type === "image" && parsed.value;
+  } catch {
+    return false;
+  }
+}
+
+// Helper to parse image data from output
+function parseImageOutput(output: string): { value: string; mimeType: string } | null {
+  try {
+    const parsed = JSON.parse(output);
+    if (parsed.type === "image" && parsed.value) {
+      return { value: parsed.value, mimeType: parsed.mimeType };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 interface ResponsesContentProps {
   entries: PreviewEntry[];
 }
@@ -79,6 +103,20 @@ export function ResponsesContent({ entries }: ResponsesContentProps) {
               <p className="text-sm text-destructive whitespace-pre-wrap break-words">
                 {entry.error}
               </p>
+            ) : entry.output && isImageOutput(entry.output) ? (
+              (() => {
+                const imageData = parseImageOutput(entry.output);
+                if (imageData) {
+                  return (
+                    <img
+                      src={`data:${imageData.mimeType};base64,${imageData.value}`}
+                      alt="Generated image"
+                      className="max-w-full h-auto rounded-md"
+                    />
+                  );
+                }
+                return null;
+              })()
             ) : entry.output ? (
               <MessageResponse>{entry.output}</MessageResponse>
             ) : entry.status === "running" ? (

@@ -4,8 +4,8 @@ export const initialNodes: Node[] = [
   {
     id: "input-1",
     type: "input",
-    position: { x: 0, y: 150 },
-    data: { label: "User Input", inputValue: "" },
+    position: { x: 0, y: 200 },
+    data: { label: "User Input", inputValue: "A cute robot painting a landscape" },
   },
   {
     id: "prompt-1",
@@ -13,33 +13,34 @@ export const initialNodes: Node[] = [
     position: { x: 350, y: 0 },
     data: {
       label: "GPT-5",
-      prompt: "",
+      prompt: "Respond briefly to the user's input.",
       provider: "openai",
       model: "gpt-5",
     },
   },
   {
-    id: "prompt-2",
-    type: "prompt",
+    id: "image-1",
+    type: "image",
     position: { x: 350, y: 250 },
     data: {
-      label: "GPT-5 Mini",
+      label: "Image Generator",
       prompt: "",
-      provider: "openai",
-      model: "gpt-5-mini",
+      outputFormat: "webp",
+      size: "1024x1024",
+      quality: "low",
     },
   },
   {
     id: "output-1",
     type: "output",
     position: { x: 700, y: 50 },
-    data: { label: "Response 1" },
+    data: { label: "Text Response" },
   },
   {
     id: "output-2",
     type: "output",
     position: { x: 700, y: 300 },
-    data: { label: "Response 2" },
+    data: { label: "Image Response" },
   },
 ];
 
@@ -50,9 +51,9 @@ export const initialEdges: Edge[] = [
     target: "prompt-1",
   },
   {
-    id: "e-input-prompt2",
+    id: "e-input-image1",
     source: "input-1",
-    target: "prompt-2",
+    target: "image-1",
   },
   {
     id: "e-prompt1-output1",
@@ -60,8 +61,8 @@ export const initialEdges: Edge[] = [
     target: "output-1",
   },
   {
-    id: "e-prompt2-output2",
-    source: "prompt-2",
+    id: "e-image1-output2",
+    source: "image-1",
     target: "output-2",
   },
 ];

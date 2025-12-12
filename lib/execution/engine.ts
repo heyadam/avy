@@ -73,6 +73,39 @@ async function executeNode(
       return { output: fullOutput };
     }
 
+    case "image": {
+      const prompt = typeof node.data?.prompt === "string" ? node.data.prompt : "";
+
+      const response = await fetch("/api/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "image",
+          prompt,
+          outputFormat: node.data.outputFormat || "webp",
+          size: node.data.size || "1024x1024",
+          quality: node.data.quality || "low",
+          input,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Image generation failed");
+      }
+
+      const data = await response.json();
+
+      // Return structured JSON so downstream nodes receive image data
+      return {
+        output: JSON.stringify({
+          type: "image",
+          value: data.value,
+          mimeType: data.mimeType,
+        }),
+      };
+    }
+
     default:
       return { output: input };
   }

@@ -28,6 +28,7 @@ const defaultNodeData: Record<NodeType, Record<string, unknown>> = {
   input: { label: "Input", inputValue: "" },
   output: { label: "Response" },
   prompt: { label: "Prompt", prompt: "", provider: "openai", model: "gpt-5" },
+  image: { label: "Image Generator", prompt: "", outputFormat: "webp", size: "1024x1024", quality: "low" },
 };
 
 export function AgentFlow() {

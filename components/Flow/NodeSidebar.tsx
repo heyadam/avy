@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { nodeDefinitions, type NodeType } from "@/types/flow";
-import { Play, Square, MessageSquare, Plus, X } from "lucide-react";
+import { Play, Square, MessageSquare, Plus, X, ImageIcon } from "lucide-react";
 import type { DragEvent } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -10,6 +10,7 @@ const iconMap = {
   input: Play,
   output: Square,
   prompt: MessageSquare,
+  image: ImageIcon,
 };
 
 export function NodeSidebar() {
