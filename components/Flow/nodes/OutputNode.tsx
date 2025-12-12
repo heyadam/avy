@@ -4,19 +4,9 @@ import { Handle, Position, useReactFlow, type NodeProps, type Node } from "@xyfl
 import type { OutputNodeData } from "@/types/flow";
 import { Square, ImageIcon } from "lucide-react";
 import { NodeFrame } from "./NodeFrame";
+import { isImageOutput } from "@/lib/image-utils";
 
 type OutputNodeType = Node<OutputNodeData, "output">;
-
-// Check if output is image JSON data
-function isImageOutput(output?: string): boolean {
-  if (!output) return false;
-  try {
-    const parsed = JSON.parse(output);
-    return parsed.type === "image" && parsed.value;
-  } catch {
-    return false;
-  }
-}
 
 export function OutputNode({ id, data }: NodeProps<OutputNodeType>) {
   const { updateNodeData } = useReactFlow();
