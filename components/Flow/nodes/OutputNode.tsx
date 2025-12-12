@@ -67,11 +67,11 @@ export function OutputNode({ id, data }: NodeProps<OutputNodeType>) {
       <Handle
         type="target"
         position={Position.Left}
-        className="!bg-teal-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
+        className="!bg-amber-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
       />
-      <div className="pointer-events-none absolute top-1/2 -translate-y-1/2 -left-10">
-        <span className="rounded bg-background/80 px-1 py-0.5 text-[10px] text-muted-foreground shadow-xs border">
-          string
+      <div className="pointer-events-none absolute top-1/2 -translate-y-1/2 -left-[4.5rem]">
+        <span className="rounded-md bg-amber-500/50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 shadow-sm border border-amber-500/40">
+          response
         </span>
       </div>
       {/* no body content */}

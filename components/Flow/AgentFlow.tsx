@@ -10,10 +10,12 @@ import {
   useEdgesState,
   type OnConnect,
   type ReactFlowInstance,
+  type Connection,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
 import { nodeTypes } from "./nodes";
+import { edgeTypes } from "./edges/ColoredEdge";
 import { NodeSidebar } from "./NodeSidebar";
 import { initialNodes, initialEdges } from "@/lib/example-flow";
 import type { NodeType } from "@/types/flow";
@@ -69,9 +71,37 @@ export function AgentFlow() {
     []
   );
 
+  // Determine edge data type based on source node
+  const getEdgeDataType = useCallback((sourceNodeId: string): string => {
+    const sourceNode = nodesRef.current.find((n) => n.id === sourceNodeId);
+    if (!sourceNode) return "default";
+
+    switch (sourceNode.type) {
+      case "image":
+        return "image";
+      case "input":
+      case "prompt":
+        return "string";
+      default:
+        return "default";
+    }
+  }, []);
+
   const onConnect: OnConnect = useCallback(
-    (params) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
+    (params: Connection) => {
+      const dataType = params.source ? getEdgeDataType(params.source) : "default";
+      setEdges((eds) =>
+        addEdge(
+          {
+            ...params,
+            type: "colored",
+            data: { dataType },
+          },
+          eds
+        )
+      );
+    },
+    [setEdges, getEdgeDataType]
   );
 
   const onInit = useCallback((instance: ReactFlowInstance) => {
@@ -212,6 +242,8 @@ export function AgentFlow() {
           onDragOver={onDragOver}
           onDrop={onDrop}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          defaultEdgeOptions={{ type: "colored" }}
           fitView
           fitViewOptions={{ padding: 0.2 }}
           deleteKeyCode={["Backspace", "Delete"]}

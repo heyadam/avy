@@ -127,10 +127,10 @@ export function ImageNode({ id, data }: NodeProps<ImageNodeType>) {
       <Handle
         type="target"
         position={Position.Left}
-        className="!bg-teal-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
+        className="!bg-cyan-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
       />
-      <div className="pointer-events-none absolute top-1/2 -translate-y-1/2 -left-10">
-        <span className="rounded bg-background/80 px-1 py-0.5 text-[10px] text-muted-foreground shadow-xs border">
+      <div className="pointer-events-none absolute top-1/2 -translate-y-1/2 -left-12">
+        <span className="rounded-md bg-cyan-500/50 px-1.5 py-0.5 text-[11px] font-medium text-cyan-700 dark:text-cyan-300 shadow-sm border border-cyan-500/40">
           string
         </span>
       </div>
@@ -293,10 +293,10 @@ export function ImageNode({ id, data }: NodeProps<ImageNodeType>) {
       <Handle
         type="source"
         position={Position.Right}
-        className="!bg-teal-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
+        className="!bg-purple-500 !w-2.5 !h-2.5 !border-2 !border-background !shadow-sm"
       />
-      <div className="pointer-events-none absolute top-1/2 -translate-y-1/2 -right-10">
-        <span className="rounded bg-background/80 px-1 py-0.5 text-[10px] text-muted-foreground shadow-xs border">
+      <div className="pointer-events-none absolute top-1/2 -translate-y-1/2 -right-11">
+        <span className="rounded-md bg-purple-500/50 px-1.5 py-0.5 text-[11px] font-medium text-purple-700 dark:text-purple-300 shadow-sm border border-purple-500/40">
           image
         </span>
       </div>
