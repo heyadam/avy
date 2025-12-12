@@ -66,3 +66,37 @@ export const ASPECT_RATIO_OPTIONS = [
   { value: "9:16", label: "Tall (9:16)" },
   { value: "16:9", label: "Wide (16:9)" },
 ] as const;
+
+// OpenAI image generation options
+export const OUTPUT_FORMAT_OPTIONS = [
+  { value: "webp", label: "WebP" },
+  { value: "png", label: "PNG" },
+  { value: "jpeg", label: "JPEG" },
+] as const;
+
+export const SIZE_OPTIONS = [
+  { value: "1024x1024", label: "Square" },
+  { value: "1024x1792", label: "Portrait" },
+  { value: "1792x1024", label: "Landscape" },
+] as const;
+
+export const QUALITY_OPTIONS = [
+  { value: "auto", label: "Auto" },
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+] as const;
+
+export const PARTIAL_IMAGES_OPTIONS = [
+  { value: "0", label: "0 (None)" },
+  { value: "1", label: "1" },
+  { value: "2", label: "2" },
+  { value: "3", label: "3" },
+] as const;
+
+// Type helpers for option values
+export type OutputFormat = (typeof OUTPUT_FORMAT_OPTIONS)[number]["value"];
+export type ImageSize = (typeof SIZE_OPTIONS)[number]["value"];
+export type ImageQuality = (typeof QUALITY_OPTIONS)[number]["value"];
+export type Verbosity = (typeof VERBOSITY_OPTIONS)[number]["value"];
+export type AspectRatio = (typeof ASPECT_RATIO_OPTIONS)[number]["value"];

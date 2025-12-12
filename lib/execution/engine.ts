@@ -1,20 +1,11 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { NodeExecutionState } from "./types";
-
-// Find the starting node (input node)
-function findStartNode(nodes: Node[]): Node | undefined {
-  return nodes.find((n) => n.type === "input");
-}
-
-// Get outgoing edges from a node
-function getOutgoingEdges(nodeId: string, edges: Edge[]): Edge[] {
-  return edges.filter((e) => e.source === nodeId);
-}
-
-// Get the target node from an edge
-function getTargetNode(edge: Edge, nodes: Node[]): Node | undefined {
-  return nodes.find((n) => n.id === edge.target);
-}
+import {
+  findStartNode,
+  getOutgoingEdges,
+  getTargetNode,
+  findDownstreamOutputNodes,
+} from "./graph-utils";
 
 // Execute a single node
 async function executeNode(
@@ -203,39 +194,16 @@ export async function executeFlow(
   const context: Record<string, unknown> = { userInput };
   const outputs: string[] = [];
 
-  // Find downstream output nodes from a given node
-  function findDownstreamOutputNodes(nodeId: string): Node[] {
-    const outputNodes: Node[] = [];
-    const visited = new Set<string>();
-
-    function traverse(currentId: string) {
-      if (visited.has(currentId)) return;
-      visited.add(currentId);
-
-      const outgoing = getOutgoingEdges(currentId, edges);
-      for (const edge of outgoing) {
-        const target = getTargetNode(edge, nodes);
-        if (target) {
-          if (target.type === "output") {
-            outputNodes.push(target);
-          } else {
-            traverse(target.id);
-          }
-        }
-      }
-    }
-
-    traverse(nodeId);
-    return outputNodes;
-  }
-
   // Recursive function to execute a node and its downstream nodes
   async function executeNodeAndContinue(node: Node, input: string): Promise<void> {
     onNodeStateChange(node.id, { status: "running" });
 
-    // For prompt nodes, also mark downstream output nodes as running
+    // For prompt and image nodes, also mark downstream output nodes as running
     // so they appear in preview immediately
-    const downstreamOutputs = node.type === "prompt" ? findDownstreamOutputNodes(node.id) : [];
+    const shouldTrackDownstream = node.type === "prompt" || node.type === "image";
+    const downstreamOutputs = shouldTrackDownstream
+      ? findDownstreamOutputNodes(node.id, nodes, edges)
+      : [];
     for (const outputNode of downstreamOutputs) {
       onNodeStateChange(outputNode.id, { status: "running" });
     }

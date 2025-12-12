@@ -17,36 +17,15 @@ import {
   DEFAULT_IMAGE_PROVIDER,
   DEFAULT_IMAGE_MODEL,
   ASPECT_RATIO_OPTIONS,
+  OUTPUT_FORMAT_OPTIONS,
+  SIZE_OPTIONS,
+  QUALITY_OPTIONS,
+  PARTIAL_IMAGES_OPTIONS,
   type ImageProviderId,
 } from "@/lib/providers";
+import { parseImageOutput, getImageDataUrl } from "@/lib/image-utils";
 
 type ImageNodeType = Node<ImageNodeData, "image">;
-
-const OUTPUT_FORMAT_OPTIONS = [
-  { value: "webp", label: "WebP" },
-  { value: "png", label: "PNG" },
-  { value: "jpeg", label: "JPEG" },
-];
-
-const SIZE_OPTIONS = [
-  { value: "1024x1024", label: "Square" },
-  { value: "1024x1792", label: "Portrait" },
-  { value: "1792x1024", label: "Landscape" },
-];
-
-const QUALITY_OPTIONS = [
-  { value: "auto", label: "Auto" },
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-];
-
-const PARTIAL_IMAGES_OPTIONS = [
-  { value: "0", label: "0 (None)" },
-  { value: "1", label: "1" },
-  { value: "2", label: "2" },
-  { value: "3", label: "3" },
-];
 
 export function ImageNode({ id, data }: NodeProps<ImageNodeType>) {
   const { updateNodeData } = useReactFlow();
@@ -67,7 +46,7 @@ export function ImageNode({ id, data }: NodeProps<ImageNodeType>) {
     updateNodeData(id, { model, label: modelConfig?.label || model });
   };
 
-  // Parse image from executionOutput if it's JSON
+  // Render image footer using shared utilities
   const renderFooter = () => {
     if (data.executionError) {
       return (
@@ -78,36 +57,33 @@ export function ImageNode({ id, data }: NodeProps<ImageNodeType>) {
     }
 
     if (data.executionOutput) {
-      try {
-        const parsed = JSON.parse(data.executionOutput);
-        if (parsed.type === "image" && parsed.value) {
-          return (
-            <div
-              className="w-full rounded overflow-hidden bg-muted/20"
-              style={{ minHeight: "80px" }}
-            >
-              <img
-                src={`data:${parsed.mimeType};base64,${parsed.value}`}
-                alt="Generated"
-                style={{
-                  width: "100%",
-                  height: "auto",
-                  maxHeight: "120px",
-                  objectFit: "cover",
-                  display: "block"
-                }}
-              />
-            </div>
-          );
-        }
-      } catch {
-        // Not JSON, show as text
+      const imageData = parseImageOutput(data.executionOutput);
+      if (imageData) {
         return (
-          <p className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-4">
-            {data.executionOutput}
-          </p>
+          <div
+            className="w-full rounded overflow-hidden bg-muted/20"
+            style={{ minHeight: "80px" }}
+          >
+            <img
+              src={getImageDataUrl(imageData)}
+              alt="Generated"
+              style={{
+                width: "100%",
+                height: "auto",
+                maxHeight: "120px",
+                objectFit: "cover",
+                display: "block"
+              }}
+            />
+          </div>
         );
       }
+      // Not image data, show as text
+      return (
+        <p className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-4">
+          {data.executionOutput}
+        </p>
+      );
     }
 
     return null;
