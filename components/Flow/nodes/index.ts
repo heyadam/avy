@@ -11,4 +11,11 @@ export const nodeTypes: NodeTypes = {
   image: ImageNode,
 };
 
+// Node components
 export { InputNode, OutputNode, PromptNode, ImageNode };
+
+// Shared node UI components
+export { NodeFrame } from "./NodeFrame";
+export { NodeSelect, type NodeSelectProps, type SelectOption } from "./NodeSelect";
+export { NodeHandle, type NodeHandleProps } from "./NodeHandle";
+export { NodeStatusBadge } from "./NodeStatusBadge";
