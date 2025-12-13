@@ -14,11 +14,12 @@ function createMinimalNodeData(node: Node): Record<string, unknown> {
 
   // Add type-specific fields, truncating long text
   if (node.type === "prompt" || node.type === "image") {
-    if (data.prompt) {
+    const prompt = data.prompt;
+    if (typeof prompt === "string") {
       // Truncate prompts to 100 chars
-      minimal.prompt = data.prompt.length > 100
-        ? data.prompt.slice(0, 100) + "..."
-        : data.prompt;
+      minimal.prompt = prompt.length > 100
+        ? prompt.slice(0, 100) + "..."
+        : prompt;
     }
     if (data.provider) minimal.provider = data.provider;
     if (data.model) minimal.model = data.model;
@@ -28,11 +29,14 @@ function createMinimalNodeData(node: Node): Record<string, unknown> {
     minimal.aspectRatio = data.aspectRatio;
   }
 
-  if (node.type === "input" && data.inputValue) {
-    // Truncate input values too
-    minimal.inputValue = data.inputValue.length > 50
-      ? data.inputValue.slice(0, 50) + "..."
-      : data.inputValue;
+  if (node.type === "input") {
+    const inputValue = data.inputValue;
+    if (typeof inputValue === "string") {
+      // Truncate input values to 50 chars
+      minimal.inputValue = inputValue.length > 50
+        ? inputValue.slice(0, 50) + "..."
+        : inputValue;
+    }
   }
 
   return minimal;
