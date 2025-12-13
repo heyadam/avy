@@ -24,7 +24,7 @@ import { initialNodes, initialEdges } from "@/lib/example-flow";
 import type { NodeType } from "@/types/flow";
 import { executeFlow } from "@/lib/execution/engine";
 import type { NodeExecutionState } from "@/lib/execution/types";
-import type { FlowChanges, AddNodeAction, AddEdgeAction, AppliedChangesInfo } from "@/lib/autopilot/types";
+import type { FlowChanges, AddNodeAction, AddEdgeAction, RemoveEdgeAction, AppliedChangesInfo } from "@/lib/autopilot/types";
 import { ResponsesSidebar, type PreviewEntry } from "./ResponsesSidebar";
 
 let id = 0;
@@ -120,12 +120,17 @@ export function AgentFlow() {
                 id: edgeAction.edge.id,
                 source: edgeAction.edge.source,
                 target: edgeAction.edge.target,
+                sourceHandle: "output",
+                targetHandle: "input",
                 type: "colored",
                 data: edgeAction.edge.data,
               },
               eds
             )
           );
+        } else if (action.type === "removeEdge") {
+          const removeAction = action as RemoveEdgeAction;
+          setEdges((eds) => eds.filter((e) => e.id !== removeAction.edgeId));
         }
       }
 

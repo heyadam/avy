@@ -37,7 +37,12 @@ export interface AddEdgeAction {
   };
 }
 
-export type FlowAction = AddNodeAction | AddEdgeAction;
+export interface RemoveEdgeAction {
+  type: "removeEdge";
+  edgeId: string;
+}
+
+export type FlowAction = AddNodeAction | AddEdgeAction | RemoveEdgeAction;
 
 export interface FlowChanges {
   actions: FlowAction[];
@@ -60,8 +65,11 @@ export interface AutopilotMessage {
   appliedInfo?: AppliedChangesInfo;
 }
 
+export type AutopilotModel = "claude-opus-4-5" | "claude-sonnet-4-5";
+
 // API request/response types
 export interface AutopilotRequest {
   messages: Array<{ role: "user" | "assistant"; content: string }>;
   flowSnapshot: FlowSnapshot;
+  model?: AutopilotModel;
 }

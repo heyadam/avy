@@ -7,7 +7,7 @@ import type { AutopilotRequest } from "@/lib/autopilot/types";
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as AutopilotRequest;
-    const { messages, flowSnapshot } = body;
+    const { messages, flowSnapshot, model = "claude-sonnet-4-5" } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
@@ -26,9 +26,9 @@ export async function POST(request: NextRequest) {
     // Build system prompt with current flow state
     const systemPrompt = buildSystemPrompt(flowSnapshot);
 
-    // Stream response from Claude Sonnet 4.5
+    // Stream response from Claude
     const result = streamText({
-      model: anthropic("claude-sonnet-4-5"),
+      model: anthropic(model),
       system: systemPrompt,
       messages: messages.map((msg) => ({
         role: msg.role,

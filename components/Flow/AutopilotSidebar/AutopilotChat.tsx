@@ -13,15 +13,33 @@ import {
   PromptInputFooter,
   PromptInputSubmit,
 } from "@/components/ai-elements/prompt-input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Loader } from "@/components/ai-elements/loader";
-import { Check, Sparkles, Undo2 } from "lucide-react";
-import type { AutopilotMessage } from "@/lib/autopilot/types";
+import { Check, Sparkles, Undo2, ChevronDown } from "lucide-react";
+import type { AutopilotMessage, AutopilotModel } from "@/lib/autopilot/types";
+
+const MODELS: { id: AutopilotModel; name: string }[] = [
+  { id: "claude-sonnet-4-5", name: "Sonnet 4.5" },
+  { id: "claude-opus-4-5", name: "Opus 4.5" },
+];
+
+const SUGGESTED_PROMPTS = [
+  "Add a prompt node that summarizes the input",
+  "Create an image generation pipeline",
+  "Add a node that translates text to Spanish",
+  "Build a chain that analyzes sentiment",
+];
 
 interface AutopilotChatProps {
   messages: AutopilotMessage[];
   isLoading: boolean;
   error: string | null;
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, model: AutopilotModel) => void;
   onUndoChanges: (messageId: string) => void;
 }
 
@@ -33,6 +51,7 @@ export function AutopilotChat({
   onUndoChanges,
 }: AutopilotChatProps) {
   const [inputValue, setInputValue] = useState("");
+  const [selectedModel, setSelectedModel] = useState<AutopilotModel>("claude-sonnet-4-5");
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -41,19 +60,33 @@ export function AutopilotChat({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const currentModel = MODELS.find((m) => m.id === selectedModel) ?? MODELS[0];
+
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
-          <div className="flex size-full flex-col items-center justify-center gap-3 p-8 text-center">
+          <div className="flex size-full flex-col items-center justify-center gap-4 p-6 text-center">
             <div className="text-muted-foreground">
               <Sparkles className="h-8 w-8" />
             </div>
             <div className="space-y-1">
               <h3 className="font-medium text-sm">Flow Autopilot</h3>
-              <p className="text-muted-foreground text-sm">
-                Describe what you want to add to your flow and I&apos;ll create the nodes and connections for you.
+              <p className="text-muted-foreground text-xs">
+                Describe what you want to add to your flow.
               </p>
+            </div>
+            <div className="flex flex-col gap-2 w-full max-w-[280px]">
+              {SUGGESTED_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  onClick={() => onSendMessage(prompt, selectedModel)}
+                  disabled={isLoading}
+                  className="text-left text-xs px-3 py-2 rounded-lg border border-border/50 hover:border-purple-500/50 hover:bg-purple-500/5 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                >
+                  {prompt}
+                </button>
+              ))}
             </div>
           </div>
         ) : (
@@ -123,7 +156,8 @@ export function AutopilotChat({
         <PromptInput
           onSubmit={({ text }) => {
             if (text.trim() && !isLoading) {
-              onSendMessage(text);
+              onSendMessage(text, selectedModel);
+              setInputValue("");
             }
           }}
         >
@@ -134,7 +168,33 @@ export function AutopilotChat({
             className="min-h-[60px] text-sm"
             disabled={isLoading}
           />
-          <PromptInputFooter className="justify-end">
+          <PromptInputFooter className="justify-between">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[11px] text-muted-foreground hover:text-foreground gap-1"
+                >
+                  <span>{currentModel.name}</span>
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="min-w-[120px]">
+                {MODELS.map((model) => (
+                  <DropdownMenuItem
+                    key={model.id}
+                    onClick={() => setSelectedModel(model.id)}
+                    className="text-xs gap-2"
+                  >
+                    <span className="flex-1">{model.name}</span>
+                    {model.id === selectedModel && (
+                      <Check className="h-3 w-3" />
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <PromptInputSubmit
               disabled={!inputValue.trim() || isLoading}
               status={isLoading ? "streaming" : undefined}

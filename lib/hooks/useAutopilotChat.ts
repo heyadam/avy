@@ -4,7 +4,7 @@ import { useState, useCallback, useRef } from "react";
 import type { Node, Edge } from "@xyflow/react";
 import { createFlowSnapshot } from "@/lib/autopilot/snapshot";
 import { parseFlowChanges } from "@/lib/autopilot/parser";
-import type { AutopilotMessage, FlowChanges, AppliedChangesInfo } from "@/lib/autopilot/types";
+import type { AutopilotMessage, FlowChanges, AppliedChangesInfo, AutopilotModel } from "@/lib/autopilot/types";
 
 interface UseAutopilotChatOptions {
   nodes: Node[];
@@ -25,7 +25,7 @@ export function useAutopilotChat({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, model: AutopilotModel = "claude-sonnet-4-5") => {
       if (!content.trim() || isLoading) return;
 
       setError(null);
@@ -71,6 +71,7 @@ export function useAutopilotChat({
           body: JSON.stringify({
             messages: apiMessages,
             flowSnapshot,
+            model,
           }),
           signal: abortControllerRef.current.signal,
         });
@@ -106,11 +107,16 @@ export function useAutopilotChat({
 
         // Parse flow changes from completed response
         const changes = parseFlowChanges(fullOutput);
+        console.log("[Autopilot] Parsed changes:", changes);
 
         // Auto-apply changes if any
         let appliedInfo: AppliedChangesInfo | undefined;
         if (changes) {
+          console.log("[Autopilot] Applying changes...");
           appliedInfo = onApplyChanges(changes);
+          console.log("[Autopilot] Applied:", appliedInfo);
+        } else {
+          console.log("[Autopilot] No changes parsed from response");
         }
 
         // Update message with parsed changes and applied info
