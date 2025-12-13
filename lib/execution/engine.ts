@@ -1,5 +1,6 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { NodeExecutionState } from "./types";
+import type { ApiKeys } from "@/lib/api-keys";
 import {
   findStartNode,
   getOutgoingEdges,
@@ -12,6 +13,7 @@ async function executeNode(
   node: Node,
   input: string,
   context: Record<string, unknown>,
+  apiKeys?: ApiKeys,
   onStreamUpdate?: (output: string) => void
 ): Promise<{ output: string }> {
   switch (node.type) {
@@ -35,6 +37,7 @@ async function executeNode(
           thinking: node.data.thinking,
           input,
           context,
+          apiKeys,
         }),
       });
 
@@ -83,6 +86,7 @@ async function executeNode(
           // Google-specific
           aspectRatio: node.data.aspectRatio || "1:1",
           input,
+          apiKeys,
         }),
       });
 
@@ -179,7 +183,8 @@ async function executeNode(
 export async function executeFlow(
   nodes: Node[],
   edges: Edge[],
-  onNodeStateChange: (nodeId: string, state: NodeExecutionState) => void
+  onNodeStateChange: (nodeId: string, state: NodeExecutionState) => void,
+  apiKeys?: ApiKeys
 ): Promise<string> {
   const startNode = findStartNode(nodes);
   if (!startNode) {
@@ -213,7 +218,7 @@ export async function executeFlow(
       await new Promise((r) => setTimeout(r, 300));
 
       // Execute the node with streaming callback for prompt nodes
-      const result = await executeNode(node, input, context, (streamedOutput) => {
+      const result = await executeNode(node, input, context, apiKeys, (streamedOutput) => {
         // Update prompt node
         onNodeStateChange(node.id, {
           status: "running",

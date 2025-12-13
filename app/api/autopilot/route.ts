@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamText } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { buildSystemPrompt } from "@/lib/autopilot/system-prompt";
 import type { AutopilotRequest } from "@/lib/autopilot/types";
 
+interface ApiKeys {
+  openai?: string;
+  google?: string;
+  anthropic?: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as AutopilotRequest;
-    const { messages, flowSnapshot, model = "claude-sonnet-4-5" } = body;
+    const body = (await request.json()) as AutopilotRequest & { apiKeys?: ApiKeys };
+    const { messages, flowSnapshot, model = "claude-sonnet-4-5", apiKeys } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
@@ -25,6 +31,11 @@ export async function POST(request: NextRequest) {
 
     // Build system prompt with current flow state
     const systemPrompt = buildSystemPrompt(flowSnapshot);
+
+    // Create Anthropic client with custom or env API key
+    const anthropic = createAnthropic({
+      apiKey: apiKeys?.anthropic || process.env.ANTHROPIC_API_KEY,
+    });
 
     // Stream response from Claude
     const result = streamText({

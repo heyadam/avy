@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from "react";
 import type { Node, Edge } from "@xyflow/react";
 import { createFlowSnapshot } from "@/lib/autopilot/snapshot";
 import { parseFlowChanges } from "@/lib/autopilot/parser";
+import { useApiKeys } from "@/lib/api-keys";
 import type { AutopilotMessage, FlowChanges, AppliedChangesInfo, AutopilotModel } from "@/lib/autopilot/types";
 
 interface UseAutopilotChatOptions {
@@ -23,6 +24,7 @@ export function useAutopilotChat({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const { keys: apiKeys } = useApiKeys();
 
   const sendMessage = useCallback(
     async (content: string, model: AutopilotModel = "claude-sonnet-4-5") => {
@@ -72,6 +74,7 @@ export function useAutopilotChat({
             messages: apiMessages,
             flowSnapshot,
             model,
+            apiKeys,
           }),
           signal: abortControllerRef.current.signal,
         });
@@ -158,7 +161,7 @@ export function useAutopilotChat({
         abortControllerRef.current = null;
       }
     },
-    [messages, nodes, edges, isLoading, onApplyChanges]
+    [messages, nodes, edges, isLoading, onApplyChanges, apiKeys]
   );
 
   const undoChanges = useCallback(

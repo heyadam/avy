@@ -26,6 +26,7 @@ import { executeFlow } from "@/lib/execution/engine";
 import type { NodeExecutionState } from "@/lib/execution/types";
 import type { FlowChanges, AddNodeAction, AddEdgeAction, RemoveEdgeAction, AppliedChangesInfo } from "@/lib/autopilot/types";
 import { ResponsesSidebar, type PreviewEntry } from "./ResponsesSidebar";
+import { useApiKeys, type ProviderId } from "@/lib/api-keys";
 
 let id = 0;
 const getId = () => `node_${id++}`;
@@ -91,6 +92,10 @@ export function AgentFlow() {
   // Autopilot sidebar state
   const [autopilotOpen, setAutopilotOpen] = useState(false);
   const [autopilotHighlightedIds, setAutopilotHighlightedIds] = useState<Set<string>>(new Set());
+
+  // API keys context
+  const { keys: apiKeys, hasRequiredKey } = useApiKeys();
+  const [keyError, setKeyError] = useState<string | null>(null);
 
   // Apply changes from autopilot
   const applyAutopilotChanges = useCallback(
@@ -354,18 +359,41 @@ export function AgentFlow() {
   const runFlow = useCallback(async () => {
     if (isRunning) return;
 
+    // Check which providers are needed based on nodes
+    const providersUsed = new Set<ProviderId>();
+    nodes.forEach((node) => {
+      if (node.type === "prompt" || node.type === "image") {
+        const provider = (node.data as { provider?: string }).provider || "openai";
+        providersUsed.add(provider as ProviderId);
+      }
+    });
+
+    // Validate required keys
+    const missingProviders: string[] = [];
+    for (const provider of providersUsed) {
+      if (!hasRequiredKey(provider)) {
+        missingProviders.push(provider);
+      }
+    }
+
+    if (missingProviders.length > 0) {
+      setKeyError(`Missing API keys: ${missingProviders.join(", ")}. Open Settings to configure.`);
+      return;
+    }
+
+    setKeyError(null);
     resetExecution();
     setIsRunning(true);
 
     try {
-      const output = await executeFlow(nodes, edges, updateNodeExecutionState);
+      const output = await executeFlow(nodes, edges, updateNodeExecutionState, apiKeys);
       setFinalOutput(output);
     } catch (error) {
       console.error("Flow execution error:", error);
     } finally {
       setIsRunning(false);
     }
-  }, [nodes, edges, isRunning, updateNodeExecutionState, resetExecution]);
+  }, [nodes, edges, isRunning, updateNodeExecutionState, resetExecution, hasRequiredKey, apiKeys]);
 
   return (
     <div className="flex h-screen w-full">
@@ -413,6 +441,7 @@ export function AgentFlow() {
         onRun={runFlow}
         onReset={resetExecution}
         isRunning={isRunning}
+        keyError={keyError}
       />
     </div>
   );

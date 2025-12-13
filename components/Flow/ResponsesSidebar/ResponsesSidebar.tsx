@@ -15,6 +15,7 @@ interface ResponsesSidebarProps {
   onRun: () => void;
   onReset: () => void;
   isRunning: boolean;
+  keyError?: string | null;
 }
 
 export function ResponsesSidebar({
@@ -22,6 +23,7 @@ export function ResponsesSidebar({
   onRun,
   onReset,
   isRunning,
+  keyError,
 }: ResponsesSidebarProps) {
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
@@ -93,7 +95,7 @@ export function ResponsesSidebar({
         className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-yellow-500/50 active:bg-yellow-500/70 transition-colors z-10"
         onMouseDown={startResizing}
       />
-      <ResponsesHeader onRun={onRun} onReset={onReset} isRunning={isRunning} />
+      <ResponsesHeader onRun={onRun} onReset={onReset} isRunning={isRunning} keyError={keyError} />
       <ResponsesContent entries={entries} />
     </div>
   );

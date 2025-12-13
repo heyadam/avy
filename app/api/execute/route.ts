@@ -1,26 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamText, generateText, type LanguageModel } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { google } from "@ai-sdk/google";
-import { anthropic } from "@ai-sdk/anthropic";
+import { createOpenAI } from "@ai-sdk/openai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import OpenAI from "openai";
 import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 
-function getModel(provider: string, model: string): LanguageModel {
+interface ApiKeys {
+  openai?: string;
+  google?: string;
+  anthropic?: string;
+}
+
+function getModel(provider: string, model: string, apiKeys?: ApiKeys): LanguageModel {
   switch (provider) {
-    case "google":
+    case "google": {
+      const google = createGoogleGenerativeAI({
+        apiKey: apiKeys?.google || process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+      });
       return google(model);
-    case "anthropic":
+    }
+    case "anthropic": {
+      const anthropic = createAnthropic({
+        apiKey: apiKeys?.anthropic || process.env.ANTHROPIC_API_KEY,
+      });
       return anthropic(model);
-    default:
+    }
+    default: {
+      const openai = createOpenAI({
+        apiKey: apiKeys?.openai || process.env.OPENAI_API_KEY,
+      });
       return openai(model);
+    }
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, input } = body;
+    const { type, input, apiKeys } = body;
 
     if (type === "prompt") {
       const { prompt, provider, model, verbosity, thinking } = body;
@@ -42,7 +60,7 @@ export async function POST(request: NextRequest) {
       }
 
       const result = streamText({
-        model: getModel(provider || "openai", model || "gpt-5"),
+        model: getModel(provider || "openai", model || "gpt-5", apiKeys),
         messages,
         maxOutputTokens: 1000,
         ...(Object.keys(openaiOptions).length > 0 && {
@@ -65,6 +83,9 @@ export async function POST(request: NextRequest) {
       if (provider === "google") {
         try {
           console.log("Google image generation request:", { model, fullPrompt, aspectRatio });
+          const google = createGoogleGenerativeAI({
+            apiKey: apiKeys?.google || process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+          });
           const result = await generateText({
             model: google(model || "gemini-2.5-flash-image"),
             prompt: fullPrompt,
@@ -101,7 +122,9 @@ export async function POST(request: NextRequest) {
       }
 
       // Handle OpenAI image generation (default)
-      const openaiClient = new OpenAI();
+      const openaiClient = new OpenAI({
+        apiKey: apiKeys?.openai || process.env.OPENAI_API_KEY,
+      });
       const mimeType = `image/${outputFormat || "webp"}`;
 
       // Use OpenAI Responses API directly for streaming partial images
