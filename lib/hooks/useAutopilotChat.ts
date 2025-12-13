@@ -42,8 +42,10 @@ export function useAutopilotChat({
       };
 
       // Prepare messages for API (without metadata)
+      // Limit to last 10 messages to prevent token overflow
+      const recentMessages = messages.slice(-10);
       const apiMessages = [
-        ...messages.map((m) => ({ role: m.role, content: m.content })),
+        ...recentMessages.map((m) => ({ role: m.role, content: m.content })),
         { role: "user" as const, content: content.trim() },
       ];
 

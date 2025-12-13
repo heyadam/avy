@@ -5,7 +5,8 @@ import type { FlowSnapshot } from "./types";
  * and the current flow state.
  */
 export function buildSystemPrompt(flowSnapshot: FlowSnapshot): string {
-  const flowJson = JSON.stringify(flowSnapshot, null, 2);
+  // Use compact JSON to reduce token usage
+  const flowJson = JSON.stringify(flowSnapshot);
 
   return `You are an AI assistant that helps users build and modify agent workflows in a visual flow editor. Users describe what they want in natural language, and you respond with specific changes to make to their flow graph.
 
