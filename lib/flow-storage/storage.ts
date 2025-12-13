@@ -101,7 +101,13 @@ export function downloadFlow(flow: SavedFlow): void {
   const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
 
-  const filename = `${flow.metadata.name.toLowerCase().replace(/\s+/g, "-")}.avy.json`;
+  const safeName = flow.metadata.name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .substring(0, 100);
+  const filename = `${safeName || "untitled"}.avy.json`;
 
   const a = document.createElement("a");
   a.href = url;

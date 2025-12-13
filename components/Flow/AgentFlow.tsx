@@ -407,6 +407,11 @@ export function AgentFlow() {
       }, 0);
       id = maxId + 1;
 
+      // Fit view to show loaded flow (with small delay for state to settle)
+      setTimeout(() => {
+        reactFlowInstance.current?.fitView({ padding: 0.2 });
+      }, 50);
+
       // Show warnings if any
       if (result.validation?.warnings.length) {
         console.warn("Flow loaded with warnings:", result.validation.warnings);
