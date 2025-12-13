@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, useEffect, type DragEvent } from "react";
+import { useCallback, useRef, useState, type DragEvent } from "react";
 import {
   ReactFlow,
   Background,
@@ -8,7 +8,6 @@ import {
   addEdge,
   useNodesState,
   useEdgesState,
-  useKeyPress,
   SelectionMode,
   type OnConnect,
   type ReactFlowInstance,
@@ -22,11 +21,13 @@ import { NodeSidebar } from "./NodeSidebar";
 import { AutopilotSidebar } from "./AutopilotSidebar";
 import { initialNodes, initialEdges } from "@/lib/example-flow";
 import type { NodeType } from "@/types/flow";
-import { executeFlow } from "@/lib/execution/engine";
-import type { NodeExecutionState } from "@/lib/execution/types";
-import type { FlowChanges, AddNodeAction, AddEdgeAction, RemoveEdgeAction, AppliedChangesInfo } from "@/lib/autopilot/types";
-import { ResponsesSidebar, type PreviewEntry } from "./ResponsesSidebar";
-import { useApiKeys, type ProviderId } from "@/lib/api-keys";
+import { ResponsesSidebar } from "./ResponsesSidebar";
+import { useApiKeys } from "@/lib/api-keys";
+import { useFlowExecution } from "@/lib/hooks/useFlowExecution";
+import { useAutopilotChanges } from "@/lib/hooks/useAutopilotChanges";
+import { useFlowPanMode } from "@/lib/hooks/useFlowPanMode";
+import { useFlowEdgeDataType } from "@/lib/hooks/useFlowEdgeDataType";
+import { EDGE_TYPE, EXECUTION } from "@/lib/constants";
 
 let id = 0;
 const getId = () => `node_${id++}`;
@@ -44,185 +45,47 @@ export function AgentFlow() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
 
-  // Origami-style pan: hold space to pan with mouse
-  const spacePressed = useKeyPress("Space");
-
-  // Clear any in-progress selection when switching to pan mode
-  useEffect(() => {
-    if (spacePressed && reactFlowInstance.current) {
-      // Deselect all nodes and edges to clear selection rectangle
-      setNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
-      setEdges((eds) => eds.map((e) => ({ ...e, selected: false })));
-    }
-  }, [spacePressed, setNodes, setEdges]);
-
-  // Track mouse state to show/hide selection rectangle via CSS class
-  useEffect(() => {
-    const pane = document.querySelector('.react-flow__pane');
-    if (!pane) return;
-
-    const onMouseDown = () => {
-      pane.classList.add('is-selecting');
-    };
-
-    const onMouseUp = () => {
-      pane.classList.remove('is-selecting');
-    };
-
-    pane.addEventListener('mousedown', onMouseDown);
-    pane.addEventListener('pointerdown', onMouseDown);
-    document.addEventListener('mouseup', onMouseUp);
-    document.addEventListener('pointerup', onMouseUp);
-
-    return () => {
-      pane.removeEventListener('mousedown', onMouseDown);
-      pane.removeEventListener('pointerdown', onMouseDown);
-      document.removeEventListener('mouseup', onMouseUp);
-      document.removeEventListener('pointerup', onMouseUp);
-    };
-  }, []);
-
-  const [isRunning, setIsRunning] = useState(false);
-  const [finalOutput, setFinalOutput] = useState<string | null>(null);
-  const [previewEntries, setPreviewEntries] = useState<PreviewEntry[]>([]);
-  const addedPreviewIds = useRef<Set<string>>(new Set());
-  const nodesRef = useRef(nodes);
-  nodesRef.current = nodes;
-
   // Autopilot sidebar state
   const [autopilotOpen, setAutopilotOpen] = useState(false);
-  const [autopilotHighlightedIds, setAutopilotHighlightedIds] = useState<Set<string>>(new Set());
 
   // API keys context
   const { keys: apiKeys, hasRequiredKey } = useApiKeys();
-  const [keyError, setKeyError] = useState<string | null>(null);
 
-  // Apply changes from autopilot
-  const applyAutopilotChanges = useCallback(
-    (changes: FlowChanges): AppliedChangesInfo => {
-      const nodeIds: string[] = [];
-      const edgeIds: string[] = [];
+  // Pan mode (spacebar handling)
+  const { spacePressed } = useFlowPanMode({
+    reactFlowInstance,
+    setNodes,
+    setEdges,
+  });
 
-      for (const action of changes.actions) {
-        if (action.type === "addNode") {
-          const nodeAction = action as AddNodeAction;
-          nodeIds.push(nodeAction.node.id);
-          setNodes((nds) =>
-            nds.concat({
-              id: nodeAction.node.id,
-              type: nodeAction.node.type,
-              position: nodeAction.node.position,
-              data: nodeAction.node.data,
-              className: "autopilot-added",
-            })
-          );
-        } else if (action.type === "addEdge") {
-          const edgeAction = action as AddEdgeAction;
-          edgeIds.push(edgeAction.edge.id);
-          setEdges((eds) =>
-            addEdge(
-              {
-                id: edgeAction.edge.id,
-                source: edgeAction.edge.source,
-                target: edgeAction.edge.target,
-                type: "colored",
-                data: edgeAction.edge.data,
-              },
-              eds
-            )
-          );
-        } else if (action.type === "removeEdge") {
-          const removeAction = action as RemoveEdgeAction;
-          setEdges((eds) => eds.filter((e) => e.id !== removeAction.edgeId));
-        }
-      }
+  // Autopilot changes management
+  const {
+    applyAutopilotChanges,
+    undoAutopilotChanges,
+    handleNodesChangeWithHighlight,
+  } = useAutopilotChanges({
+    setNodes,
+    setEdges,
+    onNodesChange,
+  });
 
-      // Track highlighted nodes
-      setAutopilotHighlightedIds((prev) => new Set([...prev, ...nodeIds]));
+  // Flow execution
+  const {
+    isRunning,
+    previewEntries,
+    keyError,
+    runFlow,
+    resetExecution,
+  } = useFlowExecution({
+    nodes,
+    edges,
+    setNodes,
+    apiKeys,
+    hasRequiredKey,
+  });
 
-      return { nodeIds, edgeIds };
-    },
-    [setNodes, setEdges]
-  );
-
-  // Undo changes from autopilot
-  const undoAutopilotChanges = useCallback(
-    (applied: AppliedChangesInfo) => {
-      setNodes((nds) => nds.filter((n) => !applied.nodeIds.includes(n.id)));
-      setEdges((eds) => eds.filter((e) => !applied.edgeIds.includes(e.id)));
-      // Remove from highlighted set
-      setAutopilotHighlightedIds((prev) => {
-        const next = new Set(prev);
-        applied.nodeIds.forEach((id) => next.delete(id));
-        return next;
-      });
-    },
-    [setNodes, setEdges]
-  );
-
-  // Wrap onNodesChange to clear autopilot highlight when nodes are dragged
-  const handleNodesChange = useCallback(
-    (changes: Parameters<typeof onNodesChange>[0]) => {
-      // Clear highlight for any nodes being dragged
-      for (const change of changes) {
-        if (change.type === "position" && change.dragging && autopilotHighlightedIds.has(change.id)) {
-          setNodes((nds) =>
-            nds.map((n) =>
-              n.id === change.id ? { ...n, className: undefined } : n
-            )
-          );
-          setAutopilotHighlightedIds((prev) => {
-            const next = new Set(prev);
-            next.delete(change.id);
-            return next;
-          });
-        }
-      }
-      onNodesChange(changes);
-    },
-    [onNodesChange, autopilotHighlightedIds, setNodes]
-  );
-
-  const addPreviewEntry = useCallback(
-    (entry: Omit<PreviewEntry, "id" | "timestamp">) => {
-      setPreviewEntries((prev) => [
-        ...prev,
-        {
-          ...entry,
-          id: `${entry.nodeId}-${Date.now()}`,
-          timestamp: Date.now(),
-        },
-      ]);
-    },
-    []
-  );
-
-  const updatePreviewEntry = useCallback(
-    (nodeId: string, updates: Partial<PreviewEntry>) => {
-      setPreviewEntries((prev) =>
-        prev.map((entry) =>
-          entry.nodeId === nodeId ? { ...entry, ...updates } : entry
-        )
-      );
-    },
-    []
-  );
-
-  // Determine edge data type based on source node
-  const getEdgeDataType = useCallback((sourceNodeId: string): string => {
-    const sourceNode = nodesRef.current.find((n) => n.id === sourceNodeId);
-    if (!sourceNode) return "default";
-
-    switch (sourceNode.type) {
-      case "image":
-        return "image";
-      case "input":
-      case "prompt":
-        return "string";
-      default:
-        return "default";
-    }
-  }, []);
+  // Edge data type for coloring
+  const { getEdgeDataType } = useFlowEdgeDataType(nodes);
 
   const onConnect: OnConnect = useCallback(
     (params: Connection) => {
@@ -231,7 +94,7 @@ export function AgentFlow() {
         addEdge(
           {
             ...params,
-            type: "colored",
+            type: EDGE_TYPE.COLORED,
             data: { dataType },
           },
           eds
@@ -277,124 +140,6 @@ export function AgentFlow() {
     [setNodes]
   );
 
-  const updateNodeExecutionState = useCallback(
-    (nodeId: string, state: NodeExecutionState) => {
-      // Update node state
-      setNodes((nds) =>
-        nds.map((node) =>
-          node.id === nodeId
-            ? {
-                ...node,
-                data: {
-                  ...node.data,
-                  executionStatus: state.status,
-                  executionOutput: state.output,
-                  executionError: state.error,
-                },
-              }
-            : node
-        )
-      );
-
-      // Handle preview for output/response nodes
-      const targetNode = nodesRef.current.find((n) => n.id === nodeId);
-      if (targetNode?.type === "output") {
-        const nodeLabel = (targetNode.data as { label?: string }).label || "Response";
-
-        if (state.status === "running") {
-          // Add to preview immediately when running (dedupe by nodeId)
-          if (!addedPreviewIds.current.has(nodeId)) {
-            addedPreviewIds.current.add(nodeId);
-            addPreviewEntry({
-              nodeId,
-              nodeLabel,
-              nodeType: "output",
-              status: "running",
-              sourceType: state.sourceType as "prompt" | "image" | undefined,
-            });
-          }
-          // Update preview with streaming output while running
-          if (state.output) {
-            updatePreviewEntry(nodeId, {
-              status: "running",
-              output: state.output,
-            });
-          } else if (state.sourceType) {
-            // Update source type if provided (for loading state)
-            updatePreviewEntry(nodeId, {
-              status: "running",
-              sourceType: state.sourceType as "prompt" | "image" | undefined,
-            });
-          }
-        } else {
-          // Update existing entry when complete
-          updatePreviewEntry(nodeId, {
-            status: state.status,
-            output: state.output,
-            error: state.error,
-          });
-        }
-      }
-    },
-    [setNodes, addPreviewEntry, updatePreviewEntry]
-  );
-
-  const resetExecution = useCallback(() => {
-    setNodes((nds) =>
-      nds.map((node) => ({
-        ...node,
-        data: {
-          ...node.data,
-          executionStatus: undefined,
-          executionOutput: undefined,
-          executionError: undefined,
-        },
-      }))
-    );
-    setFinalOutput(null);
-    setPreviewEntries([]);
-    addedPreviewIds.current.clear();
-  }, [setNodes]);
-
-  const runFlow = useCallback(async () => {
-    if (isRunning) return;
-
-    // Check which providers are needed based on nodes
-    const providersUsed = new Set<ProviderId>();
-    nodes.forEach((node) => {
-      if (node.type === "prompt" || node.type === "image") {
-        const provider = (node.data as { provider?: string }).provider || "openai";
-        providersUsed.add(provider as ProviderId);
-      }
-    });
-
-    // Validate required keys
-    const missingProviders: string[] = [];
-    for (const provider of providersUsed) {
-      if (!hasRequiredKey(provider)) {
-        missingProviders.push(provider);
-      }
-    }
-
-    if (missingProviders.length > 0) {
-      setKeyError(`Missing API keys: ${missingProviders.join(", ")}. Open Settings to configure.`);
-      return;
-    }
-
-    setKeyError(null);
-    resetExecution();
-    setIsRunning(true);
-
-    try {
-      const output = await executeFlow(nodes, edges, updateNodeExecutionState, apiKeys);
-      setFinalOutput(output);
-    } catch (error) {
-      console.error("Flow execution error:", error);
-    } finally {
-      setIsRunning(false);
-    }
-  }, [nodes, edges, isRunning, updateNodeExecutionState, resetExecution, hasRequiredKey, apiKeys]);
-
   return (
     <div className="flex h-screen w-full">
       {/* Autopilot Sidebar (left) */}
@@ -411,7 +156,7 @@ export function AgentFlow() {
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          onNodesChange={handleNodesChange}
+          onNodesChange={handleNodesChangeWithHighlight}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onInit={onInit}
@@ -419,9 +164,9 @@ export function AgentFlow() {
           onDrop={onDrop}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
-          defaultEdgeOptions={{ type: "colored" }}
+          defaultEdgeOptions={{ type: EDGE_TYPE.COLORED }}
           fitView
-          fitViewOptions={{ padding: 0.2 }}
+          fitViewOptions={{ padding: EXECUTION.FIT_VIEW_PADDING }}
           deleteKeyCode={["Backspace", "Delete"]}
           proOptions={{ hideAttribution: true }}
           // Origami-style: normal mouse for select/drag, space+mouse for pan

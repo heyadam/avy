@@ -1,28 +1,11 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
 import { AutopilotHeader } from "./AutopilotHeader";
 import { AutopilotChat } from "./AutopilotChat";
 import { useAutopilotChat } from "@/lib/hooks/useAutopilotChat";
+import { useResizableSidebar } from "@/lib/hooks/useResizableSidebar";
+import { AUTOPILOT_SIDEBAR } from "@/lib/constants";
 import type { AutopilotSidebarProps } from "./types";
-
-const MIN_WIDTH = 320;
-const MAX_WIDTH = 600;
-const DEFAULT_WIDTH = 380;
-const STORAGE_KEY = "autopilot-sidebar-width";
-
-// Get initial width from localStorage
-function getInitialWidth(): number {
-  if (typeof window === "undefined") return DEFAULT_WIDTH;
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) {
-    const parsed = parseInt(saved, 10);
-    if (!isNaN(parsed) && parsed >= MIN_WIDTH && parsed <= MAX_WIDTH) {
-      return parsed;
-    }
-  }
-  return DEFAULT_WIDTH;
-}
 
 export function AutopilotSidebar({
   nodes,
@@ -32,9 +15,13 @@ export function AutopilotSidebar({
   isOpen,
   onToggle,
 }: AutopilotSidebarProps) {
-  const [width, setWidth] = useState(getInitialWidth);
-  const [isResizing, setIsResizing] = useState(false);
-  const sidebarRef = useRef<HTMLDivElement>(null);
+  const { width, sidebarRef, startResizing } = useResizableSidebar({
+    minWidth: AUTOPILOT_SIDEBAR.MIN_WIDTH,
+    maxWidth: AUTOPILOT_SIDEBAR.MAX_WIDTH,
+    defaultWidth: AUTOPILOT_SIDEBAR.DEFAULT_WIDTH,
+    storageKey: AUTOPILOT_SIDEBAR.STORAGE_KEY,
+    handlePosition: "right",
+  });
 
   const {
     messages,
@@ -44,50 +31,6 @@ export function AutopilotSidebar({
     undoChanges,
     clearHistory,
   } = useAutopilotChat({ nodes, edges, onApplyChanges, onUndoChanges });
-
-  // Save width to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, width.toString());
-  }, [width]);
-
-  const startResizing = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-  }, []);
-
-  const stopResizing = useCallback(() => {
-    setIsResizing(false);
-  }, []);
-
-  const resize = useCallback(
-    (e: MouseEvent) => {
-      if (!isResizing || !sidebarRef.current) return;
-
-      const sidebarRect = sidebarRef.current.getBoundingClientRect();
-      const newWidth = e.clientX - sidebarRect.left;
-
-      if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) {
-        setWidth(newWidth);
-      }
-    },
-    [isResizing]
-  );
-
-  useEffect(() => {
-    if (isResizing) {
-      document.addEventListener("mousemove", resize);
-      document.addEventListener("mouseup", stopResizing);
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-    }
-
-    return () => {
-      document.removeEventListener("mousemove", resize);
-      document.removeEventListener("mouseup", stopResizing);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    };
-  }, [isResizing, resize, stopResizing]);
 
   if (!isOpen) {
     return null;
