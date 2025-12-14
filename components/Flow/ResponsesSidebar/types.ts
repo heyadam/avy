@@ -31,4 +31,5 @@ export interface DebugEntry {
   status: ExecutionStatus;
   error?: string;
   rawRequestBody?: string;
+  rawResponseBody?: string;
 }

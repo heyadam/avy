@@ -82,6 +82,16 @@ function formatDebugEntry(entry: DebugEntry): string {
     lines.push("");
   }
 
+  if (entry.rawResponseBody) {
+    lines.push("### Raw Response Body");
+    lines.push("```");
+    lines.push(entry.rawResponseBody.length > 2000
+      ? entry.rawResponseBody.substring(0, 2000) + "...(truncated)"
+      : entry.rawResponseBody);
+    lines.push("```");
+    lines.push("");
+  }
+
   return lines.join("\n");
 }
 
@@ -132,6 +142,7 @@ function DebugEntryCard({ entry }: { entry: DebugEntry }) {
   const [promptsOpen, setPromptsOpen] = useState(true);
   const [responseOpen, setResponseOpen] = useState(true);
   const [rawOpen, setRawOpen] = useState(false);
+  const [rawResponseOpen, setRawResponseOpen] = useState(true);
 
   const hasPrompts =
     entry.request.type === "prompt" &&
@@ -358,6 +369,28 @@ function DebugEntryCard({ entry }: { entry: DebugEntry }) {
             <div className="pl-4 border-l border-muted">
               <pre className="text-xs font-mono bg-muted/50 rounded p-2 whitespace-pre-wrap break-words max-h-48 overflow-auto">
                 {entry.rawRequestBody}
+              </pre>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      {/* Raw Response Body */}
+      {entry.rawResponseBody && (
+        <Collapsible open={rawResponseOpen} onOpenChange={setRawResponseOpen}>
+          <CollapsibleTrigger className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground w-full">
+            <ChevronDown
+              className={cn(
+                "h-3 w-3 transition-transform",
+                rawResponseOpen ? "" : "-rotate-90"
+              )}
+            />
+            Raw Response Body
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-2">
+            <div className="pl-4 border-l border-muted">
+              <pre className="text-xs font-mono bg-muted/50 rounded p-2 whitespace-pre-wrap break-words max-h-48 overflow-auto">
+                {entry.rawResponseBody}
               </pre>
             </div>
           </CollapsibleContent>

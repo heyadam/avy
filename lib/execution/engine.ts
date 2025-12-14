@@ -54,7 +54,6 @@ async function executeNode(
         model,
         verbosity: node.data.verbosity,
         thinking: node.data.thinking,
-        context,
         apiKeys,
       };
 
@@ -101,19 +100,29 @@ async function executeNode(
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullOutput = "";
+      const rawChunks: string[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value);
+        rawChunks.push(chunk);
         fullOutput += chunk;
         streamChunksReceived++;
         debugInfo.streamChunksReceived = streamChunksReceived;
+        debugInfo.rawResponseBody = rawChunks.join("");
         onStreamUpdate?.(fullOutput, debugInfo);
       }
 
       debugInfo.endTime = Date.now();
+      debugInfo.rawResponseBody = fullOutput || "(empty response)";
+
+      // Handle empty response from model
+      if (!fullOutput.trim()) {
+        throw new Error("Model returned empty response. The prompt combination may have confused the model.");
+      }
+
       return { output: fullOutput, debugInfo };
     }
 
@@ -273,9 +282,14 @@ export async function executeFlow(
   onNodeStateChange: (nodeId: string, state: NodeExecutionState) => void,
   apiKeys?: ApiKeys
 ): Promise<string> {
-  const inputNodes = findAllInputNodes(nodes);
+  // Only execute input nodes that have outgoing edges (are actually connected to the flow)
+  const allInputNodes = findAllInputNodes(nodes);
+  const inputNodes = allInputNodes.filter((node) =>
+    getOutgoingEdges(node.id, edges).length > 0
+  );
+
   if (inputNodes.length === 0) {
-    throw new Error("No input node found");
+    throw new Error("No connected input node found");
   }
 
   const context: Record<string, unknown> = {};

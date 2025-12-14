@@ -23,6 +23,7 @@ export interface DebugInfo {
   };
   streamChunksReceived?: number;
   rawRequestBody?: string;
+  rawResponseBody?: string;
 }
 
 export interface NodeExecutionState {

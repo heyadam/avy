@@ -65,16 +65,24 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const result = streamText({
-        model: getModel(provider || "openai", model || "gpt-5", apiKeys),
-        messages,
-        maxOutputTokens: 1000,
-        ...(Object.keys(openaiOptions).length > 0 && {
-          providerOptions: { openai: openaiOptions },
-        }),
-      });
+      try {
+        const result = streamText({
+          model: getModel(provider || "openai", model || "gpt-5", apiKeys),
+          messages,
+          maxOutputTokens: 1000,
+          ...(Object.keys(openaiOptions).length > 0 && {
+            providerOptions: { openai: openaiOptions },
+          }),
+        });
 
-      return result.toTextStreamResponse();
+        return result.toTextStreamResponse();
+      } catch (streamError) {
+        console.error("[API] streamText error:", streamError);
+        return NextResponse.json(
+          { error: streamError instanceof Error ? streamError.message : "Stream error" },
+          { status: 500 }
+        );
+      }
     }
 
     if (type === "image") {

@@ -335,6 +335,18 @@ export function AgentFlow() {
 
         setDebugEntries((prev) => {
           const existingIndex = prev.findIndex((e) => e.nodeId === nodeId);
+          const existingEntry = existingIndex >= 0 ? prev[existingIndex] : undefined;
+
+          // Preserve previous response if current state doesn't have output
+          // This handles the case where streaming updates have output but final state doesn't
+          const responseData = state.output
+            ? {
+                output: state.output,
+                isStreaming: state.status === "running",
+                streamChunksReceived: state.debugInfo!.streamChunksReceived,
+              }
+            : existingEntry?.response;
+
           const debugEntry: DebugEntry = {
             id: `debug-${nodeId}-${state.debugInfo!.startTime}`,
             nodeId,
@@ -346,16 +358,11 @@ export function AgentFlow() {
               ? state.debugInfo!.endTime - state.debugInfo!.startTime
               : undefined,
             request: state.debugInfo!.request,
-            response: state.output
-              ? {
-                  output: state.output,
-                  isStreaming: state.status === "running",
-                  streamChunksReceived: state.debugInfo!.streamChunksReceived,
-                }
-              : undefined,
+            response: responseData,
             status: state.status,
             error: state.error,
             rawRequestBody: state.debugInfo!.rawRequestBody,
+            rawResponseBody: state.debugInfo!.rawResponseBody,
           };
 
           if (existingIndex >= 0) {
