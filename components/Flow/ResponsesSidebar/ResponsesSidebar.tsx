@@ -31,6 +31,7 @@ export function ResponsesSidebar({
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
 
   // Load saved width from localStorage
   useEffect(() => {
@@ -43,10 +44,12 @@ export function ResponsesSidebar({
     }
   }, []);
 
-  // Save width to localStorage when it changes
+  // Save width to localStorage when it changes (but not during active drag)
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, width.toString());
-  }, [width]);
+    if (!isResizing) {
+      localStorage.setItem(STORAGE_KEY, width.toString());
+    }
+  }, [width, isResizing]);
 
   const startResizing = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -55,18 +58,31 @@ export function ResponsesSidebar({
 
   const stopResizing = useCallback(() => {
     setIsResizing(false);
+    // Cancel any pending animation frame
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
   }, []);
 
   const resize = useCallback(
     (e: MouseEvent) => {
       if (!isResizing || !sidebarRef.current) return;
 
-      const sidebarRect = sidebarRef.current.getBoundingClientRect();
-      const newWidth = sidebarRect.right - e.clientX;
+      // Throttle updates to animation frame rate for smooth resizing
+      if (rafRef.current) return;
 
-      if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) {
-        setWidth(newWidth);
-      }
+      const clientX = e.clientX;
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        const sidebarRect = sidebarRef.current?.getBoundingClientRect();
+        if (!sidebarRect) return;
+
+        const newWidth = sidebarRect.right - clientX;
+        if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) {
+          setWidth(newWidth);
+        }
+      });
     },
     [isResizing]
   );
@@ -89,10 +105,11 @@ export function ResponsesSidebar({
 
   return (
     <div
-      className="h-full overflow-hidden transition-[width,min-width] duration-300 ease-out"
+      className={`h-full overflow-hidden ${isResizing ? "" : "transition-[width,min-width] duration-300 ease-out"}`}
       style={{
         width: isOpen ? width : 0,
         minWidth: isOpen ? width : 0,
+        willChange: isResizing ? "width" : "auto",
       }}
     >
       <div
