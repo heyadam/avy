@@ -104,11 +104,11 @@ export function ImageNode({ id, data }: NodeProps<ImageNodeType>) {
           providers={IMAGE_PROVIDERS}
           currentProvider={currentProvider}
           currentModel={currentModel}
-          onProviderChange={(provider, firstModel) => {
-            updateNodeData(id, { provider, model: firstModel.value, label: firstModel.label });
+          onProviderChange={(provider, model, label) => {
+            updateNodeData(id, { provider, model, label });
           }}
-          onModelChange={(model, modelConfig) => {
-            updateNodeData(id, { model, label: modelConfig?.label || model });
+          onModelChange={(model, label) => {
+            updateNodeData(id, { model, label });
           }}
         />
 

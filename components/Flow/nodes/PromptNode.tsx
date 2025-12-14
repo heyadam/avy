@@ -104,11 +104,11 @@ export function PromptNode({ id, data }: NodeProps<PromptNodeType>) {
             providers={PROVIDERS}
             currentProvider={currentProvider}
             currentModel={currentModel}
-            onProviderChange={(provider, firstModel) => {
-              updateNodeData(id, { provider, model: firstModel.value, label: firstModel.label });
+            onProviderChange={(provider, model, label) => {
+              updateNodeData(id, { provider, model, label });
             }}
-            onModelChange={(model, modelConfig) => {
-              updateNodeData(id, { model, label: modelConfig?.label || model });
+            onModelChange={(model, label) => {
+              updateNodeData(id, { model, label });
             }}
             width="w-[120px]"
           />

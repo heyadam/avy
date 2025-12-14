@@ -21,8 +21,10 @@ interface ProviderModelSelectorProps {
   providers: ProvidersMap;
   currentProvider: string;
   currentModel: string;
-  onProviderChange: (provider: string, firstModel: BaseModelConfig) => void;
-  onModelChange: (model: string, modelConfig: BaseModelConfig | undefined) => void;
+  /** Called when provider changes. Includes the first model of the new provider. */
+  onProviderChange: (provider: string, model: string, label: string) => void;
+  /** Called when model changes. */
+  onModelChange: (model: string, label: string) => void;
   width?: string;
 }
 
@@ -54,12 +56,12 @@ export function ProviderModelSelector({
     const newProviderConfig = providers[provider];
     const firstModel = newProviderConfig?.models[0];
     if (!firstModel) return;
-    onProviderChange(provider, firstModel);
+    onProviderChange(provider, firstModel.value, firstModel.label);
   };
 
   const handleModelChange = (model: string) => {
     const modelConfig = providerConfig?.models.find((m) => m.value === model);
-    onModelChange(model, modelConfig);
+    onModelChange(model, modelConfig?.label ?? model);
   };
 
   return (
