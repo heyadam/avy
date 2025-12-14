@@ -29,7 +29,7 @@ import type { NodeType } from "@/types/flow";
 import { executeFlow } from "@/lib/execution/engine";
 import type { NodeExecutionState } from "@/lib/execution/types";
 import type { FlowChanges, AddNodeAction, AddEdgeAction, RemoveEdgeAction, AppliedChangesInfo } from "@/lib/autopilot/types";
-import { ResponsesSidebar, type PreviewEntry } from "./ResponsesSidebar";
+import { ResponsesSidebar, type PreviewEntry, type DebugEntry } from "./ResponsesSidebar";
 import { useApiKeys, type ProviderId } from "@/lib/api-keys";
 import {
   createSavedFlow,
@@ -63,6 +63,8 @@ export function AgentFlow() {
   const [isRunning, setIsRunning] = useState(false);
   const [finalOutput, setFinalOutput] = useState<string | null>(null);
   const [previewEntries, setPreviewEntries] = useState<PreviewEntry[]>([]);
+  const [debugEntries, setDebugEntries] = useState<DebugEntry[]>([]);
+  const [activeResponseTab, setActiveResponseTab] = useState<"responses" | "debug">("responses");
   const addedPreviewIds = useRef<Set<string>>(new Set());
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
@@ -80,6 +82,11 @@ export function AgentFlow() {
   // Connection drag state
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectingFromNodeId, setConnectingFromNodeId] = useState<string | null>(null);
+
+  // Panning state for logo animation
+  const [isPanning, setIsPanning] = useState(false);
+  const [panDelta, setPanDelta] = useState({ x: 0, y: 0 });
+  const lastViewport = useRef<{ x: number; y: number } | null>(null);
 
   // Apply changes from autopilot
   const applyAutopilotChanges = useCallback(
@@ -212,22 +219,29 @@ export function AgentFlow() {
   const edgesRef = useRef(edges);
   edgesRef.current = edges;
 
-  // Validate connections - prevent multiple edges to the same input
+  // Validate connections - prevent multiple edges to the same input handle
   const isValidConnection = useCallback((connection: Edge | Connection) => {
-    // Check if target node already has an incoming edge
-    const targetHasEdge = edgesRef.current.some(
-      (edge) => edge.target === connection.target
+    // Check if target handle already has an incoming edge
+    // Use "prompt" as default for backward compatibility
+    const targetHandle = connection.targetHandle || "prompt";
+    const handleHasEdge = edgesRef.current.some(
+      (edge) =>
+        edge.target === connection.target &&
+        (edge.targetHandle || "prompt") === targetHandle
     );
-    return !targetHasEdge;
+    return !handleHasEdge;
   }, []);
 
   const onConnect: OnConnect = useCallback(
     (params: Connection) => {
-      // Prevent multiple edges to the same target node
-      const targetAlreadyConnected = edgesRef.current.some(
-        (edge) => edge.target === params.target
+      // Prevent multiple edges to the same target handle
+      const targetHandle = params.targetHandle || "prompt";
+      const handleAlreadyConnected = edgesRef.current.some(
+        (edge) =>
+          edge.target === params.target &&
+          (edge.targetHandle || "prompt") === targetHandle
       );
-      if (targetAlreadyConnected) return;
+      if (handleAlreadyConnected) return;
 
       const dataType = params.source ? getEdgeDataType(params.source) : "default";
       setEdges((eds) =>
@@ -235,7 +249,11 @@ export function AgentFlow() {
           {
             ...params,
             type: "colored",
-            data: { dataType },
+            data: {
+              dataType,
+              sourceHandle: params.sourceHandle,
+              targetHandle: params.targetHandle,
+            },
           },
           eds
         )
@@ -309,6 +327,53 @@ export function AgentFlow() {
         )
       );
 
+      // Handle debug entries for prompt/image nodes
+      if (state.debugInfo) {
+        const targetNode = nodesRef.current.find((n) => n.id === nodeId);
+        const nodeLabel = (targetNode?.data as { label?: string })?.label || "Unknown";
+        const nodeType = targetNode?.type as NodeType || "prompt";
+
+        setDebugEntries((prev) => {
+          const existingIndex = prev.findIndex((e) => e.nodeId === nodeId);
+          const existingEntry = existingIndex >= 0 ? prev[existingIndex] : undefined;
+
+          // Preserve previous response if current state doesn't have output
+          // This handles the case where streaming updates have output but final state doesn't
+          const responseData = state.output
+            ? {
+                output: state.output,
+                isStreaming: state.status === "running",
+                streamChunksReceived: state.debugInfo!.streamChunksReceived,
+              }
+            : existingEntry?.response;
+
+          const debugEntry: DebugEntry = {
+            id: `debug-${nodeId}-${state.debugInfo!.startTime}`,
+            nodeId,
+            nodeLabel,
+            nodeType,
+            startTime: state.debugInfo!.startTime,
+            endTime: state.debugInfo!.endTime,
+            durationMs: state.debugInfo!.endTime
+              ? state.debugInfo!.endTime - state.debugInfo!.startTime
+              : undefined,
+            request: state.debugInfo!.request,
+            response: responseData,
+            status: state.status,
+            error: state.error,
+            rawRequestBody: state.debugInfo!.rawRequestBody,
+            rawResponseBody: state.debugInfo!.rawResponseBody,
+          };
+
+          if (existingIndex >= 0) {
+            const updated = [...prev];
+            updated[existingIndex] = debugEntry;
+            return updated;
+          }
+          return [...prev, debugEntry];
+        });
+      }
+
       // Handle preview for output/response nodes
       const targetNode = nodesRef.current.find((n) => n.id === nodeId);
       if (targetNode?.type === "output") {
@@ -366,6 +431,7 @@ export function AgentFlow() {
     );
     setFinalOutput(null);
     setPreviewEntries([]);
+    setDebugEntries([]);
     addedPreviewIds.current.clear();
   }, [setNodes]);
 
@@ -496,6 +562,23 @@ export function AgentFlow() {
             selectionOnDrag={false}
             selectionKeyCode="Space"
             selectionMode={SelectionMode.Partial}
+            onMoveStart={() => {
+              setIsPanning(true);
+              lastViewport.current = null;
+            }}
+            onMove={(_, viewport) => {
+              if (lastViewport.current) {
+                const dx = viewport.x - lastViewport.current.x;
+                const dy = viewport.y - lastViewport.current.y;
+                setPanDelta({ x: dx, y: dy });
+              }
+              lastViewport.current = { x: viewport.x, y: viewport.y };
+            }}
+            onMoveEnd={() => {
+              setIsPanning(false);
+              setPanDelta({ x: 0, y: 0 });
+              lastViewport.current = null;
+            }}
           >
             <Background />
             <Controls />
@@ -503,7 +586,7 @@ export function AgentFlow() {
         </ConnectionContext.Provider>
         {/* Top center branding */}
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
-          <AvyLogo />
+          <AvyLogo isPanning={isPanning} panDelta={panDelta} />
         </div>
         <ActionBar
           onToggleNodes={() => setNodesPaletteOpen(!nodesPaletteOpen)}
@@ -522,6 +605,9 @@ export function AgentFlow() {
       </div>
       <ResponsesSidebar
         entries={previewEntries}
+        debugEntries={debugEntries}
+        activeTab={activeResponseTab}
+        onTabChange={setActiveResponseTab}
         keyError={keyError}
         isOpen={responsesOpen}
       />
