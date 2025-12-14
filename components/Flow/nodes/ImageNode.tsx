@@ -124,7 +124,6 @@ export function ImageNode({ id, data }: NodeProps<ImageNodeType>) {
         <PortList
           nodeId={id}
           inputs={[
-            { id: "image", label: "image", colorClass: "purple", required: false, isConnected: isImageConnected },
             { id: "prompt", label: "prompt", colorClass: "cyan", required: false, isConnected: isPromptConnected },
           ]}
           outputs={[
