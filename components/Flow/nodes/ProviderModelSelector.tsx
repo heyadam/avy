@@ -52,7 +52,8 @@ export function ProviderModelSelector({
 
   const handleProviderChange = (provider: string) => {
     const newProviderConfig = providers[provider];
-    const firstModel = newProviderConfig.models[0];
+    const firstModel = newProviderConfig?.models[0];
+    if (!firstModel) return;
     onProviderChange(provider, firstModel);
   };
 
