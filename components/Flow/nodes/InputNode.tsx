@@ -13,8 +13,10 @@ export function InputNode({ id, data }: NodeProps<InputNodeType>) {
   const { updateNodeData } = useReactFlow();
   const edges = useEdges();
 
-  // Check if output is connected
-  const isOutputConnected = edges.some((edge) => edge.source === id && edge.sourceHandle === "output");
+  // Check if output is connected (handle undefined when default handle is used)
+  const isOutputConnected = edges.some(
+    (edge) => edge.source === id && (edge.sourceHandle === "output" || !edge.sourceHandle)
+  );
 
   return (
     <NodeFrame

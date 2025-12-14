@@ -25,7 +25,7 @@ export function PromptNode({ id, data }: NodeProps<PromptNodeType>) {
     (edge) => edge.target === id && edge.targetHandle === "system"
   );
   const isOutputConnected = edges.some(
-    (edge) => edge.source === id && edge.sourceHandle === "output"
+    (edge) => edge.source === id && (edge.sourceHandle === "output" || !edge.sourceHandle)
   );
 
   const currentProvider = (data.provider || DEFAULT_PROVIDER) as ProviderId;

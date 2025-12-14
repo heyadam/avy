@@ -27,9 +27,13 @@ export function ImageNode({ id, data }: NodeProps<ImageNodeType>) {
   const { updateNodeData } = useReactFlow();
   const edges = useEdges();
 
-  // Check if input/output are connected
-  const isPromptConnected = edges.some((edge) => edge.target === id && edge.targetHandle === "prompt");
-  const isOutputConnected = edges.some((edge) => edge.source === id && edge.sourceHandle === "output");
+  // Check if input/output are connected (handle undefined when default handle is used)
+  const isPromptConnected = edges.some(
+    (edge) => edge.target === id && (edge.targetHandle === "prompt" || !edge.targetHandle)
+  );
+  const isOutputConnected = edges.some(
+    (edge) => edge.source === id && (edge.sourceHandle === "output" || !edge.sourceHandle)
+  );
 
   const currentProvider = (data.provider || DEFAULT_IMAGE_PROVIDER) as ImageProviderId;
   const currentModel = data.model || DEFAULT_IMAGE_MODEL;

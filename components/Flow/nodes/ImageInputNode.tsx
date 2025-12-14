@@ -20,8 +20,10 @@ export function ImageInputNode({ id, data }: NodeProps<ImageInputNodeType>) {
   const edges = useEdges();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Check if output is connected
-  const isOutputConnected = edges.some((edge) => edge.source === id && edge.sourceHandle === "output");
+  // Check if output is connected (handle undefined when default handle is used)
+  const isOutputConnected = edges.some(
+    (edge) => edge.source === id && (edge.sourceHandle === "output" || !edge.sourceHandle)
+  );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

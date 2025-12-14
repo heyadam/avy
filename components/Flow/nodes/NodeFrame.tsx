@@ -42,7 +42,7 @@ export function NodeFrame({
   return (
     <div
       className={cn(
-        "relative rounded-xl border bg-card shadow-sm overflow-visible",
+        "relative rounded-xl border bg-card shadow-lg overflow-visible",
         accentBorderClassName,
         statusClasses,
         className
