@@ -5,6 +5,12 @@ import { Handle, Position } from "@xyflow/react";
 import { cn } from "@/lib/utils";
 import { useConnectionState } from "../ConnectionContext";
 
+// Handle positioning constants
+// Accounts for NodeFrame's px-3 (12px) padding + 1px for visual centering
+const HANDLE_LEFT_OFFSET = -13;
+// Vertical offset to align handle with the label baseline
+const DEFAULT_HANDLE_TOP = 8;
+
 interface InputWithHandleProps {
   id: string;
   label?: string;
@@ -46,12 +52,12 @@ export function InputWithHandle({
           highlight
             ? `${colorMap[colorClass].dot} !scale-110`
             : `!bg-gray-500 ${colorMap[colorClass].hoverDot} hover:!scale-110`,
-          isOptional && "!border-dashed",
-          // Position relative to the container which is inside px-3 (12px) padding
-          // so -12px puts it at the edge
-          "!left-[-13px]"
+          isOptional && "!border-dashed"
         )}
-        style={{ top: handleOffset ?? 8 }}
+        style={{
+          left: HANDLE_LEFT_OFFSET,
+          top: handleOffset ?? DEFAULT_HANDLE_TOP
+        }}
       />
       
       <div className="flex flex-col gap-1.5">

@@ -22,7 +22,11 @@ export function PromptNode({ id, data }: NodeProps<PromptNodeType>) {
   const { updateNodeData } = useReactFlow();
   const edges = useEdges();
 
-  // Check if the system input handle is connected
+  // Check which input handles are connected
+  // Note: edges without targetHandle default to the primary "prompt" input
+  const isPromptConnected = edges.some(
+    (edge) => edge.target === id && (edge.targetHandle === "prompt" || !edge.targetHandle)
+  );
   const isSystemConnected = edges.some(
     (edge) => edge.target === id && edge.targetHandle === "system"
   );
@@ -77,9 +81,18 @@ export function PromptNode({ id, data }: NodeProps<PromptNodeType>) {
           label="User Prompt"
           colorClass="cyan"
         >
-          <div className="text-[10px] text-muted-foreground italic">
-            Connect user message template
-          </div>
+          <textarea
+            value={isPromptConnected ? "" : (data.userPrompt ?? "")}
+            onChange={(e) => updateNodeData(id, { userPrompt: e.target.value })}
+            placeholder={isPromptConnected ? "Using connected input" : "Enter user message..."}
+            disabled={isPromptConnected}
+            className={cn(
+              "nodrag w-full min-h-[60px] resize-y rounded-md border border-input px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none",
+              isPromptConnected
+                ? "bg-muted/50 dark:bg-muted/20 cursor-not-allowed placeholder:italic placeholder:text-muted-foreground"
+                : "bg-background/60 dark:bg-muted/40 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+            )}
+          />
         </InputWithHandle>
 
         {/* System Prompt Input */}
@@ -89,26 +102,18 @@ export function PromptNode({ id, data }: NodeProps<PromptNodeType>) {
           colorClass="cyan"
           required={false}
         >
-          {isSystemConnected ? (
-            <div
-              className={cn(
-                "nodrag w-full min-h-[84px] rounded-md border border-input bg-muted/50 dark:bg-muted/20 px-3 py-2 text-sm",
-                "flex items-center justify-center text-muted-foreground italic"
-              )}
-            >
-              Using connected system input
-            </div>
-          ) : (
-            <textarea
-              value={typeof data.prompt === "string" ? data.prompt : ""}
-              onChange={(e) => updateNodeData(id, { prompt: e.target.value })}
-              placeholder="Enter system instructions..."
-              className={cn(
-                "nodrag w-full min-h-[84px] resize-y rounded-md border border-input bg-background/60 dark:bg-muted/40 px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none",
-                "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-              )}
-            />
-          )}
+          <textarea
+            value={isSystemConnected ? "" : (data.systemPrompt ?? "")}
+            onChange={(e) => updateNodeData(id, { systemPrompt: e.target.value })}
+            placeholder={isSystemConnected ? "Using connected input" : "Enter system instructions..."}
+            disabled={isSystemConnected}
+            className={cn(
+              "nodrag w-full min-h-[60px] resize-y rounded-md border border-input px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none",
+              isSystemConnected
+                ? "bg-muted/50 dark:bg-muted/20 cursor-not-allowed placeholder:italic placeholder:text-muted-foreground"
+                : "bg-background/60 dark:bg-muted/40 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+            )}
+          />
         </InputWithHandle>
 
         {/* Configuration */}
