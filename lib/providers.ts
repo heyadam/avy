@@ -18,8 +18,9 @@ export const PROVIDERS = {
   anthropic: {
     label: "Anthropic",
     models: [
-      { value: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5", supportsVerbosity: false, supportsThinking: false },
-      { value: "claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku", supportsVerbosity: false, supportsThinking: false },
+      { value: "claude-sonnet-4-5", label: "Claude Sonnet 4.5", supportsVerbosity: false, supportsThinking: false },
+      { value: "claude-opus-4-5", label: "Claude Opus 4.5", supportsVerbosity: false, supportsThinking: false },
+      { value: "claude-haiku-4-5", label: "Claude Haiku 4.5", supportsVerbosity: false, supportsThinking: false },
     ],
   },
 } as const;
