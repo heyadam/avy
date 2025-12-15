@@ -7,7 +7,7 @@ import { NodeFrame } from "./NodeFrame";
 import { PortRow } from "./PortLabel";
 import { cn } from "@/lib/utils";
 
-type InputNodeType = Node<InputNodeData, "input">;
+type InputNodeType = Node<InputNodeData, "text-input">;
 
 export function InputNode({ id, data }: NodeProps<InputNodeType>) {
   const { updateNodeData } = useReactFlow();

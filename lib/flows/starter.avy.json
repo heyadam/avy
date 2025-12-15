@@ -9,7 +9,7 @@
   "nodes": [
     {
       "id": "input-1",
-      "type": "input",
+      "type": "text-input",
       "position": {
         "x": 2.6680896478121667,
         "y": -26.09391675560299
@@ -27,7 +27,7 @@
     },
     {
       "id": "prompt-1",
-      "type": "prompt",
+      "type": "text-generation",
       "position": {
         "x": 350,
         "y": 100
@@ -45,7 +45,7 @@
     },
     {
       "id": "output-1",
-      "type": "output",
+      "type": "preview-output",
       "position": {
         "x": 754.5891141942369,
         "y": 98.71931696905015
@@ -62,7 +62,7 @@
     },
     {
       "id": "node_0",
-      "type": "input",
+      "type": "text-input",
       "position": {
         "x": 1.3340448239061118,
         "y": 216.98399146211312

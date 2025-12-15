@@ -2,7 +2,7 @@ import type { Node, Edge } from "@xyflow/react";
 import type { SavedFlow, FlowValidationResult, FlowMetadata } from "./types";
 import { FLOW_SCHEMA_VERSION } from "./types";
 
-const VALID_NODE_TYPES = ["input", "output", "prompt", "image"];
+const VALID_NODE_TYPES = ["text-input", "preview-output", "text-generation", "image-generation", "image-input", "ai-logic"];
 
 /**
  * Validates that an object has the basic structure of a SavedFlow
@@ -171,7 +171,7 @@ export function validateFlow(data: unknown): FlowValidationResult {
   }
 
   // Check for input node
-  const hasInput = data.nodes.some((n) => (n as Node).type === "input");
+  const hasInput = data.nodes.some((n) => (n as Node).type === "text-input");
   if (!hasInput) {
     warnings.push("Flow has no input node - it may not be executable");
   }

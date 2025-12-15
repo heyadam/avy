@@ -59,12 +59,12 @@ const updateIdCounter = (nodes: Node[]) => {
 updateIdCounter(initialNodes);
 
 const defaultNodeData: Record<NodeType, Record<string, unknown>> = {
-  input: { label: "Input Text", inputValue: "" },
+  "text-input": { label: "Input Text", inputValue: "" },
   "image-input": { label: "Input Image" },
-  output: { label: "Preview Output" },
-  prompt: { label: "AI Text", prompt: "", provider: "openai", model: "gpt-5" },
-  image: { label: "AI Image", prompt: "", outputFormat: "webp", size: "1024x1024", quality: "low", partialImages: 3 },
-  magic: { label: "AI Logic", transformPrompt: "", codeExpanded: false },
+  "preview-output": { label: "Preview Output" },
+  "text-generation": { label: "AI Text", prompt: "", provider: "openai", model: "gpt-5" },
+  "image-generation": { label: "AI Image", prompt: "", outputFormat: "webp", size: "1024x1024", quality: "low", partialImages: 3 },
+  "ai-logic": { label: "AI Logic", transformPrompt: "", codeExpanded: false },
 };
 
 export function AgentFlow() {
@@ -247,11 +247,11 @@ export function AgentFlow() {
     if (!sourceNode) return "default";
 
     switch (sourceNode.type) {
-      case "image":
+      case "image-generation":
       case "image-input":
         return "image";
-      case "input":
-      case "prompt":
+      case "text-input":
+      case "text-generation":
         return "string";
       default:
         return "default";
@@ -393,7 +393,7 @@ export function AgentFlow() {
       if (state.debugInfo) {
         const targetNode = nodesRef.current.find((n) => n.id === nodeId);
         const nodeLabel = (targetNode?.data as { label?: string })?.label || "Unknown";
-        const nodeType = targetNode?.type as NodeType || "prompt";
+        const nodeType = targetNode?.type as NodeType || "text-generation";
 
         setDebugEntries((prev) => {
           const existingIndex = prev.findIndex((e) => e.nodeId === nodeId);
@@ -438,7 +438,7 @@ export function AgentFlow() {
 
       // Handle preview for output/response nodes
       const targetNode = nodesRef.current.find((n) => n.id === nodeId);
-      if (targetNode?.type === "output") {
+      if (targetNode?.type === "preview-output") {
         const nodeLabel = (targetNode.data as { label?: string }).label || "Preview Output";
 
         if (state.status === "running") {
@@ -448,9 +448,9 @@ export function AgentFlow() {
             addPreviewEntry({
               nodeId,
               nodeLabel,
-              nodeType: "output",
+              nodeType: "preview-output",
               status: "running",
-              sourceType: state.sourceType as "prompt" | "image" | undefined,
+              sourceType: state.sourceType as "text-generation" | "image-generation" | undefined,
             });
           }
           // Update preview with streaming output while running
@@ -463,7 +463,7 @@ export function AgentFlow() {
             // Update source type if provided (for loading state)
             updatePreviewEntry(nodeId, {
               status: "running",
-              sourceType: state.sourceType as "prompt" | "image" | undefined,
+              sourceType: state.sourceType as "text-generation" | "image-generation" | undefined,
             });
           }
         } else {
@@ -503,7 +503,7 @@ export function AgentFlow() {
     // Check which providers are needed based on nodes
     const providersUsed = new Set<ProviderId>();
     nodes.forEach((node) => {
-      if (node.type === "prompt" || node.type === "image") {
+      if (node.type === "text-generation" || node.type === "image-generation") {
         const provider = (node.data as { provider?: string }).provider || "openai";
         providersUsed.add(provider as ProviderId);
       }

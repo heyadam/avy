@@ -7,7 +7,7 @@ import { NodeFrame } from "./NodeFrame";
 import { PortRow } from "./PortLabel";
 import { isImageOutput } from "@/lib/image-utils";
 
-type OutputNodeType = Node<OutputNodeData, "output">;
+type OutputNodeType = Node<OutputNodeData, "preview-output">;
 
 export function OutputNode({ id, data }: NodeProps<OutputNodeType>) {
   const { updateNodeData } = useReactFlow();

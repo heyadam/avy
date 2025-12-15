@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { type, apiKeys } = body;
 
-    if (type === "prompt") {
+    if (type === "text-generation") {
       // Support both old format (input, prompt) and new format (inputs.prompt, inputs.system)
       const { inputs, prompt: legacyPrompt, input: legacyInput, provider, model, verbosity, thinking } = body;
 
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (type === "image") {
+    if (type === "image-generation") {
       const { prompt, provider, model, outputFormat, size, quality, partialImages, aspectRatio, input, imageInput } = body;
 
       // Combine optional prompt template with input

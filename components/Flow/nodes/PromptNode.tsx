@@ -11,7 +11,7 @@ import { ConfigSelect } from "./ConfigSelect";
 import { cn } from "@/lib/utils";
 import { PROVIDERS, DEFAULT_PROVIDER, DEFAULT_MODEL, VERBOSITY_OPTIONS, THINKING_OPTIONS, type ProviderId } from "@/lib/providers";
 
-type PromptNodeType = Node<PromptNodeData, "prompt">;
+type PromptNodeType = Node<PromptNodeData, "text-generation">;
 
 export function PromptNode({ id, data }: NodeProps<PromptNodeType>) {
   const { updateNodeData } = useReactFlow();

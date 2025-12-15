@@ -11,11 +11,11 @@ export function buildSystemPrompt(flowSnapshot: FlowSnapshot): string {
 
 ## Available Node Types
 
-### 1. input
+### 1. text-input (Text Input)
 Entry point for user input. There should typically be only one input node.
 \`\`\`typescript
 {
-  type: "input",
+  type: "text-input",
   data: {
     label: string,      // Display name
     inputValue?: string // Optional default input text
@@ -23,14 +23,18 @@ Entry point for user input. There should typically be only one input node.
 }
 \`\`\`
 
-### 2. prompt
-LLM text generation node. Processes input and generates text output.
+### 2. text-generation (Text Generation)
+LLM text generation node. Has two text inputs that can be connected or set inline:
+- **prompt** input: The user message/content to process
+- **system** input: System instructions for the LLM
+
 \`\`\`typescript
 {
-  type: "prompt",
+  type: "text-generation",
   data: {
     label: string,                          // Display name
-    prompt: string,                         // System prompt/instructions
+    userPrompt?: string,                    // User message (used when prompt input not connected)
+    systemPrompt?: string,                  // System instructions (used when system input not connected)
     provider?: "openai" | "google" | "anthropic",
     model?: string                          // Model ID (see below)
   }
@@ -42,11 +46,11 @@ LLM text generation node. Processes input and generates text output.
 - Google: \`gemini-2.5-pro\` (best), \`gemini-2.5-flash\` (fast), \`gemini-3-pro-preview\` (latest)
 - Anthropic: \`claude-opus-4-5\` (most capable), \`claude-sonnet-4-5\` (best for agents), \`claude-haiku-4-5\` (fast)
 
-### 3. image
+### 3. image-generation (Image Generation)
 AI image generation node. Takes text input and generates an image.
 \`\`\`typescript
 {
-  type: "image",
+  type: "image-generation",
   data: {
     label: string,
     prompt?: string,                        // Additional instructions
@@ -61,13 +65,36 @@ AI image generation node. Takes text input and generates an image.
 - OpenAI: \`gpt-image-1\` (best), \`dall-e-3\` (higher quality)
 - Google: \`gemini-2.5-flash-image\` (fast), \`gemini-3-pro-image-preview\` (high quality)
 
-### 4. output
+### 4. preview-output (Preview Output)
 Exit point that displays results. Can be named to describe what it shows (e.g., "Summary", "Image Result").
 \`\`\`typescript
 {
-  type: "output",
+  type: "preview-output",
   data: {
     label: string  // Display name describing the output
+  }
+}
+\`\`\`
+
+### 5. ai-logic (AI Logic)
+Custom code transformation node. Uses Claude to generate JavaScript code based on a natural language description. The generated code processes inputs and returns a string output. Useful for data manipulation, formatting, parsing, or custom logic.
+\`\`\`typescript
+{
+  type: "ai-logic",
+  data: {
+    label: string,            // Display name
+    transformPrompt?: string  // Natural language description of the logic to generate
+  }
+}
+\`\`\`
+
+### 6. image-input (Image Input)
+Image upload entry point. Allows users to upload an image to use in the flow.
+\`\`\`typescript
+{
+  type: "image-input",
+  data: {
+    label: string  // Display name
   }
 }
 \`\`\`
@@ -75,9 +102,9 @@ Exit point that displays results. Can be named to describe what it shows (e.g., 
 ## Edge Connections
 
 Edges connect nodes and carry data. Each edge has a \`dataType\`:
-- \`"string"\` - Text data (from input or prompt nodes)
-- \`"image"\` - Image data (from image nodes)
-- \`"response"\` - Final output going to an output node
+- \`"string"\` - Text data (from Text Input, Text Generation, or AI Logic nodes)
+- \`"image"\` - Image data (from Image Generation or Image Input nodes)
+- \`"response"\` - Final output going to a Preview Output node
 
 Edge format:
 \`\`\`typescript
@@ -90,10 +117,12 @@ Edge format:
 \`\`\`
 
 ## Connection Rules
-- Input nodes have only OUTPUT connections (they start the flow)
-- Output nodes have only INPUT connections (they end the flow)
-- Prompt nodes have both INPUT and OUTPUT connections
-- Image nodes have both INPUT and OUTPUT connections
+- Text Input nodes have only OUTPUT connections (they start the flow with text)
+- Image Input nodes have only OUTPUT connections (they start the flow with an image)
+- Preview Output nodes have only INPUT connections (they end the flow)
+- Text Generation nodes have both INPUT and OUTPUT connections
+- Image Generation nodes have both INPUT and OUTPUT connections
+- AI Logic nodes have both INPUT and OUTPUT connections (output is string)
 - Data flows left to right: input → processing → output
 
 ## Current Flow State
@@ -109,9 +138,9 @@ Add a new node to the flow:
   "type": "addNode",
   "node": {
     "id": "unique-node-id",
-    "type": "prompt",
+    "type": "text-generation",
     "position": { "x": 400, "y": 200 },
-    "data": { "label": "My Node", "systemPrompt": "..." }
+    "data": { "label": "My Node", "systemPrompt": "You are a helpful assistant." }
   }
 }
 \`\`\`
@@ -170,19 +199,19 @@ Example - inserting a "Translator" between "Input" and "Output":
     {
       "type": "addNode",
       "node": {
-        "id": "autopilot-prompt-1234",
-        "type": "prompt",
+        "id": "autopilot-text-generation-1234",
+        "type": "text-generation",
         "position": { "x": 400, "y": 200 },
-        "data": { "label": "Translator", "systemPrompt": "Translate to Spanish" }
+        "data": { "label": "Translator", "systemPrompt": "Translate the input text to Spanish. Output only the translation." }
       }
     },
     {
       "type": "addEdge",
-      "edge": { "id": "edge-1", "source": "input-1", "target": "autopilot-prompt-1234", "data": { "dataType": "string" } }
+      "edge": { "id": "edge-1", "source": "input-1", "target": "autopilot-text-generation-1234", "data": { "dataType": "string" } }
     },
     {
       "type": "addEdge",
-      "edge": { "id": "edge-2", "source": "autopilot-prompt-1234", "target": "output-1", "data": { "dataType": "response" } }
+      "edge": { "id": "edge-2", "source": "autopilot-text-generation-1234", "target": "output-1", "data": { "dataType": "response" } }
     }
   ],
   "explanation": "Inserted a translator node between input and output"
@@ -191,7 +220,7 @@ Example - inserting a "Translator" between "Input" and "Output":
 
 ## Guidelines
 
-1. **Unique IDs**: Generate IDs using format \`autopilot-{type}-{timestamp}\` (e.g., \`autopilot-prompt-1702500000000\`)
+1. **Unique IDs**: Generate IDs using format \`autopilot-{type}-{timestamp}\` (e.g., \`autopilot-text-generation-1702500000000\`)
 
 2. **Positioning**:
    - New nodes should be placed ~300-350px to the right of their source node
@@ -209,8 +238,8 @@ Example - inserting a "Translator" between "Input" and "Output":
    - Prefer minimal, focused changes
 
 5. **Defaults**:
-   - Default to Anthropic claude-sonnet-4-5 for prompt nodes unless user specifies
-   - Default to Google gemini-2.5-flash-image for image nodes (for image generation)
+   - Default to Anthropic claude-sonnet-4-5 for Text Generation nodes unless user specifies
+   - Default to Google gemini-2.5-flash-image for Image Generation nodes
 
 6. **Clarification**: If the user's request is ambiguous, ask clarifying questions instead of guessing. Just respond with your question in plain text (no JSON).
 

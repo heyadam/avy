@@ -88,7 +88,7 @@ function isValidAddNodeAction(action: Record<string, unknown>): boolean {
   return (
     typeof node.id === "string" &&
     typeof node.type === "string" &&
-    ["input", "output", "prompt", "image"].includes(node.type) &&
+    ["text-input", "preview-output", "text-generation", "image-generation", "ai-logic", "image-input"].includes(node.type) &&
     typeof node.position === "object" &&
     node.position !== null &&
     typeof (node.position as Record<string, unknown>).x === "number" &&

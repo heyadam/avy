@@ -23,7 +23,7 @@ async function executeNode(
   onStreamUpdate?: (output: string, debugInfo?: DebugInfo) => void
 ): Promise<ExecuteNodeResult> {
   switch (node.type) {
-    case "input":
+    case "text-input":
       // Input node uses its stored inputValue or the first available input
       return { output: inputs["prompt"] || inputs["input"] || "" };
 
@@ -31,11 +31,11 @@ async function executeNode(
       // Image input node returns its uploaded image data
       return { output: (node.data.uploadedImage as string) || "" };
 
-    case "output":
+    case "preview-output":
       // Output node passes through its input
       return { output: inputs["input"] || inputs["prompt"] || Object.values(inputs)[0] || "" };
 
-    case "prompt": {
+    case "text-generation": {
       const startTime = Date.now();
       let streamChunksReceived = 0;
 
@@ -53,7 +53,7 @@ async function executeNode(
       const model = (node.data.model as string) || "gpt-5";
 
       const requestBody = {
-        type: "prompt" as const,
+        type: "text-generation" as const,
         inputs: { prompt: promptInput, system: effectiveSystemPrompt },
         provider,
         model,
@@ -65,7 +65,7 @@ async function executeNode(
       const debugInfo: DebugInfo = {
         startTime,
         request: {
-          type: "prompt",
+          type: "text-generation",
           provider,
           model,
           userPrompt: promptInput,
@@ -131,7 +131,7 @@ async function executeNode(
       return { output: fullOutput, debugInfo };
     }
 
-    case "image": {
+    case "image-generation": {
       const startTime = Date.now();
       let streamChunksReceived = 0;
 
@@ -149,7 +149,7 @@ async function executeNode(
       const aspectRatio = (node.data.aspectRatio as string) || "1:1";
 
       const requestBody = {
-        type: "image" as const,
+        type: "image-generation" as const,
         prompt,
         provider,
         model,
@@ -166,7 +166,7 @@ async function executeNode(
       const debugInfo: DebugInfo = {
         startTime,
         request: {
-          type: "image",
+          type: "image-generation",
           provider,
           model,
           imagePrompt: prompt + (promptInput ? ` | Input: ${promptInput}` : ""),
@@ -280,7 +280,7 @@ async function executeNode(
       };
     }
 
-    case "magic": {
+    case "ai-logic": {
       // Check if transform input is connected (dynamic) or using cached code
       const transformInput = inputs["transform"];
       const cachedCode = node.data.generatedCode as string | undefined;
@@ -356,7 +356,7 @@ export async function executeFlow(
     const hasOutgoing = getOutgoingEdges(node.id, edges).length > 0;
     // Root node: no incoming edges, but has outgoing edges (connected to flow)
     // Also include output nodes with incoming edges as they're endpoints
-    return (!hasIncoming && hasOutgoing) || (node.type === "output" && !hasIncoming);
+    return (!hasIncoming && hasOutgoing) || (node.type === "preview-output" && !hasIncoming);
   });
 
   if (rootNodes.length === 0) {
@@ -418,7 +418,7 @@ export async function executeFlow(
     onNodeStateChange(node.id, { status: "running" });
 
     // For prompt and image nodes, also mark downstream output nodes as running
-    const shouldTrackDownstream = node.type === "prompt" || node.type === "image";
+    const shouldTrackDownstream = node.type === "text-generation" || node.type === "image-generation";
     const downstreamOutputs = shouldTrackDownstream
       ? findDownstreamOutputNodes(node.id, nodes, edges)
       : [];
@@ -434,7 +434,7 @@ export async function executeFlow(
       let inputs = collectNodeInputs(node.id, edges, executedOutputs);
 
       // For input node, use its stored inputValue
-      if (node.type === "input") {
+      if (node.type === "text-input") {
         const nodeInput = typeof node.data?.inputValue === "string"
           ? node.data.inputValue
           : "";
@@ -470,7 +470,7 @@ export async function executeFlow(
       });
 
       // If this is an output node, capture the output
-      if (node.type === "output") {
+      if (node.type === "preview-output") {
         outputs.push(result.output);
         return;
       }

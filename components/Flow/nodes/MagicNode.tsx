@@ -12,7 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { cn } from "@/lib/utils";
 import { useApiKeys } from "@/lib/api-keys";
 
-type MagicNodeType = Node<MagicNodeData, "magic">;
+type MagicNodeType = Node<MagicNodeData, "ai-logic">;
 
 export function MagicNode({ id, data }: NodeProps<MagicNodeType>) {
   const { updateNodeData } = useReactFlow();

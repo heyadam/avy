@@ -33,11 +33,13 @@ This is an AI agent workflow builder using Next.js 16 App Router with React Flow
 - Hold spacebar + drag to create selection box (crosshair cursor)
 - Selected nodes show yellow border with animated glow
 
-**Node Types** (`components/Flow/nodes/`): Four custom node components with editable labels:
-- `InputNode`: Entry point, receives user input
-- `PromptNode`: LLM prompt execution with dual inputs (user prompt + system instructions), multi-provider support
-- `ImageNode`: AI image generation (OpenAI with streaming partial images, Google Gemini)
-- `OutputNode`: Exit point, displays final result and sends to preview
+**Node Types** (`components/Flow/nodes/`): Six custom node components with editable labels:
+- `InputNode` (type: `text-input`): Entry point, receives user input
+- `ImageInputNode` (type: `image-input`): Entry point for image upload
+- `PromptNode` (type: `text-generation`): LLM prompt execution with dual inputs (user prompt + system instructions), multi-provider support
+- `ImageNode` (type: `image-generation`): AI image generation (OpenAI with streaming partial images, Google Gemini)
+- `MagicNode` (type: `ai-logic`): Custom code transformation using Claude-generated JavaScript
+- `OutputNode` (type: `preview-output`): Exit point, displays final result and sends to preview
 
 **InputWithHandle** (`components/Flow/nodes/InputWithHandle.tsx`): Reusable component combining input fields with connection handles:
 - Shows disabled textarea with "Connected" placeholder when handle is wired
@@ -58,7 +60,7 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 
 **NodeStatusBadge** (`components/Flow/nodes/NodeStatusBadge.tsx`): Visual indicator for node execution status (running/success/error).
 
-**Responses Sidebar** (`components/Flow/ResponsesSidebar/`): Resizable right sidebar that displays output node results:
+**Responses Sidebar** (`components/Flow/ResponsesSidebar/`): Resizable right sidebar that displays preview-output node results:
 - `ResponsesSidebar.tsx`: Main container with run/reset controls and drag-to-resize
 - `ResponsesHeader.tsx`: Header with action buttons
 - `ResponsesContent.tsx`: Scrollable content area for responses
@@ -86,7 +88,7 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 - Multi-layer glow effect and pulse animation on selection
 
 **Execution Engine** (`lib/execution/engine.ts`): Recursive graph traversal that:
-1. Finds input node as start
+1. Finds text-input node as start
 2. Executes parallel branches independently (responses appear as each completes)
 3. Tracks execution state (running/success/error) per node
 
@@ -105,7 +107,7 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 
 **Autopilot System** (`lib/autopilot/`):
 - `types.ts`: Action types (AddNodeAction, AddEdgeAction, RemoveEdgeAction), FlowChanges, AutopilotMessage
-- `parser.ts`: Extracts and validates JSON actions from Claude's responses
+- `parser.ts`: Extracts and validates JSON actions from Claude's responses. Valid node types: `text-input`, `image-input`, `text-generation`, `image-generation`, `ai-logic`, `preview-output`
 - `snapshot.ts`: Serializes current flow state for context
 - `system-prompt.ts`: Builds prompt with node types, edge rules, and insertion examples
 
@@ -113,9 +115,9 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 
 **Example Flow** (`lib/example-flow.ts`): Default flow configuration loaded on startup.
 
-**API Route** (`app/api/execute/route.ts`): Server-side execution handler for prompt and image nodes:
-- Prompt nodes: Uses Vercel AI SDK with `streamText` for real-time streaming responses. Supports OpenAI, Google, and Anthropic providers with provider-specific options (verbosity, thinking).
-- Image nodes: OpenAI (Responses API with streaming partial images) and Google Gemini. Configurable aspect ratio, quality, format, and partial image count.
+**API Route** (`app/api/execute/route.ts`): Server-side execution handler for text-generation and image-generation nodes:
+- Text generation nodes: Uses Vercel AI SDK with `streamText` for real-time streaming responses. Supports OpenAI, Google, and Anthropic providers with provider-specific options (verbosity, thinking).
+- Image generation nodes: OpenAI (Responses API with streaming partial images) and Google Gemini. Configurable aspect ratio, quality, format, and partial image count.
 
 ### Type System
 

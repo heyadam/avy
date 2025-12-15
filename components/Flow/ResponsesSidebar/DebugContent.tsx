@@ -31,14 +31,14 @@ function formatDebugEntry(entry: DebugEntry): string {
   if (entry.request.thinking !== undefined) {
     lines.push(`- Thinking: ${entry.request.thinking ? "enabled" : "disabled"}`);
   }
-  if (entry.request.type === "image") {
+  if (entry.request.type === "image-generation") {
     if (entry.request.size) lines.push(`- Size: ${entry.request.size}`);
     if (entry.request.quality) lines.push(`- Quality: ${entry.request.quality}`);
     if (entry.request.aspectRatio) lines.push(`- Aspect Ratio: ${entry.request.aspectRatio}`);
   }
   lines.push("");
 
-  if (entry.request.type === "prompt") {
+  if (entry.request.type === "text-generation") {
     if (entry.request.systemPrompt !== undefined) {
       lines.push("### System Prompt");
       lines.push("```");
@@ -145,10 +145,10 @@ function DebugEntryCard({ entry }: { entry: DebugEntry }) {
   const [rawResponseOpen, setRawResponseOpen] = useState(true);
 
   const hasPrompts =
-    entry.request.type === "prompt" &&
+    entry.request.type === "text-generation" &&
     (entry.request.userPrompt || entry.request.systemPrompt);
   const hasImagePrompt =
-    entry.request.type === "image" && entry.request.imagePrompt;
+    entry.request.type === "image-generation" && entry.request.imagePrompt;
 
   const statusIcon =
     entry.status === "running" ? (
@@ -224,7 +224,7 @@ function DebugEntryCard({ entry }: { entry: DebugEntry }) {
                 </span>
               </div>
             )}
-            {entry.request.type === "image" && (
+            {entry.request.type === "image-generation" && (
               <>
                 {entry.request.size && (
                   <div className="flex gap-2">

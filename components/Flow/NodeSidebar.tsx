@@ -6,12 +6,12 @@ import type { DragEvent } from "react";
 import { Button } from "@/components/ui/button";
 
 const iconMap: Record<NodeType, typeof Keyboard> = {
-  input: Keyboard,
+  "text-input": Keyboard,
   "image-input": Upload,
-  output: Square,
-  prompt: MessageSquare,
-  image: ImageIcon,
-  magic: Sparkles,
+  "preview-output": Square,
+  "text-generation": MessageSquare,
+  "image-generation": ImageIcon,
+  "ai-logic": Sparkles,
 };
 
 interface NodeSidebarProps {

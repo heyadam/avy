@@ -23,7 +23,7 @@ import {
 } from "@/lib/providers";
 import { parseImageOutput, getImageDataUrl, stringifyImageOutput } from "@/lib/image-utils";
 
-type ImageNodeType = Node<ImageNodeData, "image">;
+type ImageNodeType = Node<ImageNodeData, "image-generation">;
 
 export function ImageNode({ id, data }: NodeProps<ImageNodeType>) {
   const { updateNodeData } = useReactFlow();

@@ -88,15 +88,15 @@ export type AgentNodeData =
   | MagicNodeData;
 
 // Custom node types
-export type NodeType = "input" | "output" | "prompt" | "image" | "image-input" | "magic";
+export type NodeType = "text-input" | "preview-output" | "text-generation" | "image-generation" | "image-input" | "ai-logic";
 
 // Typed nodes
-export type InputNode = Node<InputNodeData, "input">;
-export type OutputNode = Node<OutputNodeData, "output">;
-export type PromptNode = Node<PromptNodeData, "prompt">;
-export type ImageNode = Node<ImageNodeData, "image">;
+export type InputNode = Node<InputNodeData, "text-input">;
+export type OutputNode = Node<OutputNodeData, "preview-output">;
+export type PromptNode = Node<PromptNodeData, "text-generation">;
+export type ImageNode = Node<ImageNodeData, "image-generation">;
 export type ImageInputNode = Node<ImageInputNodeData, "image-input">;
-export type MagicNode = Node<MagicNodeData, "magic">;
+export type MagicNode = Node<MagicNodeData, "ai-logic">;
 
 export type AgentNode =
   | InputNode
@@ -119,7 +119,7 @@ export interface NodeDefinition {
 
 export const nodeDefinitions: NodeDefinition[] = [
   {
-    type: "input",
+    type: "text-input",
     label: "Text Input",
     description: "Text entry point",
     color: "bg-purple-500/10 text-purple-700 dark:text-purple-300",
@@ -131,25 +131,25 @@ export const nodeDefinitions: NodeDefinition[] = [
     color: "bg-purple-500/10 text-purple-700 dark:text-purple-300",
   },
   {
-    type: "magic",
+    type: "ai-logic",
     label: "AI Logic",
     description: "Custom code transformation",
     color: "bg-orange-500/10 text-orange-700 dark:text-orange-300",
   },
   {
-    type: "prompt",
+    type: "text-generation",
     label: "Text Generation",
     description: "Generate text with AI",
     color: "bg-gray-500/10 text-gray-700 dark:text-gray-300",
   },
   {
-    type: "image",
+    type: "image-generation",
     label: "Image Generation",
     description: "Generate images with AI",
     color: "bg-gray-500/10 text-gray-700 dark:text-gray-300",
   },
   {
-    type: "output",
+    type: "preview-output",
     label: "Preview Output",
     description: "Flow output",
     color: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
@@ -158,7 +158,7 @@ export const nodeDefinitions: NodeDefinition[] = [
 
 // Port schemas for each node type
 export const NODE_PORT_SCHEMAS: Record<NodeType, NodePortSchema> = {
-  input: {
+  "text-input": {
     inputs: [],
     outputs: [{ id: "output", label: "string", dataType: "string" }],
   },
@@ -166,25 +166,25 @@ export const NODE_PORT_SCHEMAS: Record<NodeType, NodePortSchema> = {
     inputs: [],
     outputs: [{ id: "output", label: "image", dataType: "image" }],
   },
-  output: {
+  "preview-output": {
     inputs: [{ id: "input", label: "response", dataType: "response" }],
     outputs: [],
   },
-  prompt: {
+  "text-generation": {
     inputs: [
       { id: "prompt", label: "prompt", dataType: "string", required: true },
       { id: "system", label: "system", dataType: "string", required: false },
     ],
     outputs: [{ id: "output", label: "string", dataType: "string" }],
   },
-  image: {
+  "image-generation": {
     inputs: [
       { id: "image", label: "image", dataType: "image", required: false },
       { id: "prompt", label: "prompt", dataType: "string", required: false },
     ],
     outputs: [{ id: "output", label: "image", dataType: "image" }],
   },
-  magic: {
+  "ai-logic": {
     inputs: [
       { id: "transform", label: "transform", dataType: "string", required: false },
       { id: "input1", label: "input1", dataType: "string", required: false },

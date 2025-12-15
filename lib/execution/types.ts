@@ -6,7 +6,7 @@ export interface DebugInfo {
   startTime: number;
   endTime?: number;
   request: {
-    type: "prompt" | "image";
+    type: "text-generation" | "image-generation";
     provider: string;
     model: string;
     userPrompt?: string;
