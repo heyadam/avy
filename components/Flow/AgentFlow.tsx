@@ -26,7 +26,6 @@ import { ActionBar } from "./ActionBar";
 import { AvyLogo } from "./AvyLogo";
 import { SaveFlowDialog } from "./SaveFlowDialog";
 import { FlowContextMenu } from "./FlowContextMenu";
-import { CommentDialog } from "./CommentDialog";
 import { initialNodes, initialEdges, defaultFlow } from "@/lib/example-flow";
 import type { NodeType, CommentColor } from "@/types/flow";
 import { executeFlow } from "@/lib/execution/engine";
@@ -81,7 +80,6 @@ export function AgentFlow() {
     defaultFlow.metadata as FlowMetadata
   );
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [commentDialogOpen, setCommentDialogOpen] = useState(false);
 
   const [isRunning, setIsRunning] = useState(false);
   const [finalOutput, setFinalOutput] = useState<string | null>(null);
@@ -673,78 +671,66 @@ export function AgentFlow() {
   // Check if any nodes are selected
   const hasSelection = nodes.some((n) => n.selected && n.type !== "comment");
 
-  // Handler to open comment dialog
+  // Handler to create comment around selected nodes
   const handleCommentAround = useCallback(() => {
     const selectedNodes = getSelectedNodes();
     if (selectedNodes.length === 0) return;
-    setCommentDialogOpen(true);
-  }, [getSelectedNodes]);
 
-  // Handler to create comment around selected nodes
-  const handleCreateComment = useCallback(
-    (config: { title: string; description: string; color: CommentColor }) => {
-      const selectedNodes = getSelectedNodes();
-      if (selectedNodes.length === 0) return;
+    // Calculate bounding box of selected nodes
+    const padding = 40;
+    const headerHeight = 60; // Space for the comment header
 
-      // Calculate bounding box of selected nodes
-      const padding = 40;
-      const headerHeight = 60; // Space for the comment header
+    const bounds = selectedNodes.reduce(
+      (acc, node) => ({
+        minX: Math.min(acc.minX, node.position.x),
+        minY: Math.min(acc.minY, node.position.y),
+        maxX: Math.max(acc.maxX, node.position.x + (node.measured?.width || 280)),
+        maxY: Math.max(acc.maxY, node.position.y + (node.measured?.height || 200)),
+      }),
+      { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
+    );
 
-      const bounds = selectedNodes.reduce(
-        (acc, node) => ({
-          minX: Math.min(acc.minX, node.position.x),
-          minY: Math.min(acc.minY, node.position.y),
-          maxX: Math.max(acc.maxX, node.position.x + (node.measured?.width || 280)),
-          maxY: Math.max(acc.maxY, node.position.y + (node.measured?.height || 200)),
-        }),
-        { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
-      );
+    const commentId = getId();
+    const commentPosition = {
+      x: bounds.minX - padding,
+      y: bounds.minY - padding - headerHeight,
+    };
 
-      const commentId = getId();
-      const commentPosition = {
-        x: bounds.minX - padding,
-        y: bounds.minY - padding - headerHeight,
-      };
+    // Create comment node with default values
+    const commentNode: Node = {
+      id: commentId,
+      type: "comment",
+      position: commentPosition,
+      style: {
+        width: bounds.maxX - bounds.minX + padding * 2,
+        height: bounds.maxY - bounds.minY + padding * 2 + headerHeight,
+        zIndex: -1, // Render behind other nodes
+      },
+      data: {
+        label: "Comment",
+        description: "",
+        color: "gray" as CommentColor,
+      },
+    };
 
-      // Create comment node
-      const commentNode: Node = {
-        id: commentId,
-        type: "comment",
-        position: commentPosition,
-        style: {
-          width: bounds.maxX - bounds.minX + padding * 2,
-          height: bounds.maxY - bounds.minY + padding * 2 + headerHeight,
-          zIndex: -1, // Render behind other nodes
-        },
-        data: {
-          label: config.title,
-          description: config.description,
-          color: config.color,
-        },
-      };
-
-      // Update selected nodes to be children of comment
-      setNodes((nds) => [
-        commentNode,
-        ...nds.map((node) =>
-          selectedNodes.some((sn) => sn.id === node.id)
-            ? {
-                ...node,
-                parentId: commentId,
-                // Convert absolute position to relative within parent
-                position: {
-                  x: node.position.x - commentPosition.x,
-                  y: node.position.y - commentPosition.y,
-                },
-                              }
-            : node
-        ),
-      ]);
-
-      setCommentDialogOpen(false);
-    },
-    [getSelectedNodes, setNodes]
-  );
+    // Update selected nodes to be children of comment
+    setNodes((nds) => [
+      commentNode,
+      ...nds.map((node) =>
+        selectedNodes.some((sn) => sn.id === node.id)
+          ? {
+              ...node,
+              parentId: commentId,
+              // Convert absolute position to relative within parent
+              position: {
+                x: node.position.x - commentPosition.x,
+                y: node.position.y - commentPosition.y,
+              },
+            }
+          : node
+      ),
+    ]);
+  }, [getSelectedNodes, setNodes]);
 
   const updateNodeExecutionState = useCallback(
     (nodeId: string, state: NodeExecutionState) => {
@@ -1052,11 +1038,6 @@ export function AgentFlow() {
         onOpenChange={setSaveDialogOpen}
         onSave={handleSaveFlow}
         defaultName={flowMetadata?.name || "My Flow"}
-      />
-      <CommentDialog
-        open={commentDialogOpen}
-        onOpenChange={setCommentDialogOpen}
-        onSubmit={handleCreateComment}
       />
     </div>
   );
