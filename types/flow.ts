@@ -85,6 +85,8 @@ export interface CommentNodeData extends Record<string, unknown> {
   label: string;
   description?: string;
   color: CommentColor;
+  isGenerating?: boolean;  // AI is generating title/description
+  userEdited?: boolean;    // User has manually edited, skip auto-generation
 }
 
 // Union type for all node data

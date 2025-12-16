@@ -26,7 +26,9 @@ import { ActionBar } from "./ActionBar";
 import { AvyLogo } from "./AvyLogo";
 import { SaveFlowDialog } from "./SaveFlowDialog";
 import { FlowContextMenu } from "./FlowContextMenu";
+import { CommentEditContext } from "./CommentEditContext";
 import { initialNodes, initialEdges, defaultFlow } from "@/lib/example-flow";
+import { useCommentSuggestions } from "@/lib/hooks/useCommentSuggestions";
 import type { NodeType, CommentColor } from "@/types/flow";
 import { executeFlow } from "@/lib/execution/engine";
 import type { NodeExecutionState } from "@/lib/execution/types";
@@ -102,6 +104,12 @@ export function AgentFlow() {
 
   // Background settings
   const { settings: bgSettings } = useBackgroundSettings();
+
+  // Comment AI suggestion hook
+  const { triggerGeneration, markUserEdited } = useCommentSuggestions({
+    nodes,
+    setNodes,
+  });
 
   // Connection drag state
   const [isConnecting, setIsConnecting] = useState(false);
@@ -319,6 +327,9 @@ export function AgentFlow() {
       }
 
       if (dragEndIds.size > 0) {
+        // Track comments that had children added/removed for AI regeneration
+        const affectedCommentIds = new Set<string>();
+
         setNodes((nds) => {
           let modified = false;
           const result = nds.map((node) => {
@@ -370,6 +381,10 @@ export function AgentFlow() {
               if (node.parentId === targetComment.id) return node;
 
               modified = true;
+              // Track old parent (losing a child) and new parent (gaining a child)
+              if (node.parentId) affectedCommentIds.add(node.parentId);
+              affectedCommentIds.add(targetComment.id);
+
               const targetPos = getAbsolutePosition(targetComment, nds);
               return {
                 ...node,
@@ -389,6 +404,8 @@ export function AgentFlow() {
                 !isInsideComment(absPos, currentParent, nds)
               ) {
                 modified = true;
+                // Track old parent (losing a child)
+                affectedCommentIds.add(node.parentId);
                 return {
                   ...node,
                   parentId: undefined,
@@ -402,6 +419,9 @@ export function AgentFlow() {
 
           return modified ? result : nds;
         });
+
+        // Trigger AI regeneration for affected comments
+        affectedCommentIds.forEach((commentId) => triggerGeneration(commentId));
       }
 
       // Check for comment resize to capture nodes that are now inside
@@ -418,6 +438,9 @@ export function AgentFlow() {
       }
 
       if (resizedCommentIds.size > 0) {
+        // Track comments that had children added/removed for AI regeneration
+        const affectedCommentIds = new Set<string>();
+
         setNodes((nds) => {
           let modified = false;
           const result = nds.map((node) => {
@@ -433,6 +456,8 @@ export function AgentFlow() {
               if (parentComment && !isInsideComment(absPos, parentComment, nds)) {
                 // Node is now outside - unparent it
                 modified = true;
+                // Track the comment losing a child
+                affectedCommentIds.add(node.parentId);
                 return {
                   ...node,
                   parentId: undefined,
@@ -449,6 +474,8 @@ export function AgentFlow() {
               const comment = nds.find((n) => n.id === commentId);
               if (comment && isInsideComment(absPos, comment, nds)) {
                 modified = true;
+                // Track the comment gaining a child
+                affectedCommentIds.add(commentId);
                 const commentPos = getAbsolutePosition(comment, nds);
                 return {
                   ...node,
@@ -466,6 +493,9 @@ export function AgentFlow() {
 
           return modified ? result : nds;
         });
+
+        // Trigger AI regeneration for affected comments
+        affectedCommentIds.forEach((commentId) => triggerGeneration(commentId));
       }
 
       // Clear highlight for any nodes being dragged
@@ -484,7 +514,7 @@ export function AgentFlow() {
         }
       }
     },
-    [onNodesChange, autopilotHighlightedIds, setNodes, nodes, getAbsolutePosition, isInsideComment]
+    [onNodesChange, autopilotHighlightedIds, setNodes, nodes, getAbsolutePosition, isInsideComment, triggerGeneration]
   );
 
   // Helper to clear all autopilot highlights
@@ -730,7 +760,10 @@ export function AgentFlow() {
           : node
       ),
     ]);
-  }, [getSelectedNodes, setNodes]);
+
+    // Trigger AI generation for the new comment's title/description
+    triggerGeneration(commentId);
+  }, [getSelectedNodes, setNodes, triggerGeneration]);
 
   const updateNodeExecutionState = useCallback(
     (nodeId: string, state: NodeExecutionState) => {
@@ -959,12 +992,13 @@ export function AgentFlow() {
           onClose={() => setNodesPaletteOpen(false)}
           onAddNode={handleAddNodeAtCenter}
         />
-        <ConnectionContext.Provider value={{ isConnecting, connectingFromNodeId }}>
-          <FlowContextMenu
-            hasSelection={hasSelection}
-            onCommentAround={handleCommentAround}
-          >
-            <ReactFlow
+        <CommentEditContext.Provider value={{ markUserEdited }}>
+          <ConnectionContext.Provider value={{ isConnecting, connectingFromNodeId }}>
+            <FlowContextMenu
+              hasSelection={hasSelection}
+              onCommentAround={handleCommentAround}
+            >
+              <ReactFlow
               nodes={nodes}
               edges={edges}
               onNodesChange={handleNodesChange}
@@ -1002,8 +1036,9 @@ export function AgentFlow() {
               />
               <Controls />
             </ReactFlow>
-          </FlowContextMenu>
-        </ConnectionContext.Provider>
+            </FlowContextMenu>
+          </ConnectionContext.Provider>
+        </CommentEditContext.Provider>
         {/* Top center branding */}
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
           <AvyLogo isPanning={isPanning} />

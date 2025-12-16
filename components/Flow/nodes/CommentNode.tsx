@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { NodeProps, NodeResizer, useReactFlow } from "@xyflow/react";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CommentNodeData, CommentColor } from "@/types/flow";
+import { useCommentEdit } from "../CommentEditContext";
 
 // Color theme mappings
 const COMMENT_COLORS: Record<
@@ -66,12 +67,26 @@ export function CommentNode({
   selected,
 }: NodeProps & { data: CommentNodeData }) {
   const { updateNodeData } = useReactFlow();
+  const { markUserEdited } = useCommentEdit();
   const theme = COMMENT_COLORS[data.color] || COMMENT_COLORS.gray;
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitleValue, setEditTitleValue] = useState(data.label);
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [editDescValue, setEditDescValue] = useState(data.description || "");
+
+  // Cancel AI generation when user starts editing
+  const handleStartEditTitle = () => {
+    markUserEdited(id);
+    setEditTitleValue(data.label);
+    setIsEditingTitle(true);
+  };
+
+  const handleStartEditDesc = () => {
+    markUserEdited(id);
+    setEditDescValue(data.description || "");
+    setIsEditingDesc(true);
+  };
 
   const handleTitleSubmit = () => {
     updateNodeData(id, { label: editTitleValue });
@@ -108,7 +123,11 @@ export function CommentNode({
             theme.headerBg
           )}
         >
-          <MessageSquare className={cn("size-4 mt-0.5 shrink-0", theme.headerText)} />
+          {data.isGenerating ? (
+            <Loader2 className={cn("size-4 mt-0.5 shrink-0 animate-spin", theme.headerText)} />
+          ) : (
+            <MessageSquare className={cn("size-4 mt-0.5 shrink-0", theme.headerText)} />
+          )}
           <div className="flex-1 min-w-0">
             {isEditingTitle ? (
               <input
@@ -130,10 +149,7 @@ export function CommentNode({
               />
             ) : (
               <div
-                onClick={() => {
-                  setEditTitleValue(data.label);
-                  setIsEditingTitle(true);
-                }}
+                onClick={handleStartEditTitle}
                 className={cn(
                   "text-sm font-medium cursor-text hover:bg-background/20 rounded px-1 -mx-1 truncate",
                   theme.headerText
@@ -161,10 +177,7 @@ export function CommentNode({
               />
             ) : (
               <div
-                onClick={() => {
-                  setEditDescValue(data.description || "");
-                  setIsEditingDesc(true);
-                }}
+                onClick={handleStartEditDesc}
                 className="text-xs mt-1 opacity-70 cursor-text hover:bg-background/20 rounded px-1 -mx-1 line-clamp-2"
               >
                 {data.description || "Add description..."}
