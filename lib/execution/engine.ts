@@ -390,6 +390,113 @@ async function executeNode(
       }
     }
 
+    case "react-component": {
+      const startTime = Date.now();
+      let streamChunksReceived = 0;
+
+      // Get prompt input - from connection or inline textarea
+      const hasPromptEdge = "prompt" in inputs;
+      const inlineUserPrompt = typeof node.data?.userPrompt === "string" ? node.data.userPrompt : "";
+      const promptInput = hasPromptEdge ? inputs["prompt"] : inlineUserPrompt;
+
+      // Get system prompt - from connection or inline textarea
+      const hasSystemEdge = "system" in inputs;
+      const inlineSystemPrompt = typeof node.data?.systemPrompt === "string" ? node.data.systemPrompt : "";
+      const effectiveSystemPrompt = hasSystemEdge ? inputs["system"] : inlineSystemPrompt;
+
+      const provider = (node.data.provider as string) || "openai";
+      const model = (node.data.model as string) || "gpt-5.2";
+
+      const requestBody = {
+        type: "react-component" as const,
+        inputs: { prompt: promptInput, system: effectiveSystemPrompt },
+        provider,
+        model,
+        apiKeys,
+      };
+
+      const debugInfo: DebugInfo = {
+        startTime,
+        request: {
+          type: "react-component",
+          provider,
+          model,
+          userPrompt: promptInput,
+          systemPrompt: effectiveSystemPrompt,
+        },
+        streamChunksReceived: 0,
+        rawRequestBody: JSON.stringify({ ...requestBody, apiKeys: "[REDACTED]" }, null, 2),
+      };
+
+      const response = await fetchWithTimeout(
+        "/api/execute",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+          signal,
+        }
+      );
+
+      if (!response.ok) {
+        const text = await response.text();
+        let errorMessage = "Failed to generate React component";
+        try {
+          const data = JSON.parse(text);
+          errorMessage = data.error || errorMessage;
+        } catch {
+          errorMessage = text || errorMessage;
+        }
+        debugInfo.endTime = Date.now();
+        throw new Error(errorMessage);
+      }
+
+      if (!response.body) {
+        debugInfo.endTime = Date.now();
+        throw new Error("No response body");
+      }
+
+      // Stream the response
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullOutput = "";
+      const rawChunks: string[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        rawChunks.push(chunk);
+        fullOutput += chunk;
+        streamChunksReceived++;
+        debugInfo.streamChunksReceived = streamChunksReceived;
+        debugInfo.rawResponseBody = rawChunks.join("");
+
+        // Stream partial code wrapped in react output format
+        const partialOutput = JSON.stringify({
+          type: "react",
+          code: fullOutput,
+        });
+        onStreamUpdate?.(partialOutput, debugInfo);
+      }
+
+      debugInfo.endTime = Date.now();
+      debugInfo.rawResponseBody = fullOutput || "(empty response)";
+
+      if (!fullOutput.trim()) {
+        throw new Error("Model returned empty response.");
+      }
+
+      // Wrap final output in react format
+      const reactOutput = JSON.stringify({
+        type: "react",
+        code: fullOutput,
+      });
+
+      return { output: reactOutput, debugInfo };
+    }
+
     default:
       return { output: inputs["prompt"] || inputs["input"] || Object.values(inputs)[0] || "" };
   }
@@ -480,8 +587,8 @@ export async function executeFlow(
 
     onNodeStateChange(node.id, { status: "running" });
 
-    // For prompt and image nodes, also mark downstream output nodes as running
-    const shouldTrackDownstream = node.type === "text-generation" || node.type === "image-generation";
+    // For prompt, image, and react nodes, also mark downstream output nodes as running
+    const shouldTrackDownstream = node.type === "text-generation" || node.type === "image-generation" || node.type === "react-component";
     const downstreamOutputs = shouldTrackDownstream
       ? findDownstreamOutputNodes(node.id, nodes, edges)
       : [];

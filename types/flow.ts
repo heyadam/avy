@@ -78,6 +78,14 @@ export interface MagicNodeData extends Record<string, unknown>, ExecutionData {
   generationError?: string;    // Error from code generation
 }
 
+export interface ReactNodeData extends Record<string, unknown>, ExecutionData {
+  label: string;
+  userPrompt?: string;    // Component description (when not connected)
+  systemPrompt?: string;  // Additional instructions (when not connected)
+  provider?: string;
+  model?: string;
+}
+
 // Comment node colors
 export type CommentColor = "gray" | "blue" | "green" | "yellow" | "purple" | "pink" | "orange";
 
@@ -97,10 +105,11 @@ export type AgentNodeData =
   | ImageNodeData
   | ImageInputNodeData
   | MagicNodeData
-  | CommentNodeData;
+  | CommentNodeData
+  | ReactNodeData;
 
 // Custom node types
-export type NodeType = "text-input" | "preview-output" | "text-generation" | "image-generation" | "image-input" | "ai-logic" | "comment";
+export type NodeType = "text-input" | "preview-output" | "text-generation" | "image-generation" | "image-input" | "ai-logic" | "comment" | "react-component";
 
 // Typed nodes
 export type InputNode = Node<InputNodeData, "text-input">;
@@ -110,6 +119,7 @@ export type ImageNode = Node<ImageNodeData, "image-generation">;
 export type ImageInputNode = Node<ImageInputNodeData, "image-input">;
 export type MagicNode = Node<MagicNodeData, "ai-logic">;
 export type CommentNode = Node<CommentNodeData, "comment">;
+export type ReactNode = Node<ReactNodeData, "react-component">;
 
 export type AgentNode =
   | InputNode
@@ -118,7 +128,8 @@ export type AgentNode =
   | ImageNode
   | ImageInputNode
   | MagicNode
-  | CommentNode;
+  | CommentNode
+  | ReactNode;
 
 // Edge type
 export type AgentEdge = Edge;
@@ -168,6 +179,12 @@ export const nodeDefinitions: NodeDefinition[] = [
     description: "Flow output",
     color: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
   },
+  {
+    type: "react-component",
+    label: "React Component",
+    description: "Generate React UI components",
+    color: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
+  },
 ];
 
 // Port schemas for each node type
@@ -209,5 +226,12 @@ export const NODE_PORT_SCHEMAS: Record<NodeType, NodePortSchema> = {
   "comment": {
     inputs: [],
     outputs: [],
+  },
+  "react-component": {
+    inputs: [
+      { id: "prompt", label: "prompt", dataType: "string", required: true },
+      { id: "system", label: "system", dataType: "string", required: false },
+    ],
+    outputs: [{ id: "output", label: "react", dataType: "response" }],
   },
 };

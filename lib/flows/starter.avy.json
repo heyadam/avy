@@ -1,115 +1,68 @@
 {
   "metadata": {
     "name": "starter",
-    "description": "A sample flow demonstrating text and image generation with parallel outputs",
+    "description": "A sample flow demonstrating text generation and React component rendering",
     "schemaVersion": 1,
     "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2025-12-13T23:43:13.765Z"
+    "updatedAt": "2025-12-16T00:00:00.000Z"
   },
   "nodes": [
     {
       "id": "input-1",
       "type": "text-input",
       "position": {
-        "x": 2.6680896478121667,
-        "y": -26.09391675560299
+        "x": 50,
+        "y": 150
       },
       "data": {
         "label": "User Input",
-        "inputValue": "write a joke"
-      },
-      "measured": {
-        "width": 150,
-        "height": 185
-      },
-      "selected": false,
-      "dragging": false
+        "inputValue": "A colorful animated button that says 'Hello World' and changes color when clicked"
+      }
     },
     {
-      "id": "prompt-1",
-      "type": "text-generation",
+      "id": "react-1",
+      "type": "react-component",
       "position": {
         "x": 350,
         "y": 100
       },
       "data": {
-        "label": "GPT-5 Nano",
-        "systemPrompt": "Write a simple prompt for image generation",
-        "provider": "openai",
-        "model": "gpt-5-nano"
-      },
-      "measured": {
-        "width": 280,
-        "height": 425
+        "label": "React Generator",
+        "systemPrompt": "Create beautiful, interactive components with smooth animations",
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5"
       }
     },
     {
       "id": "output-1",
       "type": "preview-output",
       "position": {
-        "x": 754.5891141942369,
-        "y": 98.71931696905015
+        "x": 750,
+        "y": 150
       },
       "data": {
-        "label": "Preview Output"
-      },
-      "measured": {
-        "width": 150,
-        "height": 161
-      },
-      "selected": false,
-      "dragging": false
-    },
-    {
-      "id": "node_0",
-      "type": "text-input",
-      "position": {
-        "x": 1.3340448239061118,
-        "y": 216.98399146211312
-      },
-      "data": {
-        "label": "Input",
-        "inputValue": "write in english"
-      },
-      "measured": {
-        "width": 150,
-        "height": 185
-      },
-      "selected": false,
-      "dragging": false
+        "label": "Preview"
+      }
     }
   ],
   "edges": [
     {
-      "id": "e-input-prompt1",
+      "id": "e-input-react",
       "source": "input-1",
-      "target": "prompt-1",
+      "target": "react-1",
       "type": "colored",
       "data": {
         "dataType": "string"
       }
     },
     {
-      "id": "e-prompt1-output1",
-      "source": "prompt-1",
+      "id": "e-react-output",
+      "source": "react-1",
       "target": "output-1",
       "type": "colored",
       "data": {
-        "dataType": "string"
+        "dataType": "response"
       }
-    },
-    {
-      "type": "colored",
-      "source": "node_0",
-      "sourceHandle": "output",
-      "target": "prompt-1",
-      "targetHandle": "system",
-      "data": {
-        "dataType": "string",
-        "sourceHandle": "output",
-        "targetHandle": "system"
-      },
-      "id": "xy-edge__node_0output-prompt-1system"
     }
   ]
 }

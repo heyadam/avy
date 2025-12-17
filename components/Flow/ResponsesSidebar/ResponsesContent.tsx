@@ -10,6 +10,8 @@ import {
 import { Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isImageOutput, parseImageOutput, getImageDataUrl } from "@/lib/image-utils";
+import { isReactOutput, parseReactOutput } from "@/lib/react-utils";
+import { ReactPreview } from "./ReactPreview";
 
 interface ResponsesContentProps {
   entries: PreviewEntry[];
@@ -80,6 +82,14 @@ export function ResponsesContent({ entries }: ResponsesContentProps) {
               <p className="text-sm text-destructive whitespace-pre-wrap break-words">
                 {entry.error}
               </p>
+            ) : entry.output && isReactOutput(entry.output) ? (
+              (() => {
+                const reactData = parseReactOutput(entry.output);
+                if (reactData) {
+                  return <ReactPreview data={reactData} />;
+                }
+                return null;
+              })()
             ) : entry.output && isImageOutput(entry.output) ? (
               (() => {
                 const imageData = parseImageOutput(entry.output);

@@ -280,6 +280,68 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    if (type === "react-component") {
+      const { inputs, provider, model } = body;
+      const promptInput = inputs?.prompt ?? "";
+      const userSystemPrompt = inputs?.system ?? "";
+
+      // Build comprehensive system prompt for React component generation
+      const systemPrompt = `You are an expert React component developer. Generate clean, functional React components.
+
+RULES:
+1. Generate a single React functional component
+2. Use inline styles or Tailwind CSS classes for styling
+3. The component should be self-contained (no external imports except React)
+4. Export the component as default: \`export default function Component() {...}\`
+5. Use modern React patterns (hooks, functional components)
+6. Include helpful comments for complex logic
+7. Make components responsive when appropriate
+8. Handle edge cases gracefully
+
+IMPORTANT:
+- Do NOT use external dependencies (no axios, lodash, etc.)
+- Do NOT use external CSS files
+- Use standard HTML elements and React hooks only
+- Include any mock data the component needs inline
+
+${userSystemPrompt ? `\nADDITIONAL INSTRUCTIONS:\n${userSystemPrompt}` : ""}
+
+OUTPUT FORMAT:
+Return ONLY the component code wrapped in a jsx code block. No explanations before or after.
+
+Example output:
+\`\`\`jsx
+export default function Component() {
+  return (
+    <div className="p-4">
+      <h1>Hello World</h1>
+    </div>
+  );
+}
+\`\`\``;
+
+      const messages: { role: "system" | "user"; content: string }[] = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: String(promptInput) },
+      ];
+
+      try {
+        const result = streamText({
+          model: getModel(provider || "openai", model || "gpt-5.2", apiKeys),
+          messages,
+          maxOutputTokens: 4000,
+        });
+
+        return result.toTextStreamResponse();
+      } catch (streamError) {
+        console.error("[API] react-component streamText error:", streamError);
+        return NextResponse.json(
+          { error: streamError instanceof Error ? streamError.message : "Stream error" },
+          { status: 500 }
+        );
+      }
+    }
+
     if (type === "magic-generate") {
       const { prompt } = body;
 
@@ -291,7 +353,7 @@ export async function POST(request: NextRequest) {
         apiKey: apiKeys?.anthropic || process.env.ANTHROPIC_API_KEY,
       });
 
-      const systemPrompt = `You are a code generator. Generate a JavaScript function body that transforms inputs.
+      const magicSystemPrompt = `You are a code generator. Generate a JavaScript function body that transforms inputs.
 
 The function will receive two variables:
 - input1: string | number | null (first input value)
@@ -328,7 +390,7 @@ CODE: return String(input1 || '') + ' ' + String(input2 || '');`;
       try {
         const result = await generateText({
           model: anthropic("claude-haiku-4-5"),
-          system: systemPrompt,
+          system: magicSystemPrompt,
           prompt: prompt,
           maxOutputTokens: 500,
         });

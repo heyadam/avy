@@ -6,6 +6,7 @@ import { ImageNode } from "./ImageNode";
 import { ImageInputNode } from "./ImageInputNode";
 import { MagicNode } from "./MagicNode";
 import { CommentNode } from "./CommentNode";
+import { ReactNode } from "./ReactNode";
 
 export const nodeTypes: NodeTypes = {
   "text-input": InputNode,
@@ -15,6 +16,7 @@ export const nodeTypes: NodeTypes = {
   "image-input": ImageInputNode,
   "ai-logic": MagicNode,
   "comment": CommentNode,
+  "react-component": ReactNode,
 };
 
-export { InputNode, OutputNode, PromptNode, ImageNode, ImageInputNode, MagicNode, CommentNode };
+export { InputNode, OutputNode, PromptNode, ImageNode, ImageInputNode, MagicNode, CommentNode, ReactNode };

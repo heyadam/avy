@@ -88,7 +88,22 @@ Custom code transformation node. Uses Claude to generate JavaScript code based o
 }
 \`\`\`
 
-### 6. image-input (Image Input)
+### 6. react-component (React Component)
+AI-powered React component generator. Takes a description and generates a self-contained React functional component that renders in a sandboxed iframe. Useful for creating dynamic UI previews, dashboards, or interactive visualizations.
+\`\`\`typescript
+{
+  type: "react-component",
+  data: {
+    label: string,            // Display name
+    userPrompt?: string,      // Component description (used when prompt input not connected)
+    systemPrompt?: string,    // Additional style/behavior instructions
+    provider?: "openai" | "google" | "anthropic",
+    model?: string            // Model ID
+  }
+}
+\`\`\`
+
+### 7. image-input (Image Input)
 Image upload entry point. Allows users to upload an image to use in the flow.
 \`\`\`typescript
 {
@@ -104,7 +119,7 @@ Image upload entry point. Allows users to upload an image to use in the flow.
 Edges connect nodes and carry data. Each edge has a \`dataType\`:
 - \`"string"\` - Text data (from Text Input, Text Generation, or AI Logic nodes)
 - \`"image"\` - Image data (from Image Generation or Image Input nodes)
-- \`"response"\` - Final output going to a Preview Output node
+- \`"response"\` - Final output going to a Preview Output node (from React Component or other terminal nodes)
 
 Edge format:
 \`\`\`typescript
@@ -123,6 +138,7 @@ Edge format:
 - Text Generation nodes have both INPUT and OUTPUT connections
 - Image Generation nodes have both INPUT and OUTPUT connections
 - AI Logic nodes have both INPUT and OUTPUT connections (output is string)
+- React Component nodes have both INPUT and OUTPUT connections (output is response dataType)
 - Data flows left to right: input → processing → output
 
 ## Current Flow State
