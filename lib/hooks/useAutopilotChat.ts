@@ -3,15 +3,26 @@
 import { useState, useCallback, useRef } from "react";
 import type { Node, Edge } from "@xyflow/react";
 import { createFlowSnapshot } from "@/lib/autopilot/snapshot";
-import { parseFlowChanges } from "@/lib/autopilot/parser";
+import { parseResponse } from "@/lib/autopilot/parser";
 import { useApiKeys } from "@/lib/api-keys";
-import type { AutopilotMessage, FlowChanges, AppliedChangesInfo, AutopilotModel } from "@/lib/autopilot/types";
+import type {
+  AutopilotMessage,
+  FlowChanges,
+  AppliedChangesInfo,
+  AutopilotModel,
+  AutopilotMode,
+  FlowPlan,
+} from "@/lib/autopilot/types";
 
 interface UseAutopilotChatOptions {
   nodes: Node[];
   edges: Edge[];
   onApplyChanges: (changes: FlowChanges) => AppliedChangesInfo;
   onUndoChanges: (applied: AppliedChangesInfo) => void;
+}
+
+interface SendMessageOptions {
+  executePlan?: FlowPlan;
 }
 
 export function useAutopilotChat({
@@ -23,6 +34,7 @@ export function useAutopilotChat({
   const [messages, setMessages] = useState<AutopilotMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<AutopilotMode>("execute");
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesRef = useRef<AutopilotMessage[]>([]);
   const { keys: apiKeys } = useApiKeys();
@@ -31,7 +43,11 @@ export function useAutopilotChat({
   messagesRef.current = messages;
 
   const sendMessage = useCallback(
-    async (content: string, model: AutopilotModel = "claude-sonnet-4-5") => {
+    async (
+      content: string,
+      model: AutopilotModel = "claude-sonnet-4-5",
+      options?: SendMessageOptions
+    ) => {
       if (!content.trim() || isLoading) return;
 
       setError(null);
@@ -78,6 +94,8 @@ export function useAutopilotChat({
             flowSnapshot,
             model,
             apiKeys,
+            mode: options?.executePlan ? "execute" : mode,
+            approvedPlan: options?.executePlan,
           }),
           signal: abortControllerRef.current.signal,
         });
@@ -111,24 +129,32 @@ export function useAutopilotChat({
           );
         }
 
-        // Parse flow changes from completed response
-        const changes = parseFlowChanges(fullOutput);
+        // Parse response - could be plan, changes, or neither
+        const parseResult = parseResponse(fullOutput);
 
-        // Auto-apply changes if any
         let appliedInfo: AppliedChangesInfo | undefined;
-        if (changes) {
-          appliedInfo = onApplyChanges(changes);
+        let pendingPlan: FlowPlan | undefined;
+        let pendingChanges: FlowChanges | undefined;
+
+        if (parseResult.type === "changes") {
+          // Flow changes - auto-apply
+          pendingChanges = parseResult.data;
+          appliedInfo = onApplyChanges(parseResult.data);
+        } else if (parseResult.type === "plan") {
+          // Plan - store for approval (don't auto-apply)
+          pendingPlan = parseResult.data;
         }
 
-        // Update message with parsed changes and applied info
+        // Update message with parsed result
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantMessageId
               ? {
                   ...m,
                   content: fullOutput,
-                  pendingChanges: changes ?? undefined,
-                  applied: !!changes,
+                  pendingChanges,
+                  pendingPlan,
+                  applied: !!pendingChanges,
                   appliedInfo,
                 }
               : m
@@ -159,7 +185,27 @@ export function useAutopilotChat({
         abortControllerRef.current = null;
       }
     },
-    [nodes, edges, isLoading, onApplyChanges, apiKeys]
+    [nodes, edges, isLoading, onApplyChanges, apiKeys, mode]
+  );
+
+  const approvePlan = useCallback(
+    async (messageId: string, model: AutopilotModel = "claude-sonnet-4-5") => {
+      const message = messagesRef.current.find((m) => m.id === messageId);
+      if (!message?.pendingPlan) return;
+
+      // Mark plan as approved
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId ? { ...m, planApproved: true } : m
+        )
+      );
+
+      // Send execute request with approved plan
+      await sendMessage("Execute the approved plan.", model, {
+        executePlan: message.pendingPlan,
+      });
+    },
+    [sendMessage]
   );
 
   const undoChanges = useCallback(
@@ -194,7 +240,10 @@ export function useAutopilotChat({
     messages,
     isLoading,
     error,
+    mode,
+    setMode,
     sendMessage,
+    approvePlan,
     undoChanges,
     clearHistory,
     cancelRequest,

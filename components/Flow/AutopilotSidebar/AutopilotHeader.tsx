@@ -20,6 +20,7 @@ export function AutopilotHeader({
         <Sparkles className="h-4 w-4 text-purple-500" />
         <span className="font-medium text-sm">Autopilot</span>
       </div>
+
       <div className="flex items-center gap-1">
         {hasMessages && (
           <Button

@@ -20,12 +20,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Loader } from "@/components/ai-elements/loader";
-import { Check, Sparkles, Undo2, ChevronDown } from "lucide-react";
-import type { AutopilotMessage, AutopilotModel } from "@/lib/autopilot/types";
+import { Check, Sparkles, Undo2, ChevronDown, Play, Zap, ListTodo } from "lucide-react";
+import type { AutopilotMessage, AutopilotModel, AutopilotMode, FlowPlan } from "@/lib/autopilot/types";
 
 const MODELS: { id: AutopilotModel; name: string }[] = [
   { id: "claude-sonnet-4-5", name: "Sonnet 4.5" },
   { id: "claude-opus-4-5", name: "Opus 4.5" },
+];
+
+const MODES: { id: AutopilotMode; name: string; icon: typeof Zap }[] = [
+  { id: "execute", name: "Execute", icon: Zap },
+  { id: "plan", name: "Plan", icon: ListTodo },
 ];
 
 const SUGGESTED_PROMPTS = [
@@ -39,7 +44,10 @@ interface AutopilotChatProps {
   messages: AutopilotMessage[];
   isLoading: boolean;
   error: string | null;
+  mode: AutopilotMode;
+  onModeChange: (mode: AutopilotMode) => void;
   onSendMessage: (content: string, model: AutopilotModel) => void;
+  onApprovePlan: (messageId: string, model: AutopilotModel) => void;
   onUndoChanges: (messageId: string) => void;
 }
 
@@ -47,7 +55,10 @@ export function AutopilotChat({
   messages,
   isLoading,
   error,
+  mode,
+  onModeChange,
   onSendMessage,
+  onApprovePlan,
   onUndoChanges,
 }: AutopilotChatProps) {
   const [inputValue, setInputValue] = useState("");
@@ -97,6 +108,26 @@ export function AutopilotChat({
                   {message.role === "assistant" ? (
                     <>
                       <MessageResponse className="[&_pre]:text-[8px] [&_pre]:leading-[1.2] [&_pre]:p-1.5 [&_code]:text-[8px]">{message.content}</MessageResponse>
+                      {/* Plan awaiting approval */}
+                      {message.pendingPlan && !message.planApproved && (
+                        <PlanCard
+                          plan={message.pendingPlan}
+                          onApprove={() => onApprovePlan(message.id, selectedModel)}
+                          isLoading={isLoading}
+                        />
+                      )}
+
+                      {/* Plan approved */}
+                      {message.pendingPlan && message.planApproved && (
+                        <div className="mt-3 pt-3 border-t">
+                          <span className="flex items-center gap-1 text-xs text-blue-600">
+                            <Check className="h-3 w-3" />
+                            Plan Approved
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Flow changes applied */}
                       {message.pendingChanges && (
                         <div className="mt-3 pt-3 border-t">
                           <div className="flex items-center justify-between gap-2">
@@ -169,38 +200,127 @@ export function AutopilotChat({
             disabled={isLoading}
           />
           <PromptInputFooter className="justify-between">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-[11px] text-muted-foreground hover:text-foreground gap-1"
-                >
-                  <span>{currentModel.name}</span>
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="min-w-[120px]">
-                {MODELS.map((model) => (
-                  <DropdownMenuItem
-                    key={model.id}
-                    onClick={() => setSelectedModel(model.id)}
-                    className="text-xs gap-2"
+            <div className="flex items-center gap-1">
+              {/* Mode Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-[11px] text-muted-foreground hover:text-foreground gap-1"
                   >
-                    <span className="flex-1">{model.name}</span>
-                    {model.id === selectedModel && (
-                      <Check className="h-3 w-3" />
-                    )}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                    {(() => {
+                      const CurrentIcon = MODES.find((m) => m.id === mode)?.icon ?? Zap;
+                      return <CurrentIcon className="h-3 w-3" />;
+                    })()}
+                    <span>{MODES.find((m) => m.id === mode)?.name}</span>
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-[120px]">
+                  {MODES.map((m) => (
+                    <DropdownMenuItem
+                      key={m.id}
+                      onClick={() => onModeChange(m.id)}
+                      className="text-xs gap-2"
+                    >
+                      <m.icon className="h-3.5 w-3.5" />
+                      <span className="flex-1">{m.name}</span>
+                      {m.id === mode && (
+                        <Check className="h-3 w-3" />
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Model Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-[11px] text-muted-foreground hover:text-foreground gap-1"
+                  >
+                    <span>{currentModel.name}</span>
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-[120px]">
+                  {MODELS.map((model) => (
+                    <DropdownMenuItem
+                      key={model.id}
+                      onClick={() => setSelectedModel(model.id)}
+                      className="text-xs gap-2"
+                    >
+                      <span className="flex-1">{model.name}</span>
+                      {model.id === selectedModel && (
+                        <Check className="h-3 w-3" />
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             <PromptInputSubmit
               disabled={!inputValue.trim() || isLoading}
               status={isLoading ? "streaming" : undefined}
             />
           </PromptInputFooter>
         </PromptInput>
+      </div>
+    </div>
+  );
+}
+
+interface PlanCardProps {
+  plan: FlowPlan;
+  onApprove: () => void;
+  isLoading: boolean;
+}
+
+function PlanCard({ plan, onApprove, isLoading }: PlanCardProps) {
+  return (
+    <div className="mt-3 pt-3 border-t">
+      <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h4 className="text-sm font-medium">{plan.summary}</h4>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {plan.estimatedChanges.nodesToAdd} node
+              {plan.estimatedChanges.nodesToAdd !== 1 ? "s" : ""},{" "}
+              {plan.estimatedChanges.edgesToAdd} edge
+              {plan.estimatedChanges.edgesToAdd !== 1 ? "s" : ""}
+              {plan.estimatedChanges.edgesToRemove > 0 && (
+                <>, {plan.estimatedChanges.edgesToRemove} removal
+                  {plan.estimatedChanges.edgesToRemove !== 1 ? "s" : ""}</>
+              )}
+            </p>
+          </div>
+        </div>
+
+        {plan.steps.length > 0 && (
+          <ul className="space-y-1.5 text-xs">
+            {plan.steps.map((step, i) => (
+              <li key={i} className="flex gap-2">
+                <span className="text-muted-foreground shrink-0">{i + 1}.</span>
+                <span>{step.description}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            onClick={onApprove}
+            disabled={isLoading}
+            className="h-7 px-3 text-xs bg-purple-600 hover:bg-purple-700"
+          >
+            <Play className="h-3 w-3 mr-1.5" />
+            Execute Plan
+          </Button>
+        </div>
       </div>
     </div>
   );

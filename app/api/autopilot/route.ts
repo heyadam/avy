@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamText } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { buildSystemPrompt } from "@/lib/autopilot/system-prompt";
+import {
+  buildSystemPrompt,
+  buildPlanModeSystemPrompt,
+  buildExecuteFromPlanSystemPrompt,
+} from "@/lib/autopilot/system-prompt";
 import type { AutopilotRequest } from "@/lib/autopilot/types";
 
 interface ApiKeys {
@@ -13,7 +17,14 @@ interface ApiKeys {
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as AutopilotRequest & { apiKeys?: ApiKeys };
-    const { messages, flowSnapshot, model = "claude-sonnet-4-5", apiKeys } = body;
+    const {
+      messages,
+      flowSnapshot,
+      model = "claude-sonnet-4-5",
+      apiKeys,
+      mode = "execute",
+      approvedPlan,
+    } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
@@ -29,8 +40,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build system prompt with current flow state
-    const systemPrompt = buildSystemPrompt(flowSnapshot);
+    // Build system prompt based on mode
+    let systemPrompt: string;
+    if (approvedPlan) {
+      // Executing an approved plan
+      systemPrompt = buildExecuteFromPlanSystemPrompt(flowSnapshot, approvedPlan);
+    } else if (mode === "plan") {
+      // Plan mode - ask questions, then present plan
+      systemPrompt = buildPlanModeSystemPrompt(flowSnapshot);
+    } else {
+      // Execute mode - current behavior
+      systemPrompt = buildSystemPrompt(flowSnapshot);
+    }
 
     // Create Anthropic client with custom or env API key
     const anthropic = createAnthropic({

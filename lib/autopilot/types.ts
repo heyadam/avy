@@ -1,5 +1,24 @@
 import type { NodeType, AgentNodeData } from "@/types/flow";
 
+// Autopilot mode
+export type AutopilotMode = "execute" | "plan";
+
+// Plan structure (what Claude outputs in plan mode)
+export interface FlowPlan {
+  summary: string;
+  steps: PlanStep[];
+  estimatedChanges: {
+    nodesToAdd: number;
+    edgesToAdd: number;
+    edgesToRemove: number;
+  };
+}
+
+export interface PlanStep {
+  description: string;
+  nodeType?: NodeType;
+}
+
 // Flow snapshot sent to Claude as context
 export interface FlowSnapshot {
   nodes: Array<{
@@ -61,6 +80,8 @@ export interface AutopilotMessage {
   content: string;
   timestamp: number;
   pendingChanges?: FlowChanges;
+  pendingPlan?: FlowPlan;
+  planApproved?: boolean;
   applied?: boolean;
   appliedInfo?: AppliedChangesInfo;
 }
@@ -72,4 +93,6 @@ export interface AutopilotRequest {
   messages: Array<{ role: "user" | "assistant"; content: string }>;
   flowSnapshot: FlowSnapshot;
   model?: AutopilotModel;
+  mode?: AutopilotMode;
+  approvedPlan?: FlowPlan;
 }

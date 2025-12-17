@@ -1,4 +1,4 @@
-import type { FlowSnapshot } from "./types";
+import type { FlowSnapshot, FlowPlan } from "./types";
 
 /**
  * Build the system prompt for Claude, including context about the flow system
@@ -244,4 +244,83 @@ Example - inserting a "Translator" between "Input" and "Output":
 6. **Clarification**: If the user's request is ambiguous, ask clarifying questions instead of guessing. Just respond with your question in plain text (no JSON).
 
 7. **Conversational**: You can mix explanation text with the JSON code block. Put the JSON at the end of your response.`;
+}
+
+/**
+ * Build the system prompt for Plan Mode.
+ * Claude asks clarifying questions first, then presents a plan for approval.
+ */
+export function buildPlanModeSystemPrompt(flowSnapshot: FlowSnapshot): string {
+  const basePrompt = buildSystemPrompt(flowSnapshot);
+
+  return `${basePrompt}
+
+## PLAN MODE
+
+You are in PLAN MODE. Follow this approach:
+
+### Phase 1: Gather Requirements
+If the request is ambiguous, ask 1-3 clarifying questions:
+- What exact functionality does the user want?
+- Any preferences for models, providers, or configurations?
+- How should new elements connect to the existing flow?
+
+Keep questions concise. If the request is already clear, skip to Phase 2.
+
+### Phase 2: Present Plan
+Once you have enough information, output a plan in this format:
+
+\`\`\`json
+{
+  "type": "plan",
+  "plan": {
+    "summary": "Brief summary, e.g., 'Add 3 nodes, 2 edges'",
+    "steps": [
+      {
+        "description": "What this step does",
+        "nodeType": "text-generation"
+      }
+    ],
+    "estimatedChanges": {
+      "nodesToAdd": 3,
+      "edgesToAdd": 2,
+      "edgesToRemove": 0
+    }
+  }
+}
+\`\`\`
+
+### Important Rules
+1. NEVER output FlowChanges JSON (actions array) until user approves the plan
+2. Output ONLY questions OR a plan, not both in the same response
+3. Plans should be high-level - don't include node IDs or exact positions
+4. Wait for user to approve (say "yes", "looks good", "execute", etc.) before generating actions
+5. After approval, you will receive a new request to generate the FlowChanges JSON`;
+}
+
+/**
+ * Build the system prompt for executing an approved plan.
+ */
+export function buildExecuteFromPlanSystemPrompt(
+  flowSnapshot: FlowSnapshot,
+  approvedPlan: FlowPlan
+): string {
+  const basePrompt = buildSystemPrompt(flowSnapshot);
+
+  const stepsText = approvedPlan.steps
+    .map((step, i) => `${i + 1}. ${step.description}${step.nodeType ? ` (${step.nodeType})` : ""}`)
+    .join("\n");
+
+  return `${basePrompt}
+
+## EXECUTE APPROVED PLAN
+
+The user has approved this plan. Generate the FlowChanges JSON to implement it.
+
+**Plan Summary:** ${approvedPlan.summary}
+
+**Steps:**
+${stepsText}
+
+Generate the complete FlowChanges JSON now with all necessary addNode, addEdge, and removeEdge actions.`;
 }

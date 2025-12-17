@@ -1,8 +1,84 @@
-import type { FlowChanges, FlowAction } from "./types";
+import type { FlowChanges, FlowAction, FlowPlan } from "./types";
+
+// Discriminated union for parse results
+export type ParseResult =
+  | { type: "changes"; data: FlowChanges }
+  | { type: "plan"; data: FlowPlan }
+  | { type: "none" };
+
+/**
+ * Parse either a plan or flow changes from Claude's response.
+ */
+export function parseResponse(response: string): ParseResult {
+  const jsonBlockRegex = /```(?:json)?\s*\n?([\s\S]*?)\n?```/g;
+  const matches = [...response.matchAll(jsonBlockRegex)];
+
+  for (const match of matches) {
+    const jsonStr = match[1].trim();
+    try {
+      const parsed = JSON.parse(jsonStr);
+
+      // Check if it's a plan (wrapped in { type: "plan", plan: {...} })
+      if (parsed.type === "plan" && isValidFlowPlan(parsed.plan)) {
+        return { type: "plan", data: parsed.plan };
+      }
+
+      // Check if it's flow changes
+      if (isValidFlowChanges(parsed)) {
+        return { type: "changes", data: parsed };
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  // Try parsing entire response as JSON
+  try {
+    const parsed = JSON.parse(response.trim());
+    if (parsed.type === "plan" && isValidFlowPlan(parsed.plan)) {
+      return { type: "plan", data: parsed.plan };
+    }
+    if (isValidFlowChanges(parsed)) {
+      return { type: "changes", data: parsed };
+    }
+  } catch {
+    // Not valid JSON
+  }
+
+  return { type: "none" };
+}
+
+/**
+ * Type guard to validate FlowPlan structure
+ */
+export function isValidFlowPlan(obj: unknown): obj is FlowPlan {
+  if (!obj || typeof obj !== "object") return false;
+
+  const candidate = obj as Record<string, unknown>;
+
+  if (typeof candidate.summary !== "string") return false;
+  if (!Array.isArray(candidate.steps)) return false;
+  if (!candidate.estimatedChanges || typeof candidate.estimatedChanges !== "object") return false;
+
+  const changes = candidate.estimatedChanges as Record<string, unknown>;
+  if (typeof changes.nodesToAdd !== "number") return false;
+  if (typeof changes.edgesToAdd !== "number") return false;
+  if (typeof changes.edgesToRemove !== "number") return false;
+
+  // Validate steps
+  for (const step of candidate.steps) {
+    if (!step || typeof step !== "object") return false;
+    const s = step as Record<string, unknown>;
+    if (typeof s.description !== "string") return false;
+  }
+
+  return true;
+}
 
 /**
  * Parse flow changes from Claude's response.
  * Extracts JSON code blocks and validates the structure.
+ * @deprecated Use parseResponse() instead for plan mode support
  */
 export function parseFlowChanges(response: string): FlowChanges | null {
   // Extract JSON from code blocks (```json ... ``` or ``` ... ```)

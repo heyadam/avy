@@ -41,7 +41,10 @@ export function AutopilotSidebar({
     messages,
     isLoading,
     error,
+    mode,
+    setMode,
     sendMessage,
+    approvePlan,
     undoChanges,
     clearHistory,
   } = useAutopilotChat({ nodes, edges, onApplyChanges, onUndoChanges });
@@ -128,7 +131,10 @@ export function AutopilotSidebar({
           messages={messages}
           isLoading={isLoading}
           error={error}
+          mode={mode}
+          onModeChange={setMode}
           onSendMessage={sendMessage}
+          onApprovePlan={approvePlan}
           onUndoChanges={undoChanges}
         />
         {/* Resize handle - on the right edge for left sidebar */}
