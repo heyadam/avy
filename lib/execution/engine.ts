@@ -14,13 +14,52 @@ interface ExecuteNodeResult {
   debugInfo?: DebugInfo;
 }
 
+// Default timeout for API requests (60 seconds)
+const DEFAULT_TIMEOUT_MS = 60000;
+
+/**
+ * Fetch with timeout and abort signal support.
+ * Combines user-provided signal with a timeout signal.
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit & { signal?: AbortSignal },
+  timeoutMs: number = DEFAULT_TIMEOUT_MS
+): Promise<Response> {
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
+
+  // Combine signals: user signal + timeout signal
+  const signals = [timeoutController.signal];
+  if (options.signal) {
+    signals.push(options.signal);
+  }
+  const combinedSignal = AbortSignal.any(signals);
+
+  try {
+    return await fetch(url, { ...options, signal: combinedSignal });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      // Determine if it was a timeout or user cancellation
+      if (timeoutController.signal.aborted) {
+        throw new Error(`Request timed out after ${timeoutMs / 1000} seconds`);
+      }
+      throw new Error("Request cancelled");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 // Execute a single node
 async function executeNode(
   node: Node,
   inputs: Record<string, string>,
   context: Record<string, unknown>,
   apiKeys?: ApiKeys,
-  onStreamUpdate?: (output: string, debugInfo?: DebugInfo) => void
+  onStreamUpdate?: (output: string, debugInfo?: DebugInfo) => void,
+  signal?: AbortSignal
 ): Promise<ExecuteNodeResult> {
   switch (node.type) {
     case "text-input":
@@ -77,11 +116,15 @@ async function executeNode(
         rawRequestBody: JSON.stringify({ ...requestBody, apiKeys: "[REDACTED]" }, null, 2),
       };
 
-      const response = await fetch("/api/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      });
+      const response = await fetchWithTimeout(
+        "/api/execute",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+          signal,
+        }
+      );
 
       if (!response.ok) {
         const text = await response.text();
@@ -181,11 +224,16 @@ async function executeNode(
         rawRequestBody: JSON.stringify({ ...requestBody, apiKeys: "[REDACTED]", imageInput: imageInput ? "[BASE64_IMAGE]" : undefined }, null, 2),
       };
 
-      const response = await fetch("/api/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      });
+      const response = await fetchWithTimeout(
+        "/api/execute",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+          signal,
+        },
+        120000 // 2 minute timeout for image generation
+      );
 
       if (!response.ok) {
         const text = await response.text();
@@ -289,15 +337,19 @@ async function executeNode(
 
       if (transformInput) {
         // Dynamic: generate code from connected transform input
-        const response = await fetch("/api/execute", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "magic-generate",
-            prompt: transformInput,
-            apiKeys,
-          }),
-        });
+        const response = await fetchWithTimeout(
+          "/api/execute",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "magic-generate",
+              prompt: transformInput,
+              apiKeys,
+            }),
+            signal,
+          }
+        );
 
         if (!response.ok) {
           const err = await response.json();
@@ -347,8 +399,14 @@ export async function executeFlow(
   nodes: Node[],
   edges: Edge[],
   onNodeStateChange: (nodeId: string, state: NodeExecutionState) => void,
-  apiKeys?: ApiKeys
+  apiKeys?: ApiKeys,
+  signal?: AbortSignal
 ): Promise<string> {
+  // Check if already cancelled
+  if (signal?.aborted) {
+    throw new Error("Execution cancelled");
+  }
+
   // Find all root nodes (nodes with no incoming edges) that are connected to the flow
   // This allows starting from Input nodes, ImageInput nodes, or standalone PromptNodes
   const rootNodes = nodes.filter((node) => {
@@ -386,6 +444,11 @@ export async function executeFlow(
 
   // Execute a single node and trigger downstream nodes
   async function executeNodeAndContinue(node: Node): Promise<void> {
+    // Check for cancellation
+    if (signal?.aborted) {
+      throw new Error("Execution cancelled");
+    }
+
     // Skip if already executed or currently executing
     if (executedNodes.has(node.id) || executingNodes.has(node.id)) {
       // If currently executing, wait for it to complete
@@ -443,19 +506,26 @@ export async function executeFlow(
       }
 
       // Execute the node with streaming callback
-      const result = await executeNode(node, inputs, context, apiKeys, (streamedOutput, debugInfo) => {
-        onNodeStateChange(node.id, {
-          status: "running",
-          output: streamedOutput,
-          debugInfo,
-        });
-        for (const outputNode of downstreamOutputs) {
-          onNodeStateChange(outputNode.id, {
+      const result = await executeNode(
+        node,
+        inputs,
+        context,
+        apiKeys,
+        (streamedOutput, debugInfo) => {
+          onNodeStateChange(node.id, {
             status: "running",
             output: streamedOutput,
+            debugInfo,
           });
-        }
-      });
+          for (const outputNode of downstreamOutputs) {
+            onNodeStateChange(outputNode.id, {
+              status: "running",
+              output: streamedOutput,
+            });
+          }
+        },
+        signal
+      );
 
       // Store output
       context[node.id] = result.output;

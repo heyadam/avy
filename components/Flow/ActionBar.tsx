@@ -8,7 +8,7 @@ import {
   Settings,
   RotateCcw,
   Play,
-  Loader2,
+  Square,
   Save,
   FolderOpen,
   FilePlus,
@@ -37,6 +37,7 @@ interface ActionBarProps {
   onToggleResponses: () => void;
   onCommentAround: () => void;
   onRun: () => void;
+  onCancel: () => void;
   onReset: () => void;
   onNewFlow: () => void;
   onSaveFlow: () => void;
@@ -54,6 +55,7 @@ export function ActionBar({
   onToggleResponses,
   onCommentAround,
   onRun,
+  onCancel,
   onReset,
   onNewFlow,
   onSaveFlow,
@@ -253,18 +255,23 @@ export function ActionBar({
               </TooltipContent>
             </Tooltip>
 
-            <Button
-              onClick={onRun}
-              disabled={isRunning}
-              className="h-10 px-4 rounded-lg gap-2 bg-green-600 text-white hover:bg-green-500 disabled:opacity-50"
-            >
-              {isRunning ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
+            {isRunning ? (
+              <Button
+                onClick={onCancel}
+                className="h-10 px-4 rounded-lg gap-2 bg-red-600 text-white hover:bg-red-500"
+              >
+                <Square className="h-4 w-4" />
+                Cancel
+              </Button>
+            ) : (
+              <Button
+                onClick={onRun}
+                className="h-10 px-4 rounded-lg gap-2 bg-green-600 text-white hover:bg-green-500"
+              >
                 <Play className="h-4 w-4" />
-              )}
-              Run
-            </Button>
+                Run
+              </Button>
+            )}
           </div>
         </div>
       </TooltipProvider>

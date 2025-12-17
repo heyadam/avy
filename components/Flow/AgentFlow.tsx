@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import {
   ReactFlow,
   Background,
@@ -91,6 +91,16 @@ export function AgentFlow() {
   const addedPreviewIds = useRef<Set<string>>(new Set());
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // Sidebar and palette states
   const [autopilotOpen, setAutopilotOpen] = useState(false);
@@ -921,15 +931,35 @@ export function AgentFlow() {
     resetExecution();
     setIsRunning(true);
 
+    // Create new AbortController for this execution
+    abortControllerRef.current = new AbortController();
+
     try {
-      const output = await executeFlow(nodes, edges, updateNodeExecutionState, apiKeys);
+      const output = await executeFlow(
+        nodes,
+        edges,
+        updateNodeExecutionState,
+        apiKeys,
+        abortControllerRef.current.signal
+      );
       setFinalOutput(output);
     } catch (error) {
-      console.error("Flow execution error:", error);
+      if (error instanceof Error && error.message === "Execution cancelled") {
+        console.log("Flow execution cancelled by user");
+      } else {
+        console.error("Flow execution error:", error);
+      }
     } finally {
       setIsRunning(false);
+      abortControllerRef.current = null;
     }
   }, [nodes, edges, isRunning, updateNodeExecutionState, resetExecution, hasRequiredKey, apiKeys]);
+
+  const cancelFlow = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  }, []);
 
   // Flow file operations
   const handleNewFlow = useCallback(() => {
@@ -1049,6 +1079,7 @@ export function AgentFlow() {
           onToggleResponses={() => setResponsesOpen(!responsesOpen)}
           onCommentAround={handleCommentAround}
           onRun={runFlow}
+          onCancel={cancelFlow}
           onReset={resetExecution}
           onNewFlow={handleNewFlow}
           onSaveFlow={() => setSaveDialogOpen(true)}

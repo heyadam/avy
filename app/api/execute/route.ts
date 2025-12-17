@@ -357,17 +357,36 @@ CODE: return String(input1 || '') + ' ' + String(input2 || '');`;
           );
         }
 
-        // Check for forbidden patterns
+        // Check for forbidden patterns - more comprehensive list
+        // Note: This is defense-in-depth, not a complete sandbox
         const forbiddenPatterns = [
-          /\beval\s*\(/,
-          /\bFunction\s*\(/,
-          /\bfetch\s*\(/,
-          /\bXMLHttpRequest\b/,
-          /\bimport\s*\(/,
-          /\brequire\s*\(/,
+          // Function constructors and eval
+          /\beval\b/i,
+          /\bFunction\b/,
+          /\bconstructor\b/,
+          /\b__proto__\b/,
+          /\bprototype\b/,
+          // Network and async
+          /\bfetch\b/i,
+          /\bXMLHttpRequest\b/i,
+          /\bWebSocket\b/i,
+          /\bimport\b/,
+          /\brequire\b/,
+          /\bawait\b/,
+          /\basync\b/,
+          // Global access
           /\bprocess\b/,
           /\bwindow\b/,
           /\bdocument\b/,
+          /\bglobal\b/,
+          /\bglobalThis\b/,
+          /\bself\b/,
+          // Dangerous loops (infinite loop prevention)
+          /\bwhile\s*\(\s*true\s*\)/,
+          /\bwhile\s*\(\s*1\s*\)/,
+          /\bfor\s*\(\s*;\s*;\s*\)/,
+          // Bracket notation access to globals
+          /\[\s*['"`](?:eval|Function|window|document|process|global)['"`]\s*\]/,
         ];
 
         for (const pattern of forbiddenPatterns) {
@@ -377,6 +396,14 @@ CODE: return String(input1 || '') + ' ' + String(input2 || '');`;
               { status: 422 }
             );
           }
+        }
+
+        // Additional check: code should be simple (limit complexity)
+        if (code.length > 500) {
+          return NextResponse.json(
+            { error: "Generated code is too complex" },
+            { status: 422 }
+          );
         }
 
         return NextResponse.json({ code, explanation });
