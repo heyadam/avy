@@ -29,6 +29,7 @@ import { FlowContextMenu } from "./FlowContextMenu";
 import { CommentEditContext } from "./CommentEditContext";
 import { initialNodes, initialEdges, defaultFlow } from "@/lib/example-flow";
 import { useCommentSuggestions } from "@/lib/hooks/useCommentSuggestions";
+import { useClipboard } from "@/lib/hooks/useClipboard";
 import type { NodeType, CommentColor } from "@/types/flow";
 import { executeFlow } from "@/lib/execution/engine";
 import type { NodeExecutionState } from "@/lib/execution/types";
@@ -120,6 +121,17 @@ export function AgentFlow() {
   const { triggerGeneration, markUserEdited } = useCommentSuggestions({
     nodes,
     setNodes,
+  });
+
+  // Clipboard for copy/paste
+  useClipboard({
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    reactFlowInstance,
+    reactFlowWrapper,
+    getId,
   });
 
   // Connection drag state
