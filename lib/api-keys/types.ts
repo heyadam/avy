@@ -22,4 +22,5 @@ export interface ApiKeysContextValue {
   isDevMode: boolean;
   unlockWithPassword: (password: string) => Promise<{ success: boolean; error?: string }>;
   isUnlocking: boolean;
+  isLoaded: boolean;
 }

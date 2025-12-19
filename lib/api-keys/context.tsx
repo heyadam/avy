@@ -47,6 +47,7 @@ const ApiKeysContext = createContext<ApiKeysContextValue | null>(null);
 export function ApiKeysProvider({ children }: { children: ReactNode }) {
   const [keys, setKeys] = useState<ApiKeys>({});
   const [isUnlocking, setIsUnlocking] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [isDevMode] = useState(
     () => process.env.NEXT_PUBLIC_DEV_MODE === "true"
   );
@@ -54,6 +55,7 @@ export function ApiKeysProvider({ children }: { children: ReactNode }) {
   // Load keys from localStorage on mount
   useEffect(() => {
     setKeys(loadApiKeys());
+    setIsLoaded(true);
   }, []);
 
   // Save keys to localStorage when they change
@@ -126,6 +128,7 @@ export function ApiKeysProvider({ children }: { children: ReactNode }) {
         isDevMode,
         unlockWithPassword,
         isUnlocking,
+        isLoaded,
       }}
     >
       {children}

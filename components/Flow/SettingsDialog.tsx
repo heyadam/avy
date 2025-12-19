@@ -42,7 +42,7 @@ const VARIANT_OPTIONS = [
 ];
 
 export function SettingsDialog() {
-  const { keys, setKey, removeKey, isDevMode, getKeyStatuses, unlockWithPassword, isUnlocking } = useApiKeys();
+  const { keys, setKey, removeKey, isDevMode, getKeyStatuses, unlockWithPassword, isUnlocking, isLoaded } = useApiKeys();
   const { settings: bgSettings, updateSettings: updateBgSettings, resetSettings: resetBgSettings } = useBackgroundSettings();
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [editValues, setEditValues] = useState<Record<string, string>>({});
@@ -55,10 +55,10 @@ export function SettingsDialog() {
 
   // Auto-open dialog when no keys are configured (and not in dev mode)
   useEffect(() => {
-    if (!isDevMode && !hasAnyKey) {
+    if (isLoaded && !isDevMode && !hasAnyKey) {
       setIsOpen(true);
     }
-  }, [isDevMode, hasAnyKey]);
+  }, [isLoaded, isDevMode, hasAnyKey]);
 
   const handleSave = (provider: ProviderId) => {
     const value = editValues[provider];
