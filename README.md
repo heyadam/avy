@@ -1,6 +1,8 @@
-# Avy
+# Composer
 
 A visual workflow builder for creating AI agent pipelines using drag-and-drop nodes.
+
+**Live at [composer.design](https://composer.design)**
 
 ## Features
 

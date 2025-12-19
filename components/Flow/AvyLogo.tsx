@@ -153,7 +153,7 @@ export function AvyLogo({ isPanning }: AvyLogoProps) {
           <FluidSphere isPanning={isPanning} />
         </Canvas>
       </div>
-      <span className="text-white font-medium text-xl tracking-wide">avy</span>
+      <span className="text-white font-medium text-xl tracking-wide">composer</span>
     </div>
   );
 }

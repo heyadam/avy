@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Project**: Composer — a visual AI workflow builder. Live at [composer.design](https://composer.design)
+
 ## Build Commands
 
 ```bash
@@ -67,7 +69,7 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 - Streams responses in real-time as they generate
 - Width persisted to localStorage (min: 240px, max: 800px)
 
-**Avy Logo** (`components/Flow/AvyLogo.tsx`): Animated 3D fluid sphere logo using react-three-fiber. Features:
+**Composer Logo** (`components/Flow/AvyLogo.tsx`): Animated 3D fluid sphere logo using react-three-fiber. Features:
 - WebGL shader-based liquid deformation with simplex noise
 - Rainbow color shifting with neon accents (pink, cyan, purple)
 - White edge outline with Fresnel effect

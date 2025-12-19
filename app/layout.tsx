@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Avy",
+  title: "Composer",
   description: "Visual editor for designing AI agent workflows",
 };
 
