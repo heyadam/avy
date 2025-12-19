@@ -10,10 +10,10 @@ export const PROVIDERS = {
   google: {
     label: "Google Gemini",
     models: [
-      { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", supportsVerbosity: false, supportsThinking: false },
-      { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro", supportsVerbosity: false, supportsThinking: false },
-      { value: "gemini-3-pro-preview", label: "Gemini 3 Pro", supportsVerbosity: false, supportsThinking: false },
-      { value: "gemini-3-flash-preview", label: "Gemini 3 Flash", supportsVerbosity: false, supportsThinking: false },
+      { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", supportsVerbosity: false, supportsThinking: false, supportsThinkingBudget: true, supportsThinkingLevel: false },
+      { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro", supportsVerbosity: false, supportsThinking: false, supportsThinkingBudget: true, supportsThinkingLevel: false },
+      { value: "gemini-3-pro-preview", label: "Gemini 3 Pro", supportsVerbosity: false, supportsThinking: false, supportsThinkingBudget: false, supportsThinkingLevel: true },
+      { value: "gemini-3-flash-preview", label: "Gemini 3 Flash", supportsVerbosity: false, supportsThinking: false, supportsThinkingBudget: false, supportsThinkingLevel: true },
     ],
   },
   anthropic: {
@@ -40,6 +40,67 @@ export const THINKING_OPTIONS = [
   { value: "off", label: "Off" },
   { value: "on", label: "On" },
 ] as const;
+
+// Google Gemini-specific options
+export const GOOGLE_THINKING_LEVEL_OPTIONS = [
+  { value: "off", label: "Off" },
+  { value: "low", label: "Low" },
+  { value: "high", label: "High" },
+] as const;
+
+export const GOOGLE_THINKING_BUDGET_OPTIONS = [
+  { value: "0", label: "Off" },
+  { value: "1024", label: "1K tokens" },
+  { value: "4096", label: "4K tokens" },
+  { value: "8192", label: "8K tokens" },
+  { value: "16384", label: "16K tokens" },
+] as const;
+
+export const GOOGLE_HARM_CATEGORY_OPTIONS = [
+  { value: "HARM_CATEGORY_HATE_SPEECH", label: "Hate Speech" },
+  { value: "HARM_CATEGORY_DANGEROUS_CONTENT", label: "Dangerous Content" },
+  { value: "HARM_CATEGORY_HARASSMENT", label: "Harassment" },
+  { value: "HARM_CATEGORY_SEXUALLY_EXPLICIT", label: "Sexually Explicit" },
+] as const;
+
+export const GOOGLE_HARM_THRESHOLD_OPTIONS = [
+  { value: "HARM_BLOCK_THRESHOLD_UNSPECIFIED", label: "Default" },
+  { value: "BLOCK_LOW_AND_ABOVE", label: "Block Low+" },
+  { value: "BLOCK_MEDIUM_AND_ABOVE", label: "Block Medium+" },
+  { value: "BLOCK_ONLY_HIGH", label: "Block High Only" },
+  { value: "BLOCK_NONE", label: "Block None" },
+] as const;
+
+export const GOOGLE_SAFETY_PRESET_OPTIONS = [
+  { value: "default", label: "Default" },
+  { value: "strict", label: "Strict" },
+  { value: "relaxed", label: "Relaxed" },
+  { value: "none", label: "None" },
+] as const;
+
+export type GoogleSafetyPreset = (typeof GOOGLE_SAFETY_PRESET_OPTIONS)[number]["value"];
+
+// Helper to convert safety preset to settings array
+export function getSafetySettingsFromPreset(preset: GoogleSafetyPreset) {
+  const categories = [
+    "HARM_CATEGORY_HATE_SPEECH",
+    "HARM_CATEGORY_DANGEROUS_CONTENT",
+    "HARM_CATEGORY_HARASSMENT",
+    "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+  ] as const;
+
+  const thresholdMap: Record<GoogleSafetyPreset, string> = {
+    default: "HARM_BLOCK_THRESHOLD_UNSPECIFIED",
+    strict: "BLOCK_LOW_AND_ABOVE",
+    relaxed: "BLOCK_ONLY_HIGH",
+    none: "BLOCK_NONE",
+  };
+
+  return categories.map((category) => ({
+    category,
+    threshold: thresholdMap[preset],
+  }));
+}
 
 // Image generation providers
 export const IMAGE_PROVIDERS = {

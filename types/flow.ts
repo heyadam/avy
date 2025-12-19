@@ -35,6 +35,32 @@ export interface OutputNodeData extends Record<string, unknown>, ExecutionData {
   label: string;
 }
 
+// Google safety setting types
+export type GoogleHarmCategory =
+  | "HARM_CATEGORY_HATE_SPEECH"
+  | "HARM_CATEGORY_DANGEROUS_CONTENT"
+  | "HARM_CATEGORY_HARASSMENT"
+  | "HARM_CATEGORY_SEXUALLY_EXPLICIT";
+
+export type GoogleHarmThreshold =
+  | "HARM_BLOCK_THRESHOLD_UNSPECIFIED"
+  | "BLOCK_LOW_AND_ABOVE"
+  | "BLOCK_MEDIUM_AND_ABOVE"
+  | "BLOCK_ONLY_HIGH"
+  | "BLOCK_NONE";
+
+export interface GoogleSafetySetting {
+  category: GoogleHarmCategory;
+  threshold: GoogleHarmThreshold;
+}
+
+// Google thinking config types
+export interface GoogleThinkingConfig {
+  thinkingLevel?: "low" | "high";      // Gemini 3 models
+  thinkingBudget?: number;              // Gemini 2.5 models
+  includeThoughts?: boolean;
+}
+
 export interface PromptNodeData extends Record<string, unknown>, ExecutionData {
   label: string;
   userPrompt?: string;    // User message (when not connected)
@@ -44,6 +70,11 @@ export interface PromptNodeData extends Record<string, unknown>, ExecutionData {
   // OpenAI-specific options
   verbosity?: "low" | "medium" | "high";
   thinking?: boolean;
+  // Google-specific options
+  googleThinkingConfig?: GoogleThinkingConfig;
+  googleSafetySettings?: GoogleSafetySetting[];
+  googleSafetyPreset?: "default" | "strict" | "relaxed" | "none";
+  googleStructuredOutputs?: boolean;
 }
 
 export interface ImageNodeData extends Record<string, unknown>, ExecutionData {

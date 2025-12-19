@@ -9,7 +9,17 @@ import { InputWithHandle } from "./InputWithHandle";
 import { ProviderModelSelector } from "./ProviderModelSelector";
 import { ConfigSelect } from "./ConfigSelect";
 import { cn } from "@/lib/utils";
-import { PROVIDERS, DEFAULT_PROVIDER, DEFAULT_MODEL, VERBOSITY_OPTIONS, THINKING_OPTIONS, type ProviderId } from "@/lib/providers";
+import {
+  PROVIDERS,
+  DEFAULT_PROVIDER,
+  DEFAULT_MODEL,
+  VERBOSITY_OPTIONS,
+  THINKING_OPTIONS,
+  GOOGLE_THINKING_LEVEL_OPTIONS,
+  GOOGLE_THINKING_BUDGET_OPTIONS,
+  GOOGLE_SAFETY_PRESET_OPTIONS,
+  type ProviderId,
+} from "@/lib/providers";
 
 type PromptNodeType = Node<PromptNodeData, "text-generation">;
 
@@ -30,7 +40,14 @@ export function PromptNode({ id, data }: NodeProps<PromptNodeType>) {
 
   const currentProvider = (data.provider || DEFAULT_PROVIDER) as ProviderId;
   const currentModel = data.model || DEFAULT_MODEL;
-  const currentModelConfig = PROVIDERS[currentProvider].models.find((m) => m.value === currentModel);
+  const currentModelConfig = PROVIDERS[currentProvider].models.find((m) => m.value === currentModel) as {
+    value: string;
+    label: string;
+    supportsVerbosity: boolean;
+    supportsThinking: boolean;
+    supportsThinkingBudget?: boolean;
+    supportsThinkingLevel?: boolean;
+  } | undefined;
 
   return (
     <NodeFrame
@@ -134,6 +151,57 @@ export function PromptNode({ id, data }: NodeProps<PromptNodeType>) {
               value={data.thinking ? "on" : "off"}
               options={THINKING_OPTIONS}
               onChange={(val) => updateNodeData(id, { thinking: val === "on" })}
+              width="w-[120px]"
+            />
+          )}
+
+          {/* Google Gemini 3 - Thinking Level */}
+          {currentModelConfig?.supportsThinkingLevel && (
+            <ConfigSelect
+              label="Thinking"
+              value={data.googleThinkingConfig?.thinkingLevel || "off"}
+              options={GOOGLE_THINKING_LEVEL_OPTIONS}
+              onChange={(val) =>
+                updateNodeData(id, {
+                  googleThinkingConfig: {
+                    ...data.googleThinkingConfig,
+                    thinkingLevel: val === "off" ? undefined : (val as "low" | "high"),
+                  },
+                })
+              }
+              width="w-[120px]"
+            />
+          )}
+
+          {/* Google Gemini 2.5 - Thinking Budget */}
+          {currentModelConfig?.supportsThinkingBudget && (
+            <ConfigSelect
+              label="Thinking"
+              value={String(data.googleThinkingConfig?.thinkingBudget ?? "0")}
+              options={GOOGLE_THINKING_BUDGET_OPTIONS}
+              onChange={(val) =>
+                updateNodeData(id, {
+                  googleThinkingConfig: {
+                    ...data.googleThinkingConfig,
+                    thinkingBudget: val === "0" ? undefined : Number(val),
+                  },
+                })
+              }
+              width="w-[120px]"
+            />
+          )}
+
+          {/* Google Safety Settings */}
+          {currentProvider === "google" && (
+            <ConfigSelect
+              label="Safety"
+              value={data.googleSafetyPreset || "default"}
+              options={GOOGLE_SAFETY_PRESET_OPTIONS}
+              onChange={(val) =>
+                updateNodeData(id, {
+                  googleSafetyPreset: val as "default" | "strict" | "relaxed" | "none",
+                })
+              }
               width="w-[120px]"
             />
           )}

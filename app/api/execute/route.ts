@@ -42,7 +42,19 @@ export async function POST(request: NextRequest) {
 
     if (type === "text-generation") {
       // Support both old format (input, prompt) and new format (inputs.prompt, inputs.system)
-      const { inputs, prompt: legacyPrompt, input: legacyInput, provider, model, verbosity, thinking } = body;
+      const {
+        inputs,
+        prompt: legacyPrompt,
+        input: legacyInput,
+        provider,
+        model,
+        verbosity,
+        thinking,
+        // Google-specific options
+        googleThinkingConfig,
+        googleSafetyPreset,
+        googleStructuredOutputs,
+      } = body;
 
       // Get prompt (user message) and system prompt from either format
       const promptInput = inputs?.prompt ?? legacyInput ?? "";
@@ -65,15 +77,85 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Build provider options for Google
+      const googleOptions: GoogleGenerativeAIProviderOptions = {};
+      if (provider === "google") {
+        // Thinking config
+        if (googleThinkingConfig) {
+          const thinkingConfig: GoogleGenerativeAIProviderOptions["thinkingConfig"] = {};
+          if (googleThinkingConfig.thinkingLevel) {
+            thinkingConfig.thinkingLevel = googleThinkingConfig.thinkingLevel;
+          }
+          if (googleThinkingConfig.thinkingBudget !== undefined) {
+            thinkingConfig.thinkingBudget = googleThinkingConfig.thinkingBudget;
+          }
+          if (googleThinkingConfig.includeThoughts !== undefined) {
+            thinkingConfig.includeThoughts = googleThinkingConfig.includeThoughts;
+          }
+          if (Object.keys(thinkingConfig).length > 0) {
+            googleOptions.thinkingConfig = thinkingConfig;
+          }
+        }
+
+        // Safety settings from preset
+        if (googleSafetyPreset && googleSafetyPreset !== "default") {
+          type HarmCategory =
+            | "HARM_CATEGORY_HATE_SPEECH"
+            | "HARM_CATEGORY_DANGEROUS_CONTENT"
+            | "HARM_CATEGORY_HARASSMENT"
+            | "HARM_CATEGORY_SEXUALLY_EXPLICIT";
+          type HarmThreshold =
+            | "HARM_BLOCK_THRESHOLD_UNSPECIFIED"
+            | "BLOCK_LOW_AND_ABOVE"
+            | "BLOCK_MEDIUM_AND_ABOVE"
+            | "BLOCK_ONLY_HIGH"
+            | "BLOCK_NONE";
+
+          const safetyCategories: HarmCategory[] = [
+            "HARM_CATEGORY_HATE_SPEECH",
+            "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "HARM_CATEGORY_HARASSMENT",
+            "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+          ];
+
+          const thresholdMap: Record<string, HarmThreshold> = {
+            strict: "BLOCK_LOW_AND_ABOVE",
+            relaxed: "BLOCK_ONLY_HIGH",
+            none: "BLOCK_NONE",
+          };
+
+          googleOptions.safetySettings = safetyCategories.map((category) => ({
+            category,
+            threshold: thresholdMap[googleSafetyPreset] || "HARM_BLOCK_THRESHOLD_UNSPECIFIED" as HarmThreshold,
+          }));
+        }
+
+        // Structured outputs
+        if (googleStructuredOutputs !== undefined) {
+          googleOptions.structuredOutputs = googleStructuredOutputs;
+        }
+      }
+
       try {
-        const result = streamText({
+        // Build streamText options
+        const streamOptions: Parameters<typeof streamText>[0] = {
           model: getModel(provider || "openai", model || "gpt-5.2", apiKeys),
           messages,
           maxOutputTokens: 1000,
-          ...(Object.keys(openaiOptions).length > 0 && {
-            providerOptions: { openai: openaiOptions },
-          }),
-        });
+        };
+
+        // Add provider options if any
+        if (Object.keys(openaiOptions).length > 0 || Object.keys(googleOptions).length > 0) {
+          streamOptions.providerOptions = {};
+          if (Object.keys(openaiOptions).length > 0) {
+            streamOptions.providerOptions.openai = openaiOptions;
+          }
+          if (Object.keys(googleOptions).length > 0) {
+            streamOptions.providerOptions.google = googleOptions;
+          }
+        }
+
+        const result = streamText(streamOptions);
 
         return result.toTextStreamResponse();
       } catch (streamError) {

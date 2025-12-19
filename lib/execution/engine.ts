@@ -98,6 +98,10 @@ async function executeNode(
         model,
         verbosity: node.data.verbosity,
         thinking: node.data.thinking,
+        // Google-specific options
+        googleThinkingConfig: node.data.googleThinkingConfig,
+        googleSafetyPreset: node.data.googleSafetyPreset,
+        googleStructuredOutputs: node.data.googleStructuredOutputs,
         apiKeys,
       };
 
@@ -111,6 +115,8 @@ async function executeNode(
           systemPrompt: effectiveSystemPrompt,
           verbosity: node.data.verbosity as string | undefined,
           thinking: node.data.thinking as boolean | undefined,
+          googleThinkingConfig: node.data.googleThinkingConfig as Record<string, unknown> | undefined,
+          googleSafetyPreset: node.data.googleSafetyPreset as string | undefined,
         },
         streamChunksReceived: 0,
         rawRequestBody: JSON.stringify({ ...requestBody, apiKeys: "[REDACTED]" }, null, 2),

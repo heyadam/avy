@@ -13,6 +13,9 @@ export interface DebugInfo {
     systemPrompt?: string;
     verbosity?: string;
     thinking?: boolean;
+    // Google-specific
+    googleThinkingConfig?: Record<string, unknown>;
+    googleSafetyPreset?: string;
     // Image-specific
     imagePrompt?: string;
     hasSourceImage?: boolean;
