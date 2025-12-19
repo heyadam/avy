@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus,
   Sparkles,
@@ -67,11 +67,27 @@ export function ActionBar({
   hasSelection,
 }: ActionBarProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const { getKeyStatuses, isDevMode } = useApiKeys();
+  const { getKeyStatuses, isDevMode, isLoaded } = useApiKeys();
 
   const statuses = getKeyStatuses();
   const hasAnyKey = statuses.some((s) => s.hasKey);
   const showWarning = !isDevMode && !hasAnyKey;
+
+  // Auto-open settings dialog when no API keys are configured
+  useEffect(() => {
+    if (isLoaded && !isDevMode && !hasAnyKey) {
+      setSettingsOpen(true);
+    }
+  }, [isLoaded, isDevMode, hasAnyKey]);
+
+  // Handle run - open settings if no keys configured
+  const handleRun = () => {
+    if (!isDevMode && !hasAnyKey) {
+      setSettingsOpen(true);
+      return;
+    }
+    onRun();
+  };
 
   return (
     <>
@@ -265,7 +281,7 @@ export function ActionBar({
               </Button>
             ) : (
               <Button
-                onClick={onRun}
+                onClick={handleRun}
                 className="h-10 px-4 rounded-lg gap-2 bg-green-600 text-white hover:bg-green-500"
               >
                 <Play className="h-4 w-4" />

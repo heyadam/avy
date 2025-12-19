@@ -153,7 +153,7 @@ export function SettingsDialogControlled({
 
             {!isDevMode && !hasAnyKey && !password && (
               <p className="text-sm text-amber-500 font-medium">
-                Configure at least 1 API key to use avy.
+                Configure at least 1 API key to use Composer.
               </p>
             )}
             {isDevMode && (

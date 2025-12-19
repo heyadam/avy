@@ -1,6 +1,6 @@
 # AI Models Reference
 
-Quick reference for AI model IDs used in API calls.
+Quick reference for AI model IDs used in API calls. Only use these models, don't call anything else.
 
 ## OpenAI
 
@@ -40,16 +40,7 @@ Quick reference for AI model IDs used in API calls.
 |----------|-------------|
 | `gemini-3-pro-preview` | Complex tasks, advanced reasoning |
 | `gemini-3-pro-image-preview` | Image generation, multimodal tasks |
-
-### Gemini 2.5 Family
-| Model ID | Description |
-|----------|-------------|
-| `gemini-2.5-pro` | State-of-the-art thinking model |
-| `gemini-2.5-flash` | Fast, balanced performance |
-| `gemini-2.5-flash-lite` | Lightweight, efficient |
-| `gemini-2.5-flash-preview-09-2025` | Preview version |
-| `gemini-2.5-flash-native-audio-preview-09-2025` | Native audio support |
-| `gemini-2.5-pro-preview-tts` | Text-to-speech preview |
+| `gemini-3-flash-preview` | Cost-optimized reasoning and chat |
 
 
 ### Native Image Generation (Gemini)
