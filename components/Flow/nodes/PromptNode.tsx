@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import { useReactFlow, useEdges, type NodeProps, type Node } from "@xyflow/react";
 import type { PromptNodeData } from "@/types/flow";
-import { MessageSquare, Brain, ChevronDown, ChevronRight } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { NodeFrame } from "./NodeFrame";
 import { PortRow } from "./PortLabel";
 import { InputWithHandle } from "./InputWithHandle";
 import { ProviderModelSelector } from "./ProviderModelSelector";
 import { ConfigSelect } from "./ConfigSelect";
+import { ThinkingSummary } from "@/components/ThinkingSummary";
 import { cn } from "@/lib/utils";
 import {
   PROVIDERS,
@@ -27,7 +27,6 @@ type PromptNodeType = Node<PromptNodeData, "text-generation">;
 export function PromptNode({ id, data }: NodeProps<PromptNodeType>) {
   const { updateNodeData } = useReactFlow();
   const edges = useEdges();
-  const [reasoningExpanded, setReasoningExpanded] = useState(false);
 
   // Check which input handles are connected
   const isPromptConnected = edges.some(
@@ -73,29 +72,9 @@ export function PromptNode({ id, data }: NodeProps<PromptNodeType>) {
           </p>
         ) : (data.executionOutput || data.executionReasoning) ? (
           <div className="space-y-2">
-            {/* Reasoning section (collapsible) */}
             {data.executionReasoning && (
-              <div className="border border-border/50 rounded-md overflow-hidden">
-                <button
-                  onClick={() => setReasoningExpanded(!reasoningExpanded)}
-                  className="nodrag w-full flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-muted-foreground bg-muted/50 hover:bg-muted transition-colors"
-                >
-                  <Brain className="h-3 w-3" />
-                  <span>Thinking</span>
-                  {reasoningExpanded ? (
-                    <ChevronDown className="h-3 w-3 ml-auto" />
-                  ) : (
-                    <ChevronRight className="h-3 w-3 ml-auto" />
-                  )}
-                </button>
-                {reasoningExpanded && (
-                  <p className="px-2 py-1.5 text-xs text-muted-foreground whitespace-pre-wrap max-h-[120px] overflow-y-auto">
-                    {data.executionReasoning}
-                  </p>
-                )}
-              </div>
+              <ThinkingSummary reasoning={data.executionReasoning} />
             )}
-            {/* Output */}
             {data.executionOutput && (
               <p className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-4">
                 {data.executionOutput}
