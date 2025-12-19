@@ -75,10 +75,10 @@ export function PromptNode({ id, data }: NodeProps<PromptNodeType>) {
           <div className="space-y-2">
             {/* Reasoning section (collapsible) */}
             {data.executionReasoning && (
-              <div className="border border-purple-500/20 rounded-md overflow-hidden">
+              <div className="border border-border/50 rounded-md overflow-hidden">
                 <button
                   onClick={() => setReasoningExpanded(!reasoningExpanded)}
-                  className="nodrag w-full flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 transition-colors"
+                  className="nodrag w-full flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-muted-foreground bg-muted/50 hover:bg-muted transition-colors"
                 >
                   <Brain className="h-3 w-3" />
                   <span>Thinking</span>
@@ -89,7 +89,7 @@ export function PromptNode({ id, data }: NodeProps<PromptNodeType>) {
                   )}
                 </button>
                 {reasoningExpanded && (
-                  <p className="px-2 py-1.5 text-xs text-purple-600/80 dark:text-purple-400/80 whitespace-pre-wrap max-h-[120px] overflow-y-auto">
+                  <p className="px-2 py-1.5 text-xs text-muted-foreground whitespace-pre-wrap max-h-[120px] overflow-y-auto">
                     {data.executionReasoning}
                   </p>
                 )}
