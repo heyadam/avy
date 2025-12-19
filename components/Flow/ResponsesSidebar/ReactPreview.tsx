@@ -240,7 +240,7 @@ export function ReactPreview({ data, className }: ReactPreviewProps) {
           ref={iframeRef}
           key={key}
           title="React Component Preview"
-          sandbox="allow-scripts allow-same-origin"
+          sandbox="allow-scripts"
           className="w-full h-full border-0 absolute inset-0"
         />
       </div>
