@@ -870,6 +870,9 @@ export function AgentFlow() {
                   executionOutput: state.output,
                   executionError: state.error,
                   executionReasoning: state.reasoning,
+                  // Persist auto-generated code for ai-logic nodes
+                  ...(state.generatedCode && { generatedCode: state.generatedCode }),
+                  ...(state.codeExplanation && { codeExplanation: state.codeExplanation }),
                 },
               }
             : node

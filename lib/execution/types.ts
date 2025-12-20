@@ -40,6 +40,10 @@ export interface NodeExecutionState {
   sourceType?: string;
   /** Debug information for API calls */
   debugInfo?: DebugInfo;
+  /** Auto-generated code for ai-logic nodes */
+  generatedCode?: string;
+  /** Explanation for auto-generated code */
+  codeExplanation?: string;
 }
 
 export type ExecutionState = Record<string, NodeExecutionState>;
