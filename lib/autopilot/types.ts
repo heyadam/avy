@@ -86,7 +86,7 @@ export interface AutopilotMessage {
   appliedInfo?: AppliedChangesInfo;
 }
 
-export type AutopilotModel = "claude-opus-4-5" | "claude-sonnet-4-5";
+export type AutopilotModel = "opus-4-5-low" | "opus-4-5-medium" | "opus-4-5-high";
 
 // API request/response types
 export interface AutopilotRequest {

@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     const {
       messages,
       flowSnapshot,
-      model = "claude-sonnet-4-5",
+      model = "opus-4-5-medium",
       apiKeys,
       mode = "execute",
       approvedPlan,
@@ -58,15 +58,31 @@ export async function POST(request: NextRequest) {
       apiKey: apiKeys?.anthropic || process.env.ANTHROPIC_API_KEY,
     });
 
-    // Stream response from Claude
+    // Map model selection to effort level
+    const effortMap: Record<string, "low" | "medium" | "high"> = {
+      "opus-4-5-low": "low",
+      "opus-4-5-medium": "medium",
+      "opus-4-5-high": "high",
+    };
+    const effort = effortMap[model] || "medium";
+
+    // Stream response from Claude Opus 4.5 with effort parameter
     const result = streamText({
-      model: anthropic(model),
+      model: anthropic("claude-opus-4-5-20251101"),
       system: systemPrompt,
       messages: messages.map((msg) => ({
         role: msg.role,
         content: msg.content,
       })),
-      maxOutputTokens: 4000,
+      maxOutputTokens: 16000,
+      headers: {
+        "anthropic-beta": "effort-2025-11-24",
+      },
+      providerOptions: {
+        anthropic: {
+          outputConfig: { effort },
+        },
+      },
     });
 
     return result.toTextStreamResponse();

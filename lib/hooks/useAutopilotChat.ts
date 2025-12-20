@@ -45,7 +45,7 @@ export function useAutopilotChat({
   const sendMessage = useCallback(
     async (
       content: string,
-      model: AutopilotModel = "claude-sonnet-4-5",
+      model: AutopilotModel = "opus-4-5-medium",
       options?: SendMessageOptions
     ) => {
       if (!content.trim() || isLoading) return;
@@ -189,7 +189,7 @@ export function useAutopilotChat({
   );
 
   const approvePlan = useCallback(
-    async (messageId: string, model: AutopilotModel = "claude-sonnet-4-5") => {
+    async (messageId: string, model: AutopilotModel = "opus-4-5-medium") => {
       const message = messagesRef.current.find((m) => m.id === messageId);
       if (!message?.pendingPlan) return;
 

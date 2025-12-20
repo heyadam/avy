@@ -24,8 +24,9 @@ import { Check, Sparkles, Undo2, ChevronDown, Play, Zap, ListTodo } from "lucide
 import type { AutopilotMessage, AutopilotModel, AutopilotMode, FlowPlan } from "@/lib/autopilot/types";
 
 const MODELS: { id: AutopilotModel; name: string }[] = [
-  { id: "claude-sonnet-4-5", name: "Sonnet 4.5" },
-  { id: "claude-opus-4-5", name: "Opus 4.5" },
+  { id: "opus-4-5-low", name: "Opus 4.5 (Low)" },
+  { id: "opus-4-5-medium", name: "Opus 4.5 (Medium)" },
+  { id: "opus-4-5-high", name: "Opus 4.5 (High)" },
 ];
 
 const MODES: { id: AutopilotMode; name: string; icon: typeof Zap }[] = [
@@ -62,7 +63,7 @@ export function AutopilotChat({
   onUndoChanges,
 }: AutopilotChatProps) {
   const [inputValue, setInputValue] = useState("");
-  const [selectedModel, setSelectedModel] = useState<AutopilotModel>("claude-sonnet-4-5");
+  const [selectedModel, setSelectedModel] = useState<AutopilotModel>("opus-4-5-medium");
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
