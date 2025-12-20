@@ -94,8 +94,6 @@ interface AutopilotChatProps {
   onModeChange: (mode: AutopilotMode) => void;
   thinkingEnabled: boolean;
   onThinkingChange: (enabled: boolean) => void;
-  testModeEnabled?: boolean;
-  onTestModeChange?: (enabled: boolean) => void;
   onSendMessage: (content: string, model: AutopilotModel) => void;
   onApprovePlan: (messageId: string, model: AutopilotModel) => void;
   onUndoChanges: (messageId: string) => void;
@@ -116,8 +114,6 @@ export function AutopilotChat({
   onModeChange,
   thinkingEnabled,
   onThinkingChange,
-  testModeEnabled,
-  onTestModeChange,
   onSendMessage,
   onApprovePlan,
   onUndoChanges,
@@ -451,24 +447,6 @@ export function AutopilotChat({
                 <Brain className="h-3 w-3" />
                 <span>Think</span>
               </Button>
-              {/* Dev-only test mode toggle */}
-              {process.env.NEXT_PUBLIC_DEV_MODE === "true" && onTestModeChange && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className={`h-6 px-2 text-[11px] gap-1 ${
-                    testModeEnabled
-                      ? "text-orange-600 hover:text-orange-700"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => onTestModeChange(!testModeEnabled)}
-                  title={testModeEnabled ? "Disable test mode (bad JSON)" : "Enable test mode (bad JSON)"}
-                >
-                  <AlertTriangle className="h-3 w-3" />
-                  <span>Test</span>
-                </Button>
-              )}
             </div>
             <PromptInputSubmit
               disabled={!inputValue.trim() || isLoading}

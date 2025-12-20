@@ -135,6 +135,8 @@ export function AutopilotSidebar({
           onClear={clearHistory}
           onClose={onToggle}
           hasMessages={messages.length > 0}
+          testModeEnabled={testModeEnabled}
+          onTestModeChange={setTestModeEnabled}
         />
         <AutopilotChat
           messages={messages}
@@ -144,8 +146,6 @@ export function AutopilotSidebar({
           onModeChange={setMode}
           thinkingEnabled={thinkingEnabled}
           onThinkingChange={setThinkingEnabled}
-          testModeEnabled={testModeEnabled}
-          onTestModeChange={setTestModeEnabled}
           onSendMessage={sendMessage}
           onApprovePlan={approvePlan}
           onUndoChanges={undoChanges}
