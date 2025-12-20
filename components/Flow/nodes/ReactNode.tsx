@@ -132,13 +132,13 @@ export function ReactNode({ id, data }: NodeProps<ReactNodeType>) {
           />
 
           {/* Style Preset */}
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-muted-foreground w-16 shrink-0">Style</span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-xs font-medium text-muted-foreground">Style</div>
             <Select
               value={currentStylePreset}
               onValueChange={(value: ReactStylePreset) => updateNodeData(id, { stylePreset: value })}
             >
-              <SelectTrigger className="nodrag h-8 w-[120px] text-xs">
+              <SelectTrigger className="nodrag h-7 w-[120px] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
