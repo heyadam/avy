@@ -105,9 +105,11 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 - `AutopilotSidebar.tsx`: Main container with resizable width (320-600px)
 - `AutopilotChat.tsx`: Chat UI with effort level selector (Low/Medium/High) and suggested prompts
 - `AutopilotHeader.tsx`: Header with clear history button
+- `CollapsibleJson.tsx`: Collapsible JSON preview with syntax highlighting, auto-scroll during streaming, auto-collapse when done
+- `ChangesPreview.tsx`: Visual diff of pending changes (added/removed nodes and edges)
 - Uses Claude Opus 4.5 with configurable effort levels via the `effort` beta parameter
-- Supports actions: `addNode`, `addEdge`, `removeEdge`
-- Auto-applies changes with undo capability
+- Supports actions: `addNode`, `addEdge`, `removeEdge`, `removeNode`
+- Auto-applies changes with full undo capability (restores removed nodes/edges)
 - New nodes highlighted with purple glow until interacted with
 - LLM-based validation using Claude Haiku 4.5 with auto-retry on failure
 

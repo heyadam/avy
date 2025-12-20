@@ -29,10 +29,11 @@ A visual workflow builder for creating AI agent pipelines using drag-and-drop no
 - **Execution Tracking**: Visual feedback showing node execution status (running/success/error)
 - **Selection Feedback**: Selected nodes show animated yellow glow
 - **AI Autopilot**: Natural language flow editing - describe changes and Claude builds them
-  - Add, connect, and insert nodes between existing ones
+  - Add, remove, connect, and insert nodes between existing ones
+  - Collapsible JSON preview with syntax highlighting and auto-scroll during streaming
   - Powered by Claude Opus 4.5 with configurable effort levels (Low/Medium/High)
   - LLM-based validation using Claude Haiku 4.5 with auto-retry on failure
-  - Auto-apply with undo support
+  - Auto-apply with full undo support (restores removed nodes/edges)
   - Suggested prompts for quick starts
 
 ### Supported Models
