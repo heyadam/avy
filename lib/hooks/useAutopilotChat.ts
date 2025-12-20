@@ -12,6 +12,8 @@ import type {
   AutopilotModel,
   AutopilotMode,
   FlowPlan,
+  EvaluationResult,
+  EvaluationState,
 } from "@/lib/autopilot/types";
 
 interface UseAutopilotChatOptions {
@@ -23,6 +25,11 @@ interface UseAutopilotChatOptions {
 
 interface SendMessageOptions {
   executePlan?: FlowPlan;
+  retryContext?: {
+    failedChanges: FlowChanges;
+    evalResult: EvaluationResult;
+  };
+  skipEvaluation?: boolean;
 }
 
 export function useAutopilotChat({
@@ -96,6 +103,7 @@ export function useAutopilotChat({
             apiKeys,
             mode: options?.executePlan ? "execute" : mode,
             approvedPlan: options?.executePlan,
+            retryContext: options?.retryContext,
           }),
           signal: abortControllerRef.current.signal,
         });
@@ -121,7 +129,7 @@ export function useAutopilotChat({
           const chunk = decoder.decode(value);
           fullOutput += chunk;
 
-          // Update message content
+          // Update message content as it streams
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMessageId ? { ...m, content: fullOutput } : m
@@ -137,29 +145,141 @@ export function useAutopilotChat({
         let pendingChanges: FlowChanges | undefined;
 
         if (parseResult.type === "changes") {
-          // Flow changes - auto-apply
           pendingChanges = parseResult.data;
-          appliedInfo = onApplyChanges(parseResult.data);
-        } else if (parseResult.type === "plan") {
-          // Plan - store for approval (don't auto-apply)
-          pendingPlan = parseResult.data;
-        }
 
-        // Update message with parsed result
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMessageId
-              ? {
-                  ...m,
-                  content: fullOutput,
-                  pendingChanges,
-                  pendingPlan,
-                  applied: !!pendingChanges,
-                  appliedInfo,
-                }
-              : m
-          )
-        );
+          // Update message with pending changes and start evaluation
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMessageId
+                ? {
+                    ...m,
+                    content: fullOutput,
+                    pendingChanges,
+                    evaluationState: options?.skipEvaluation ? undefined : "evaluating" as EvaluationState,
+                    wasRetried: !!options?.retryContext,
+                  }
+                : m
+            )
+          );
+
+          // Run evaluation unless skipped
+          if (!options?.skipEvaluation) {
+            const userRequest = content.trim();
+            const evalResponse = await fetch("/api/autopilot/evaluate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                userRequest,
+                flowSnapshot,
+                changes: pendingChanges,
+                apiKeys,
+              }),
+            });
+
+            const evalResult: EvaluationResult = await evalResponse.json();
+
+            if (evalResult.valid) {
+              // Evaluation passed - auto-apply
+              appliedInfo = onApplyChanges(pendingChanges);
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMessageId
+                    ? {
+                        ...m,
+                        evaluationState: "passed" as EvaluationState,
+                        evaluationResult: evalResult,
+                        applied: true,
+                        appliedInfo,
+                      }
+                    : m
+                )
+              );
+            } else {
+              // Evaluation failed
+              if (!options?.retryContext) {
+                // First failure - auto-retry with error feedback
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMessageId
+                      ? {
+                          ...m,
+                          evaluationState: "retrying" as EvaluationState,
+                          evaluationResult: evalResult,
+                          applied: false,
+                        }
+                      : m
+                  )
+                );
+
+                // Trigger retry after a brief delay to show "retrying" state
+                setIsLoading(false);
+                await new Promise((resolve) => setTimeout(resolve, 500));
+
+                // Retry with the original user request and error context
+                await sendMessage(content, model, {
+                  retryContext: {
+                    failedChanges: pendingChanges,
+                    evalResult,
+                  },
+                  skipEvaluation: false,
+                });
+                return; // Exit early, retry will handle the rest
+              } else {
+                // Already retried - show errors, don't apply
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMessageId
+                      ? {
+                          ...m,
+                          evaluationState: "failed" as EvaluationState,
+                          evaluationResult: evalResult,
+                          applied: false,
+                          wasRetried: true,
+                        }
+                      : m
+                  )
+                );
+              }
+            }
+          } else {
+            // Skip evaluation - just apply
+            appliedInfo = onApplyChanges(pendingChanges);
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMessageId
+                  ? {
+                      ...m,
+                      applied: true,
+                      appliedInfo,
+                    }
+                  : m
+              )
+            );
+          }
+        } else if (parseResult.type === "plan") {
+          // Plan - store for approval (don't auto-apply or evaluate)
+          pendingPlan = parseResult.data;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMessageId
+                ? {
+                    ...m,
+                    content: fullOutput,
+                    pendingPlan,
+                  }
+                : m
+            )
+          );
+        } else {
+          // No changes or plan - just update content
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMessageId
+                ? { ...m, content: fullOutput }
+                : m
+            )
+          );
+        }
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
           // Request was cancelled, remove the assistant message
@@ -225,6 +345,24 @@ export function useAutopilotChat({
     [onUndoChanges]
   );
 
+  const applyAnyway = useCallback(
+    (messageId: string) => {
+      const message = messagesRef.current.find((m) => m.id === messageId);
+      if (message?.pendingChanges && !message.applied) {
+        // Apply despite validation failures
+        const appliedInfo = onApplyChanges(message.pendingChanges);
+
+        // Update message as applied
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId ? { ...m, applied: true, appliedInfo } : m
+          )
+        );
+      }
+    },
+    [onApplyChanges]
+  );
+
   const clearHistory = useCallback(() => {
     setMessages([]);
     setError(null);
@@ -245,6 +383,7 @@ export function useAutopilotChat({
     sendMessage,
     approvePlan,
     undoChanges,
+    applyAnyway,
     clearHistory,
     cancelRequest,
   };

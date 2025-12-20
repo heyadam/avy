@@ -12,7 +12,6 @@ import {
   type OnConnect,
   type ReactFlowInstance,
   type Connection,
-  type Edge,
   type Node,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -86,7 +85,6 @@ export function AgentFlow() {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
 
   const [isRunning, setIsRunning] = useState(false);
-  const [finalOutput, setFinalOutput] = useState<string | null>(null);
   const [previewEntries, setPreviewEntries] = useState<PreviewEntry[]>([]);
   const [debugEntries, setDebugEntries] = useState<DebugEntry[]>([]);
   const [activeResponseTab, setActiveResponseTab] = useState<"responses" | "debug">("responses");
@@ -912,7 +910,6 @@ export function AgentFlow() {
         },
       }))
     );
-    setFinalOutput(null);
     setPreviewEntries([]);
     setDebugEntries([]);
     addedPreviewIds.current.clear();
@@ -951,14 +948,13 @@ export function AgentFlow() {
     abortControllerRef.current = new AbortController();
 
     try {
-      const output = await executeFlow(
+      await executeFlow(
         nodes,
         edges,
         updateNodeExecutionState,
         apiKeys,
         abortControllerRef.current.signal
       );
-      setFinalOutput(output);
     } catch (error) {
       if (error instanceof Error && error.message === "Execution cancelled") {
         console.log("Flow execution cancelled by user");

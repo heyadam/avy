@@ -41,10 +41,10 @@ LLM text generation node. Has two text inputs that can be connected or set inlin
 }
 \`\`\`
 
-**Available Models:**
-- OpenAI: \`gpt-5.2\` (best), \`gpt-5-mini\` (balanced), \`gpt-5-nano\` (fast)
-- Google: \`gemini-2.5-pro\` (best), \`gemini-2.5-flash\` (fast), \`gemini-3-pro-preview\` (latest)
-- Anthropic: \`claude-opus-4-5\` (most capable), \`claude-sonnet-4-5\` (best for agents), \`claude-haiku-4-5\` (fast)
+**Available Text Generation Models (ONLY use these exact IDs):**
+- OpenAI: \`gpt-5.2\`, \`gpt-5-mini\`, \`gpt-5-nano\`
+- Google: \`gemini-3-pro-preview\`, \`gemini-3-flash-preview\`
+- Anthropic: \`claude-opus-4-5\`, \`claude-sonnet-4-5\`, \`claude-haiku-4-5\`
 
 ### 3. image-generation (Image Generation)
 AI image generation node. Takes text input and generates an image.
@@ -61,9 +61,9 @@ AI image generation node. Takes text input and generates an image.
 }
 \`\`\`
 
-**Available Image Models:**
-- OpenAI: \`gpt-image-1\` (best), \`dall-e-3\` (higher quality)
-- Google: \`gemini-2.5-flash-image\` (fast), \`gemini-3-pro-image-preview\` (high quality)
+**Available Image Generation Models (ONLY use these exact IDs):**
+- OpenAI: \`gpt-image-1\`, \`dall-e-3\`, \`dall-e-2\`
+- Google: \`gemini-2.5-flash-image\`, \`gemini-3-pro-image-preview\`
 
 ### 4. preview-output (Preview Output)
 Exit point that displays results. Can be named to describe what it shows (e.g., "Summary", "Image Result").

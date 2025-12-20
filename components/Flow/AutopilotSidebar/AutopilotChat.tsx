@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Loader } from "@/components/ai-elements/loader";
-import { Check, Sparkles, Undo2, ChevronDown, Play, Zap, ListTodo } from "lucide-react";
+import { Check, Sparkles, Undo2, ChevronDown, Play, Zap, ListTodo, AlertTriangle, CheckCircle2 } from "lucide-react";
 import type { AutopilotMessage, AutopilotModel, AutopilotMode, FlowPlan } from "@/lib/autopilot/types";
 
 const MODELS: { id: AutopilotModel; name: string }[] = [
@@ -50,6 +50,7 @@ interface AutopilotChatProps {
   onSendMessage: (content: string, model: AutopilotModel) => void;
   onApprovePlan: (messageId: string, model: AutopilotModel) => void;
   onUndoChanges: (messageId: string) => void;
+  onApplyAnyway?: (messageId: string) => void;
 }
 
 export function AutopilotChat({
@@ -61,6 +62,7 @@ export function AutopilotChat({
   onSendMessage,
   onApprovePlan,
   onUndoChanges,
+  onApplyAnyway,
 }: AutopilotChatProps) {
   const [inputValue, setInputValue] = useState("");
   const [selectedModel, setSelectedModel] = useState<AutopilotModel>("opus-4-5-medium");
@@ -128,6 +130,65 @@ export function AutopilotChat({
                         </div>
                       )}
 
+                      {/* Evaluation in progress */}
+                      {message.evaluationState === "evaluating" && (
+                        <div className="mt-3 pt-3 border-t">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Loader className="h-3.5 w-3.5" />
+                            <span className="text-xs">Validating changes...</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Evaluation passed */}
+                      {message.evaluationState === "passed" && (
+                        <div className="mt-3 pt-3 border-t">
+                          <div className="flex items-center gap-2 text-green-600">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <span className="text-xs">Validation passed</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Retrying after validation failure */}
+                      {message.evaluationState === "retrying" && (
+                        <div className="mt-3 pt-3 border-t">
+                          <div className="flex items-center gap-2 text-amber-600">
+                            <Loader className="h-3.5 w-3.5" />
+                            <span className="text-xs">Validation failed, retrying...</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Evaluation errors - only show when failed (not retrying) */}
+                      {message.evaluationState === "failed" && message.evaluationResult && !message.evaluationResult.valid && (
+                        <div className="mt-3 pt-3 border-t">
+                          <div className="rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-3">
+                            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 mb-2">
+                              <AlertTriangle className="h-4 w-4" />
+                              <span className="text-xs font-medium">
+                                Validation Issues{message.wasRetried ? " (after retry)" : ""}
+                              </span>
+                            </div>
+                            <ul className="text-xs space-y-1 text-amber-800 dark:text-amber-300 mb-2">
+                              {message.evaluationResult.issues.map((issue, i) => (
+                                <li key={i}>• {issue}</li>
+                              ))}
+                            </ul>
+                            {message.pendingChanges && onApplyAnyway && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 text-xs border-amber-500/50 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                                onClick={() => onApplyAnyway(message.id)}
+                              >
+                                Apply Anyway
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Flow changes applied */}
                       {message.pendingChanges && (
                         <div className="mt-3 pt-3 border-t">
@@ -152,6 +213,18 @@ export function AutopilotChat({
                                   Undo
                                 </Button>
                               </div>
+                            ) : message.evaluationState === "evaluating" ? (
+                              <span className="text-xs text-muted-foreground">
+                                Evaluating...
+                              </span>
+                            ) : message.evaluationState === "retrying" ? (
+                              <span className="text-xs text-amber-600">
+                                Retrying...
+                              </span>
+                            ) : message.evaluationState === "failed" ? (
+                              <span className="text-xs text-amber-600">
+                                Not applied (validation failed)
+                              </span>
                             ) : (
                               <span className="text-xs text-muted-foreground">
                                 Undone

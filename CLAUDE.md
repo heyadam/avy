@@ -35,12 +35,13 @@ This is an AI agent workflow builder using Next.js 16 App Router with React Flow
 - Hold spacebar + drag to create selection box (crosshair cursor)
 - Selected nodes show yellow border with animated glow
 
-**Node Types** (`components/Flow/nodes/`): Six custom node components with editable labels:
+**Node Types** (`components/Flow/nodes/`): Custom node components with editable labels:
 - `InputNode` (type: `text-input`): Entry point, receives user input
 - `ImageInputNode` (type: `image-input`): Entry point for image upload
-- `PromptNode` (type: `text-generation`): LLM prompt execution with dual inputs (user prompt + system instructions), multi-provider support
-- `ImageNode` (type: `image-generation`): AI image generation (OpenAI with streaming partial images, Google Gemini)
-- `MagicNode` (type: `ai-logic`): Custom code transformation using Claude-generated JavaScript
+- `PromptNode` (type: `text-generation`): LLM prompt execution with dual inputs (user prompt + system instructions), multi-provider support. Default: Google `gemini-3-flash-preview`
+- `ImageNode` (type: `image-generation`): AI image generation (OpenAI with streaming partial images, Google Gemini). Default: Google `gemini-2.5-flash-image` with 1:1 aspect ratio
+- `MagicNode` (type: `ai-logic`): Custom code transformation using Claude Haiku-generated JavaScript
+- `ReactComponentNode` (type: `react-component`): AI-generated React components rendered in sandboxed iframe
 - `OutputNode` (type: `preview-output`): Exit point, displays final result and sends to preview
 
 **InputWithHandle** (`components/Flow/nodes/InputWithHandle.tsx`): Reusable component combining input fields with connection handles:
@@ -102,20 +103,26 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 
 **Autopilot Sidebar** (`components/Flow/AutopilotSidebar/`): AI-powered chat interface for natural language flow editing:
 - `AutopilotSidebar.tsx`: Main container with resizable width (320-600px)
-- `AutopilotChat.tsx`: Chat UI with model selector (Sonnet/Opus 4.5) and suggested prompts
+- `AutopilotChat.tsx`: Chat UI with effort level selector (Low/Medium/High) and suggested prompts
 - `AutopilotHeader.tsx`: Header with clear history button
-- Uses Claude to generate flow modifications from natural language descriptions
+- Uses Claude Opus 4.5 with configurable effort levels via the `effort` beta parameter
 - Supports actions: `addNode`, `addEdge`, `removeEdge`
 - Auto-applies changes with undo capability
 - New nodes highlighted with purple glow until interacted with
+- LLM-based validation using Claude Haiku 4.5 with auto-retry on failure
 
 **Autopilot System** (`lib/autopilot/`):
-- `types.ts`: Action types (AddNodeAction, AddEdgeAction, RemoveEdgeAction), FlowChanges, AutopilotMessage
-- `parser.ts`: Extracts and validates JSON actions from Claude's responses. Valid node types: `text-input`, `image-input`, `text-generation`, `image-generation`, `ai-logic`, `preview-output`
+- `types.ts`: Action types, FlowChanges, AutopilotMessage, EvaluationResult, EvaluationState
+- `parser.ts`: Extracts and validates JSON actions from Claude's responses. Valid node types: `text-input`, `image-input`, `text-generation`, `image-generation`, `ai-logic`, `preview-output`, `react-component`
 - `snapshot.ts`: Serializes current flow state for context
-- `system-prompt.ts`: Builds prompt with node types, edge rules, and insertion examples
+- `system-prompt.ts`: Builds prompt with node types, edge rules, valid model IDs, and insertion examples
+- `evaluator.ts`: LLM-based validation of generated flow changes using Claude Haiku 4.5. Checks semantic match, structural validity, model ID correctness, and completeness. Returns issues and suggestions.
 
-**Autopilot Hook** (`lib/hooks/useAutopilotChat.ts`): Manages conversation state, streaming responses, auto-apply, and undo functionality.
+**Autopilot API Routes**:
+- `app/api/autopilot/route.ts`: Streams responses from Claude Opus 4.5 with effort parameter
+- `app/api/autopilot/evaluate/route.ts`: Validates flow changes using Claude Haiku 4.5
+
+**Autopilot Hook** (`lib/hooks/useAutopilotChat.ts`): Manages conversation state, streaming responses, post-stream evaluation, auto-retry on validation failure, auto-apply on success, and undo functionality.
 
 **Example Flow** (`lib/example-flow.ts`): Default flow configuration loaded on startup.
 

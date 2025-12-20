@@ -10,10 +10,13 @@ A visual workflow builder for creating AI agent pipelines using drag-and-drop no
 - **Visual Flow Editor**: Build AI workflows by connecting nodes in a React Flow canvas
 - **Origami-Style Controls**: Drag to select multiple nodes, hold spacebar to pan
 - **Node Types**:
-  - **Input**: Entry point that receives user input
-  - **Prompt**: Execute LLM prompts with dual inputs (user prompt + system instructions) and multi-provider support
-  - **Image**: AI image generation with OpenAI and Google Gemini
-  - **Output**: Exit point that displays results in the responses sidebar
+  - **Text Input**: Entry point that receives user text input
+  - **Image Input**: Entry point for image uploads
+  - **Text Generation**: Execute LLM prompts with dual inputs (user prompt + system instructions) and multi-provider support
+  - **Image Generation**: AI image generation with OpenAI and Google Gemini
+  - **AI Logic**: Custom code transformations using Claude-generated JavaScript
+  - **React Component**: AI-generated React components rendered in sandboxed iframe
+  - **Preview Output**: Exit point that displays results in the responses sidebar
 - **Smart Input Fields**: Textareas disable with "Using connected input" when handles are wired
 - **Multi-Provider Support**: Choose from OpenAI, Google Gemini, or Anthropic Claude models
 - **OpenAI-Specific Options**: Verbosity control (low/medium/high) and thinking mode for supported models
@@ -27,24 +30,25 @@ A visual workflow builder for creating AI agent pipelines using drag-and-drop no
 - **Selection Feedback**: Selected nodes show animated yellow glow
 - **AI Autopilot**: Natural language flow editing - describe changes and Claude builds them
   - Add, connect, and insert nodes between existing ones
-  - Model selector (Sonnet 4.5 / Opus 4.5)
+  - Powered by Claude Opus 4.5 with configurable effort levels (Low/Medium/High)
+  - LLM-based validation using Claude Haiku 4.5 with auto-retry on failure
   - Auto-apply with undo support
   - Suggested prompts for quick starts
 
 ### Supported Models
 
-**Text Models:**
+**Text Generation:**
 | Provider | Models |
 |----------|--------|
-| OpenAI | GPT-5, GPT-5 Mini, GPT-5 Nano |
-| Google | Gemini 2.5 Flash, Gemini 2.5 Pro, Gemini 2.0 Flash |
-| Anthropic | Claude Sonnet 4.5, Claude 3.5 Haiku |
+| OpenAI | GPT-5.2, GPT-5 Mini, GPT-5 Nano |
+| Google | Gemini 3 Pro, Gemini 3 Flash (default) |
+| Anthropic | Claude Opus 4.5, Claude Sonnet 4.5, Claude Haiku 4.5 |
 
-**Image Models:**
+**Image Generation:**
 | Provider | Models |
 |----------|--------|
-| OpenAI | GPT-5 (streaming partial images) |
-| Google | Gemini 2.5 Flash, Gemini 3 Pro |
+| OpenAI | GPT Image 1, DALL-E 3, DALL-E 2 |
+| Google | Gemini 2.5 Flash Image (default), Gemini 3 Pro Image |
 
 ## Getting Started
 

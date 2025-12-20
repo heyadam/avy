@@ -6,7 +6,8 @@ import {
   buildPlanModeSystemPrompt,
   buildExecuteFromPlanSystemPrompt,
 } from "@/lib/autopilot/system-prompt";
-import type { AutopilotRequest } from "@/lib/autopilot/types";
+import { buildRetryContext } from "@/lib/autopilot/evaluator";
+import type { AutopilotRequest, FlowChanges, EvaluationResult } from "@/lib/autopilot/types";
 
 interface ApiKeys {
   openai?: string;
@@ -66,10 +67,19 @@ export async function POST(request: NextRequest) {
     };
     const effort = effortMap[model] || "medium";
 
+    // Check if this is a retry request with error context
+    const retryContext = (body as { retryContext?: { failedChanges: FlowChanges; evalResult: EvaluationResult } }).retryContext;
+
+    let finalSystemPrompt = systemPrompt;
+    if (retryContext) {
+      // Append retry context to system prompt
+      finalSystemPrompt = systemPrompt + "\n\n" + buildRetryContext(retryContext.failedChanges, retryContext.evalResult);
+    }
+
     // Stream response from Claude Opus 4.5 with effort parameter
     const result = streamText({
       model: anthropic("claude-opus-4-5-20251101"),
-      system: systemPrompt,
+      system: finalSystemPrompt,
       messages: messages.map((msg) => ({
         role: msg.role,
         content: msg.content,

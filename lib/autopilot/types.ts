@@ -74,6 +74,16 @@ export interface AppliedChangesInfo {
   edgeIds: string[];
 }
 
+// Evaluation result from LLM validator
+export interface EvaluationResult {
+  valid: boolean;
+  issues: string[];
+  suggestions: string[];
+}
+
+// Evaluation state for UI display
+export type EvaluationState = "pending" | "evaluating" | "passed" | "failed" | "retrying";
+
 export interface AutopilotMessage {
   id: string;
   role: "user" | "assistant";
@@ -84,6 +94,9 @@ export interface AutopilotMessage {
   planApproved?: boolean;
   applied?: boolean;
   appliedInfo?: AppliedChangesInfo;
+  evaluationResult?: EvaluationResult;
+  evaluationState?: EvaluationState;
+  wasRetried?: boolean;
 }
 
 export type AutopilotModel = "opus-4-5-low" | "opus-4-5-medium" | "opus-4-5-high";
