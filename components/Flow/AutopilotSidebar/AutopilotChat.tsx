@@ -20,12 +20,59 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Loader } from "@/components/ai-elements/loader";
-import { Check, Sparkles, ChevronDown, Play, Zap, ListTodo, AlertTriangle, Brain } from "lucide-react";
+import {
+  Check,
+  Sparkles,
+  ChevronDown,
+  Play,
+  Zap,
+  ListTodo,
+  AlertTriangle,
+  Brain,
+  RefreshCw,
+  FileText,
+  Image,
+  Languages,
+  BarChart,
+  Palette,
+  Bot,
+  Mail,
+  Lightbulb,
+  Code,
+  MessageSquare,
+  Search,
+  Wand2,
+  Pencil,
+  BookOpen,
+  Globe,
+  type LucideIcon,
+} from "lucide-react";
 import { ThinkingSummary } from "@/components/ThinkingSummary";
 import { ChangesPreview } from "./ChangesPreview";
 import { CollapsibleJson, parseMessageContent } from "./CollapsibleJson";
 import type { AutopilotMessage, AutopilotModel, AutopilotMode, FlowPlan } from "@/lib/autopilot/types";
+import type { Suggestion } from "@/lib/hooks/useSuggestions";
 import type { Node, Edge } from "@xyflow/react";
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  FileText,
+  Image,
+  Languages,
+  BarChart,
+  Palette,
+  Sparkles,
+  Bot,
+  Mail,
+  Lightbulb,
+  Code,
+  MessageSquare,
+  Search,
+  Wand2,
+  Pencil,
+  BookOpen,
+  Globe,
+  Zap,
+};
 
 const MODELS: { id: AutopilotModel; name: string }[] = [
   { id: "opus-4-5-low", name: "Opus 4.5 L" },
@@ -36,13 +83,6 @@ const MODELS: { id: AutopilotModel; name: string }[] = [
 const MODES: { id: AutopilotMode; name: string; icon: typeof Zap }[] = [
   { id: "execute", name: "Execute", icon: Zap },
   { id: "plan", name: "Plan", icon: ListTodo },
-];
-
-const SUGGESTED_PROMPTS = [
-  "Summarize the input text",
-  "Generate an image from text",
-  "Translate text to Spanish",
-  "Analyze sentiment of input",
 ];
 
 interface AutopilotChatProps {
@@ -59,6 +99,9 @@ interface AutopilotChatProps {
   onApplyAnyway?: (messageId: string) => void;
   nodes: Node[];
   edges: Edge[];
+  suggestions: Suggestion[];
+  suggestionsLoading: boolean;
+  onRefreshSuggestions: () => void;
 }
 
 export function AutopilotChat({
@@ -75,6 +118,9 @@ export function AutopilotChat({
   onApplyAnyway,
   nodes,
   edges,
+  suggestions,
+  suggestionsLoading,
+  onRefreshSuggestions,
 }: AutopilotChatProps) {
   const [inputValue, setInputValue] = useState("");
   const [selectedModel, setSelectedModel] = useState<AutopilotModel>("opus-4-5-medium");
@@ -103,16 +149,42 @@ export function AutopilotChat({
               </p>
             </div>
             <div className="flex flex-col gap-2 w-full max-w-[280px]">
-              {SUGGESTED_PROMPTS.map((prompt) => (
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">Suggestions</span>
                 <button
-                  key={prompt}
-                  onClick={() => onSendMessage(prompt, selectedModel)}
-                  disabled={isLoading}
-                  className="text-left text-xs px-3 py-2 rounded-lg border border-border/50 hover:border-purple-500/50 hover:bg-purple-500/5 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                  onClick={onRefreshSuggestions}
+                  disabled={suggestionsLoading}
+                  className="p-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                  title="Refresh suggestions"
                 >
-                  {prompt}
+                  <RefreshCw className={`h-3 w-3 ${suggestionsLoading ? "animate-spin" : ""}`} />
                 </button>
-              ))}
+              </div>
+              {suggestionsLoading ? (
+                <>
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="h-8 rounded-lg border border-border/50 bg-muted/30 animate-pulse"
+                    />
+                  ))}
+                </>
+              ) : (
+                suggestions.map((suggestion) => {
+                  const Icon = ICON_MAP[suggestion.icon] || Sparkles;
+                  return (
+                    <button
+                      key={suggestion.text}
+                      onClick={() => onSendMessage(suggestion.text, selectedModel)}
+                      disabled={isLoading}
+                      className="flex items-center gap-2 text-left text-xs px-3 py-2 rounded-lg border border-border/50 hover:border-purple-500/50 hover:bg-purple-500/5 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                    >
+                      <Icon className="h-3.5 w-3.5 shrink-0" />
+                      <span>{suggestion.text}</span>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
         ) : (

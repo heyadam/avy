@@ -1,5 +1,6 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { FlowChanges } from "@/lib/autopilot/types";
+import type { Suggestion } from "@/lib/hooks/useSuggestions";
 
 export interface AppliedChanges {
   nodeIds: string[];
@@ -13,4 +14,7 @@ export interface AutopilotSidebarProps {
   onUndoChanges: (applied: AppliedChanges) => void;
   isOpen: boolean;
   onToggle: () => void;
+  suggestions: Suggestion[];
+  suggestionsLoading: boolean;
+  onRefreshSuggestions: () => void;
 }

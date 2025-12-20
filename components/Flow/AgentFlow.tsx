@@ -28,6 +28,7 @@ import { FlowContextMenu } from "./FlowContextMenu";
 import { CommentEditContext } from "./CommentEditContext";
 import { initialNodes, initialEdges, defaultFlow } from "@/lib/example-flow";
 import { useCommentSuggestions } from "@/lib/hooks/useCommentSuggestions";
+import { useSuggestions } from "@/lib/hooks/useSuggestions";
 import { useClipboard } from "@/lib/hooks/useClipboard";
 import type { NodeType, CommentColor } from "@/types/flow";
 import { executeFlow } from "@/lib/execution/engine";
@@ -120,6 +121,13 @@ export function AgentFlow() {
     nodes,
     setNodes,
   });
+
+  // Autopilot prompt suggestions
+  const {
+    suggestions,
+    isLoading: suggestionsLoading,
+    refresh: refreshSuggestions,
+  } = useSuggestions({ nodes, edges });
 
   // Clipboard for copy/paste
   useClipboard({
@@ -1105,6 +1113,9 @@ export function AgentFlow() {
         onUndoChanges={undoAutopilotChanges}
         isOpen={autopilotOpen}
         onToggle={() => setAutopilotOpen(!autopilotOpen)}
+        suggestions={suggestions}
+        suggestionsLoading={suggestionsLoading}
+        onRefreshSuggestions={refreshSuggestions}
       />
       <div ref={reactFlowWrapper} className="flex-1 h-full bg-muted/10 relative">
         <NodeToolbar

@@ -31,6 +31,9 @@ export function AutopilotSidebar({
   onUndoChanges,
   isOpen,
   onToggle,
+  suggestions,
+  suggestionsLoading,
+  onRefreshSuggestions,
 }: AutopilotSidebarProps) {
   const [width, setWidth] = useState(getInitialWidth);
   const [isResizing, setIsResizing] = useState(false);
@@ -144,6 +147,9 @@ export function AutopilotSidebar({
           onApplyAnyway={applyAnyway}
           nodes={nodes}
           edges={edges}
+          suggestions={suggestions}
+          suggestionsLoading={suggestionsLoading}
+          onRefreshSuggestions={onRefreshSuggestions}
         />
         {/* Resize handle - on the right edge for left sidebar */}
         <div
