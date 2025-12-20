@@ -30,7 +30,9 @@ export interface FlowSnapshot {
   edges: Array<{
     id: string;
     source: string;
+    sourceHandle?: string | null;
     target: string;
+    targetHandle?: string | null;
     data?: { dataType: string };
   }>;
 }
@@ -51,7 +53,9 @@ export interface AddEdgeAction {
   edge: {
     id: string;
     source: string;
+    sourceHandle?: string;
     target: string;
+    targetHandle?: string;
     data: { dataType: "string" | "image" | "response" };
   };
 }
@@ -89,7 +93,9 @@ export interface RemovedNodeInfo {
 export interface RemovedEdgeInfo {
   id: string;
   source: string;
+  sourceHandle?: string | null;
   target: string;
+  targetHandle?: string | null;
   type?: string;
   data?: { dataType: string };
 }
@@ -113,7 +119,7 @@ export type EvaluationState = "pending" | "evaluating" | "passed" | "failed" | "
 
 export interface AutopilotMessage {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   content: string;
   timestamp: number;
   thinking?: string;
@@ -125,6 +131,7 @@ export interface AutopilotMessage {
   evaluationResult?: EvaluationResult;
   evaluationState?: EvaluationState;
   wasRetried?: boolean;
+  retryInstructions?: string;
 }
 
 export type AutopilotModel = "opus-4-5-low" | "opus-4-5-medium" | "opus-4-5-high";

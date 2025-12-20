@@ -192,6 +192,12 @@ export function useClipboard({
         return;
       }
 
+      // Only handle copy/paste when focus is within the React Flow canvas
+      // This prevents hijacking copy/paste in sidebars and other UI areas
+      if (!reactFlowWrapper.current?.contains(target)) {
+        return;
+      }
+
       const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
       const modifier = isMac ? event.metaKey : event.ctrlKey;
 
@@ -206,7 +212,7 @@ export function useClipboard({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [copySelectedNodes, pasteNodes]);
+  }, [copySelectedNodes, pasteNodes, reactFlowWrapper]);
 
   return {
     copySelectedNodes,

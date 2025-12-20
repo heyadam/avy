@@ -44,7 +44,9 @@ export function createFlowSnapshot(
     edges: edges.map((edge) => ({
       id: edge.id,
       source: edge.source,
+      sourceHandle: edge.sourceHandle,
       target: edge.target,
+      targetHandle: edge.targetHandle,
       data: edge.data as { dataType: string } | undefined,
     })),
   };

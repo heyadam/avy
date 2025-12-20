@@ -145,12 +145,30 @@ Check each item and report any issues:
    - Valid image models: openai=${JSON.stringify(VALID_IMAGE_MODELS.openai)}, google=${JSON.stringify(VALID_IMAGE_MODELS.google)}
    - Only flag if the model ID is NOT in the valid list for its provider
 
-4. **COMPLETENESS**
-   - Are new nodes connected to the flow (not orphaned)?
+4. **DATA TYPE / TARGET HANDLE COMPATIBILITY** (CRITICAL)
+   - Image data (dataType: "image") can ONLY connect to:
+     - targetHandle: "image" on image-generation nodes (Base Image input) - THIS IS CORRECT!
+     - preview-output nodes (targetHandle is optional for single-input nodes)
+   - Image data CANNOT connect to text-only inputs:
+     - targetHandle: "prompt" on text-generation nodes (User Prompt) - INVALID
+     - targetHandle: "system" on text-generation nodes (System Instructions) - INVALID
+     - targetHandle: "prompt" on image-generation nodes (Image Prompt) - INVALID (this is for TEXT prompts only)
+   - String data (dataType: "string") can connect to any text input (prompt, system)
+
+   IMPORTANT CLARIFICATIONS:
+   - Connecting image data to targetHandle: "image" IS VALID - this is the correct way to do image-to-image transformation
+   - Prompts can be set EITHER via node data.prompt OR via an edge connection - both are valid patterns
+   - preview-output nodes have only one input, so targetHandle is OPTIONAL for edges targeting them
+   - Do NOT flag as invalid if prompt is in node data instead of connected via edge
+
+5. **COMPLETENESS** (CRITICAL)
+   - Are new nodes connected via edges? Disconnected/orphaned nodes are INVALID
+   - If adding multiple nodes, there MUST be edges connecting them
    - If inserting a node between existing nodes, was the old edge removed?
    - Does the flow maintain a path from input to output?
+   - A flow with nodes but NO edges is INVALID
 
-5. **OBVIOUS ISSUES**
+6. **OBVIOUS ISSUES**
    - Duplicate node or edge IDs?
    - Missing required fields (id, position, data for nodes)?
    - Edges referencing non-existent nodes?
@@ -163,11 +181,18 @@ Respond with ONLY valid JSON (no explanation, no markdown):
 Or if there are REAL problems:
 {"valid": false, "issues": ["Issue description"], "suggestions": ["Fix suggestion"]}
 
-IMPORTANT:
-- Only report ACTUAL errors (wrong IDs, missing connections, invalid types)
-- Do NOT report something as invalid if it matches the valid list
-- Orphaned nodes are a warning, not necessarily invalid
-- When in doubt, mark as valid`;
+IMPORTANT - WHAT TO FLAG AS INVALID:
+- Nodes with no edges connecting them = INVALID (disconnected flow)
+- Multiple nodes added with zero edges = INVALID
+- Image data connecting to text inputs (prompt/system handles) = INVALID
+- Invalid model IDs = INVALID
+- Edges referencing non-existent nodes = INVALID
+
+THESE ARE ALL VALID (do NOT flag as errors):
+- Image connecting to targetHandle: "image" on image-generation = VALID (base image input)
+- Prompt set in node data.prompt instead of via edge = VALID
+- Edge to preview-output without targetHandle = VALID (single input node)
+- Image data going to preview-output = VALID`;
 }
 
 /**
@@ -206,5 +231,11 @@ Double-check:
 - Model IDs must be EXACTLY as listed above (e.g., "gemini-3-flash-preview" NOT "gemini-2.5-flash")
 - Data types must match (string/image/response)
 - New nodes must be connected to the flow
-- If inserting between nodes, remove the old edge first`;
+- If inserting between nodes, remove the old edge first
+
+**CRITICAL - Image connections:**
+- Image data (dataType: "image") can ONLY connect to:
+  - targetHandle: "image" on image-generation nodes (Base Image)
+  - preview-output nodes
+- Image data CANNOT connect to text inputs (targetHandle: "prompt" or "system")`;
 }

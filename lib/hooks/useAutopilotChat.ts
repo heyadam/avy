@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from "react";
 import type { Node, Edge } from "@xyflow/react";
 import { createFlowSnapshot } from "@/lib/autopilot/snapshot";
 import { parseResponse } from "@/lib/autopilot/parser";
+import { buildRetryContext } from "@/lib/autopilot/evaluator";
 import { useApiKeys } from "@/lib/api-keys";
 import type {
   AutopilotMessage,
@@ -86,6 +87,7 @@ interface SendMessageOptions {
     evalResult: EvaluationResult;
   };
   skipEvaluation?: boolean;
+  skipUserMessage?: boolean;
 }
 
 export function useAutopilotChat({
@@ -117,15 +119,6 @@ export function useAutopilotChat({
       setError(null);
       setIsLoading(true);
 
-      // Add user message with unique ID
-      const userMessageId = crypto.randomUUID();
-      const userMessage: AutopilotMessage = {
-        id: userMessageId,
-        role: "user",
-        content: content.trim(),
-        timestamp: Date.now(),
-      };
-
       // Create placeholder for assistant message with unique ID
       const assistantMessageId = crypto.randomUUID();
       const assistantMessage: AutopilotMessage = {
@@ -141,7 +134,20 @@ export function useAutopilotChat({
         { role: "user" as const, content: content.trim() },
       ];
 
-      setMessages((prev) => [...prev, userMessage, assistantMessage]);
+      // Add user message unless this is a retry (skipUserMessage)
+      if (options?.skipUserMessage) {
+        // Retry: only add assistant message placeholder
+        setMessages((prev) => [...prev, assistantMessage]);
+      } else {
+        // Normal: add both user and assistant messages
+        const userMessage: AutopilotMessage = {
+          id: crypto.randomUUID(),
+          role: "user",
+          content: content.trim(),
+          timestamp: Date.now(),
+        };
+        setMessages((prev) => [...prev, userMessage, assistantMessage]);
+      }
 
       try {
         // Create abort controller for cancellation
@@ -287,6 +293,9 @@ export function useAutopilotChat({
             } else {
               // Evaluation failed
               if (!options?.retryContext) {
+                // Build the retry instructions to show user
+                const retryInstructions = buildRetryContext(pendingChanges, evalResult);
+
                 // First failure - auto-retry with error feedback
                 setMessages((prev) =>
                   prev.map((m) =>
@@ -295,6 +304,7 @@ export function useAutopilotChat({
                           ...m,
                           evaluationState: "retrying" as EvaluationState,
                           evaluationResult: evalResult,
+                          retryInstructions,
                           applied: false,
                         }
                       : m
@@ -312,6 +322,7 @@ export function useAutopilotChat({
                     evalResult,
                   },
                   skipEvaluation: false,
+                  skipUserMessage: true,
                 });
                 return; // Exit early, retry will handle the rest
               } else {

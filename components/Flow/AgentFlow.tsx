@@ -176,7 +176,9 @@ export function AgentFlow() {
               {
                 id: edgeAction.edge.id,
                 source: edgeAction.edge.source,
+                sourceHandle: edgeAction.edge.sourceHandle,
                 target: edgeAction.edge.target,
+                targetHandle: edgeAction.edge.targetHandle,
                 type: "colored",
                 data: edgeAction.edge.data,
               },
@@ -213,7 +215,9 @@ export function AgentFlow() {
               removedEdges.push({
                 id: e.id,
                 source: e.source,
+                sourceHandle: e.sourceHandle,
                 target: e.target,
+                targetHandle: e.targetHandle,
                 type: e.type,
                 data: e.data as { dataType: string } | undefined,
               });
@@ -260,7 +264,9 @@ export function AgentFlow() {
             applied.removedEdges!.map((edge) => ({
               id: edge.id,
               source: edge.source,
+              sourceHandle: edge.sourceHandle,
               target: edge.target,
+              targetHandle: edge.targetHandle,
               type: edge.type || "colored",
               data: edge.data,
             }))

@@ -41,13 +41,21 @@ LLM text generation node. Has two text inputs that can be connected or set inlin
 }
 \`\`\`
 
+**Input Handles:**
+- \`prompt\` - User message/content to process (dataType: "string")
+- \`system\` - System instructions for the LLM (dataType: "string")
+
+When connecting to this node, use \`targetHandle\` to specify which input:
+- To connect to the user prompt: \`targetHandle: "prompt"\`
+- To connect to the system instructions: \`targetHandle: "system"\`
+
 **Available Text Generation Models (ONLY use these exact IDs):**
 - OpenAI: \`gpt-5.2\`, \`gpt-5-mini\`, \`gpt-5-nano\`
 - Google: \`gemini-3-pro-preview\`, \`gemini-3-flash-preview\`
 - Anthropic: \`claude-opus-4-5\`, \`claude-sonnet-4-5\`, \`claude-haiku-4-5\`
 
 ### 3. image-generation (Image Generation)
-AI image generation node. Takes text input and generates an image.
+AI image generation node. Takes text input and optionally a base image to generate/transform images.
 \`\`\`typescript
 {
   type: "image-generation",
@@ -60,6 +68,14 @@ AI image generation node. Takes text input and generates an image.
   }
 }
 \`\`\`
+
+**Input Handles:**
+- \`prompt\` - Text instructions for image generation (dataType: "string")
+- \`image\` - Base image for image-to-image transformation (dataType: "image")
+
+When connecting to this node, use \`targetHandle\` to specify which input:
+- To connect text to the prompt: \`targetHandle: "prompt"\`
+- To connect an image to the base image: \`targetHandle: "image"\`
 
 **Available Image Generation Models (ONLY use these exact IDs):**
 - OpenAI: \`gpt-image-1\`, \`dall-e-3\`, \`dall-e-2\`
@@ -125,11 +141,15 @@ Edge format:
 \`\`\`typescript
 {
   id: string,
-  source: string,     // Source node ID
-  target: string,     // Target node ID
+  source: string,        // Source node ID
+  sourceHandle?: string, // Optional: specific output handle (e.g., "output")
+  target: string,        // Target node ID
+  targetHandle?: string, // Optional: specific input handle (e.g., "prompt", "system", "image")
   data: { dataType: "string" | "image" | "response" }
 }
 \`\`\`
+
+**IMPORTANT:** When connecting to nodes with multiple inputs (text-generation, image-generation), you MUST specify \`targetHandle\` to connect to the correct input.
 
 ## Connection Rules
 - Text Input nodes have only OUTPUT connections (they start the flow with text)
@@ -241,6 +261,48 @@ Example - inserting a "Translator" between "Input" and "Output":
     }
   ],
   "explanation": "Inserted a translator node between input and output"
+}
+\`\`\`
+
+Example - connecting an image-input to an image-generation node's base image:
+\`\`\`json
+{
+  "actions": [
+    {
+      "type": "addNode",
+      "node": {
+        "id": "autopilot-image-input-1234",
+        "type": "image-input",
+        "position": { "x": 50, "y": 150 },
+        "data": { "label": "Photo Upload" }
+      }
+    },
+    {
+      "type": "addNode",
+      "node": {
+        "id": "autopilot-image-gen-1234",
+        "type": "image-generation",
+        "position": { "x": 400, "y": 150 },
+        "data": {
+          "label": "Transform Image",
+          "prompt": "Transform into watercolor style",
+          "provider": "google",
+          "model": "gemini-2.5-flash-image"
+        }
+      }
+    },
+    {
+      "type": "addEdge",
+      "edge": {
+        "id": "edge-img-to-base",
+        "source": "autopilot-image-input-1234",
+        "target": "autopilot-image-gen-1234",
+        "targetHandle": "image",
+        "data": { "dataType": "image" }
+      }
+    }
+  ],
+  "explanation": "Connected image upload to the base image input for transformation"
 }
 \`\`\`
 

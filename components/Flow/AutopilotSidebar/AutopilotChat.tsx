@@ -261,7 +261,39 @@ export function AutopilotChat({
                             onUndo={() => onUndoChanges(message.id)}
                           />
 
-                          {/* Validation errors */}
+                          {/* Validation errors - shown during retrying */}
+                          {message.evaluationState === "retrying" && message.evaluationResult && (
+                            <div className="mt-2 space-y-2">
+                              <div className="rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-3">
+                                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 mb-2">
+                                  <AlertTriangle className="h-4 w-4" />
+                                  <span className="text-xs font-medium">
+                                    Validation Failed — Retrying
+                                  </span>
+                                </div>
+                                <ul className="text-xs space-y-1 text-amber-800 dark:text-amber-300">
+                                  {message.evaluationResult.issues.map((issue, i) => (
+                                    <li key={i}>• {issue}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                              {message.retryInstructions && (
+                                <div className="rounded-lg border border-blue-500/50 bg-blue-50 dark:bg-blue-950/20 p-3">
+                                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 mb-2">
+                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                    <span className="text-xs font-medium">
+                                      Retry Instructions
+                                    </span>
+                                  </div>
+                                  <pre className="text-[10px] leading-tight text-blue-800 dark:text-blue-300 whitespace-pre-wrap overflow-x-auto max-h-[200px] overflow-y-auto">
+                                    {message.retryInstructions}
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Validation errors - shown after retry fails */}
                           {message.evaluationState === "failed" && message.evaluationResult && !message.evaluationResult.valid && (
                             <div className="mt-2 rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-3">
                               <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 mb-2">

@@ -217,14 +217,20 @@ export const nodeDefinitions: NodeDefinition[] = [
     color: "bg-orange-500/10 text-orange-700 dark:text-orange-300",
   },
   {
+    type: "react-component",
+    label: "React",
+    description: "Generate React UI components",
+    color: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
+  },
+  {
     type: "text-generation",
-    label: "Text",
+    label: "Text Gen",
     description: "Generate text with AI",
     color: "bg-gray-500/10 text-gray-700 dark:text-gray-300",
   },
   {
     type: "image-generation",
-    label: "Image",
+    label: "Image Gen",
     description: "Generate images with AI",
     color: "bg-gray-500/10 text-gray-700 dark:text-gray-300",
   },
@@ -233,12 +239,6 @@ export const nodeDefinitions: NodeDefinition[] = [
     label: "Output",
     description: "Flow output",
     color: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
-  },
-  {
-    type: "react-component",
-    label: "React",
-    description: "Generate React UI components",
-    color: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
   },
 ];
 
