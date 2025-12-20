@@ -29,26 +29,23 @@ export function NodeSidebar({ isOpen, onClose }: NodeSidebarProps) {
 
   return (
     <aside
-      className={`absolute bottom-24 left-1/2 -translate-x-1/2 z-20 w-64 border border-neutral-700 rounded-xl bg-neutral-800/95 backdrop-blur shadow-lg transition-all duration-200 origin-bottom ${
+      className={`absolute bottom-20 left-1/2 -translate-x-1/2 z-20 w-56 border border-neutral-700 rounded-lg bg-neutral-800/95 backdrop-blur shadow-lg transition-all duration-200 origin-bottom ${
         isOpen ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 translate-y-2 pointer-events-none"
       }`}
     >
-      <div className="p-3 border-b border-neutral-700 flex items-center justify-between">
-        <div>
-          <div className="text-sm font-semibold text-white">Add Node</div>
-          <div className="text-xs text-neutral-400 mt-0.5">Drag to canvas</div>
-        </div>
+      <div className="px-2.5 py-2 border-b border-neutral-700 flex items-center justify-between">
+        <div className="text-xs font-semibold text-white">Add Node</div>
         <Button
           variant="ghost"
           size="icon-sm"
           onClick={onClose}
-          className="text-neutral-400 hover:text-white"
+          className="text-neutral-400 hover:text-white h-5 w-5"
         >
-          <X className="h-4 w-4" />
+          <X className="h-3 w-3" />
         </Button>
       </div>
 
-      <div className="p-2 space-y-1 max-h-[400px] overflow-y-auto">
+      <div className="p-1.5 space-y-0.5 max-h-[280px] overflow-y-auto">
         {nodeDefinitions.map((node) => {
           const Icon = iconMap[node.type];
           return (
@@ -56,14 +53,13 @@ export function NodeSidebar({ isOpen, onClose }: NodeSidebarProps) {
               key={node.type}
               draggable
               onDragStart={(e) => onDragStart(e, node.type)}
-              className="group flex items-center gap-3 p-2.5 border border-neutral-700 rounded-lg cursor-grab hover:bg-neutral-700/50 hover:border-neutral-600 transition-colors active:cursor-grabbing"
+              className="group flex items-center gap-2 px-2 py-1.5 border border-neutral-700 rounded-md cursor-grab hover:bg-neutral-700/50 hover:border-neutral-600 transition-colors active:cursor-grabbing"
             >
-              <div className={`p-1.5 ${node.color} rounded-md border border-neutral-600`}>
-                <Icon className="h-3.5 w-3.5" />
+              <div className={`p-1 ${node.color} rounded border border-neutral-600`}>
+                <Icon className="h-3 w-3" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white">{node.label}</p>
-                <p className="text-[11px] text-neutral-400 truncate">{node.description}</p>
+                <p className="text-xs font-medium text-white">{node.label}</p>
               </div>
             </div>
           );

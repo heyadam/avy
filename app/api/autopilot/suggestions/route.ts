@@ -33,57 +33,38 @@ const VALID_ICONS = [
   "Search", "Wand2", "Pencil", "BookOpen", "Music", "Globe", "Zap", "GitBranch"
 ];
 
-const SYSTEM_PROMPT = `Generate 4 creative workflow ideas for Composer, a visual tool where users connect AI nodes to build pipelines.
+const SYSTEM_PROMPT = `Generate 4 short workflow ideas (4-8 words each, NO MORE).
 
-IMPORTANT - Focus on CREATIVE, non-technical workflows:
-- Image generation and visual art
-- Storytelling with illustrations
-- Multi-language content
-- Comparing AI model outputs side-by-side
-- Text-to-image pipelines
-- Creative writing with visuals
+CRITICAL RULES:
+- Each suggestion MUST be 4-8 words only
+- NO code, NO React, NO programming, NO technical tasks
+- Focus on: images, art, stories, translations, comparing AI outputs
+- Be creative and varied
 
-DO NOT suggest:
-- Code generation or programming
-- React components or web development
-- Technical/developer tasks
-- Data processing or APIs
-- Anything code-related
-
-Example good suggestions:
+Good examples (4-8 words):
 - "Generate portraits in 3 art styles"
 - "Write a poem and illustrate it"
 - "Translate a story to 5 languages"
 - "Compare haikus from different AIs"
-- "Create a comic strip from a plot"
-- "Design album art from song lyrics"
-- "Generate travel postcards from descriptions"
-- "Write and visualize a children's story"
+- "Create movie posters from plots"
+- "Design album art from lyrics"
 
-Return JSON array with icon and text. Icons: Image, Sparkles, Languages, Bot, Palette, Wand2, Lightbulb, Pencil, BookOpen, Globe.
+BAD (too long, don't do this):
+- "Add a Theme Switcher node between Generator and Preview to transform components"
 
-Output (JSON only, no markdown):
-[{"icon":"Image","text":"..."},{"icon":"Sparkles","text":"..."},{"icon":"Languages","text":"..."},{"icon":"Palette","text":"..."}]`;
+Icons: Image, Sparkles, Languages, Bot, Palette, Wand2, Lightbulb, Pencil, BookOpen, Globe
+
+Output RAW JSON only (no markdown, no code blocks):
+[{"icon":"Image","text":"4-8 words here"},{"icon":"Sparkles","text":"4-8 words here"},{"icon":"Languages","text":"4-8 words here"},{"icon":"Bot","text":"4-8 words here"}]`;
 
 function buildPrompt(flowSnapshot: FlowSnapshot): string {
   const nodeCount = flowSnapshot.nodes.length;
-  const nodeTypes = flowSnapshot.nodes.map(n => n.type);
 
   if (nodeCount <= 1) {
-    return "The workflow is empty. Suggest common starter workflows.";
+    return "Generate 4 creative workflow ideas for someone just starting.";
   }
 
-  const nodeDescriptions = flowSnapshot.nodes.map(n => {
-    const label = n.data?.label || n.type;
-    return `- ${label} (${n.type})`;
-  }).join("\n");
-
-  return `Current workflow has ${nodeCount} nodes:
-${nodeDescriptions}
-
-Node types present: ${[...new Set(nodeTypes)].join(", ")}
-
-Suggest ways to extend or modify this workflow.`;
+  return "Generate 4 creative workflow ideas. Be varied and surprising.";
 }
 
 export async function POST(request: NextRequest) {
@@ -94,9 +75,11 @@ export async function POST(request: NextRequest) {
     const apiKey = apiKeys?.anthropic || process.env.ANTHROPIC_API_KEY;
 
     if (!apiKey) {
-      // Return defaults if no API key
+      console.log("[suggestions] No API key, returning defaults");
       return NextResponse.json({ suggestions: DEFAULT_SUGGESTIONS });
     }
+
+    console.log("[suggestions] Generating new suggestions...");
 
     const anthropic = createAnthropic({ apiKey });
 
@@ -104,7 +87,8 @@ export async function POST(request: NextRequest) {
       model: anthropic("claude-haiku-4-5"),
       system: SYSTEM_PROMPT,
       prompt: buildPrompt(flowSnapshot || { nodes: [], edges: [] }),
-      maxOutputTokens: 200,
+      maxOutputTokens: 400,
+      temperature: 0.9,
     });
 
     // Parse JSON response
@@ -131,8 +115,10 @@ export async function POST(request: NextRequest) {
       const parsed = JSON.parse(text);
       const suggestions = validateAndNormalize(parsed);
       if (suggestions) {
+        console.log("[suggestions] Generated:", suggestions.map(s => s.text));
         return NextResponse.json({ suggestions });
       }
+      console.log("[suggestions] Validation failed for:", text);
     } catch {
       // Try to extract array from response
       const match = text.match(/\[[\s\S]*\]/);
@@ -141,18 +127,21 @@ export async function POST(request: NextRequest) {
           const parsed = JSON.parse(match[0]);
           const suggestions = validateAndNormalize(parsed);
           if (suggestions) {
+            console.log("[suggestions] Generated (extracted):", suggestions.map(s => s.text));
             return NextResponse.json({ suggestions });
           }
         } catch {
           // Fall through to default
         }
       }
+      console.log("[suggestions] Failed to parse:", text);
     }
 
     // Fallback to defaults
+    console.log("[suggestions] Returning defaults");
     return NextResponse.json({ suggestions: DEFAULT_SUGGESTIONS });
   } catch (error) {
-    console.error("Suggestions error:", error);
+    console.error("[suggestions] Error:", error);
     return NextResponse.json({ suggestions: DEFAULT_SUGGESTIONS });
   }
 }
