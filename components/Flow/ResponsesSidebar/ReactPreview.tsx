@@ -83,6 +83,10 @@ function createIframeContent(code: string): string {
       }
 
       try {
+        // Pre-process: Remove import statements (React is available globally)
+        userCode = userCode.replace(/^\\s*import\\s+.*?['"]/gm, '// ');
+        userCode = userCode.replace(/^\\s*import\\s+.*?from\\s+['"].*?['"];?\\s*$/gm, '');
+
         // Pre-process: Remove export default before Babel transformation
         // Handle: export default function X() or export default function() or export default () =>
         userCode = userCode.replace(/export\\s+default\\s+function\\s+(\\w+)/g, 'function $1');

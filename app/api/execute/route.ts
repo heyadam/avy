@@ -446,7 +446,7 @@ export async function POST(request: NextRequest) {
 
 RULES:
 1. Generate a single React functional component
-2. The component should be self-contained (no external imports except React)
+2. NO import statements - React hooks (useState, useEffect, etc.) are already available globally
 3. Export the component as default: \`export default function Component() {...}\`
 4. Use modern React patterns (hooks, functional components)
 5. Include helpful comments for complex logic
@@ -455,6 +455,7 @@ RULES:
 ${selectedStyle}
 
 IMPORTANT:
+- Do NOT use any import statements (React and hooks are globally available)
 - Do NOT use external dependencies (no axios, lodash, etc.)
 - Do NOT use external CSS files
 - Use standard HTML elements and React hooks only
