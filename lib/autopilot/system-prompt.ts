@@ -54,6 +54,8 @@ When connecting to this node, use \`targetHandle\` to specify which input:
 - Google: \`gemini-3-pro-preview\`, \`gemini-3-flash-preview\`
 - Anthropic: \`claude-opus-4-5\`, \`claude-sonnet-4-5\`, \`claude-haiku-4-5\`
 
+**IMPORTANT:** If the user asks for a model that doesn't exist (e.g., "GPT-4", "Claude 3", "Gemini Pro"), use the closest valid alternative from the list above and explain your substitution.
+
 ### 3. image-generation (Image Generation)
 AI image generation node. Takes text input and optionally a base image to generate/transform images.
 \`\`\`typescript
@@ -80,6 +82,8 @@ When connecting to this node, use \`targetHandle\` to specify which input:
 **Available Image Generation Models (ONLY use these exact IDs):**
 - OpenAI: \`gpt-image-1\`, \`dall-e-3\`, \`dall-e-2\`
 - Google: \`gemini-2.5-flash-image\`, \`gemini-3-pro-image-preview\`
+
+**IMPORTANT:** If the user asks for a model that doesn't exist, use the closest valid alternative and explain your substitution.
 
 ### 4. preview-output (Preview Output)
 Exit point that displays results. Can be named to describe what it shows (e.g., "Summary", "Image Result").

@@ -77,9 +77,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
 };
 
 const MODELS: { id: AutopilotModel; name: string }[] = [
-  { id: "opus-4-5-low", name: "Opus 4.5 L" },
-  { id: "opus-4-5-medium", name: "Opus 4.5 M" },
-  { id: "opus-4-5-high", name: "Opus 4.5 H" },
+  { id: "sonnet-4-5", name: "Sonnet 4.5" },
+  { id: "opus-4-5", name: "Opus 4.5" },
 ];
 
 const MODES: { id: AutopilotMode; name: string; icon: typeof Zap }[] = [
@@ -99,6 +98,7 @@ interface AutopilotChatProps {
   onApprovePlan: (messageId: string, model: AutopilotModel) => void;
   onUndoChanges: (messageId: string) => void;
   onApplyAnyway?: (messageId: string) => void;
+  onRetryFix?: (messageId: string, model: AutopilotModel) => void;
   nodes: Node[];
   edges: Edge[];
   suggestions: Suggestion[];
@@ -118,6 +118,7 @@ export function AutopilotChat({
   onApprovePlan,
   onUndoChanges,
   onApplyAnyway,
+  onRetryFix,
   nodes,
   edges,
   suggestions,
@@ -125,7 +126,7 @@ export function AutopilotChat({
   onRefreshSuggestions,
 }: AutopilotChatProps) {
   const [inputValue, setInputValue] = useState("");
-  const [selectedModel, setSelectedModel] = useState<AutopilotModel>("opus-4-5-medium");
+  const [selectedModel, setSelectedModel] = useState<AutopilotModel>("sonnet-4-5");
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -308,16 +309,30 @@ export function AutopilotChat({
                                   <li key={i}>• {issue}</li>
                                 ))}
                               </ul>
-                              {onApplyAnyway && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-6 text-xs border-amber-500/50 hover:bg-amber-100 dark:hover:bg-amber-900/30"
-                                  onClick={() => onApplyAnyway(message.id)}
-                                >
-                                  Apply Anyway
-                                </Button>
-                              )}
+                              <div className="flex gap-2">
+                                {onRetryFix && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 text-xs border-blue-500/50 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                                    onClick={() => onRetryFix(message.id, selectedModel)}
+                                    disabled={isLoading}
+                                  >
+                                    <RefreshCw className="h-3 w-3 mr-1" />
+                                    Fix Again
+                                  </Button>
+                                )}
+                                {onApplyAnyway && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 text-xs border-amber-500/50 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                                    onClick={() => onApplyAnyway(message.id)}
+                                  >
+                                    Apply Anyway
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -359,7 +374,6 @@ export function AutopilotChat({
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             className="min-h-[60px] text-sm"
-            disabled={isLoading}
           />
           <PromptInputFooter className="justify-between">
             <div className="flex items-center gap-1">

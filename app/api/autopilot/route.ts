@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const {
       messages,
       flowSnapshot,
-      model = "opus-4-5-medium",
+      model = "sonnet-4-5",
       apiKeys,
       mode = "execute",
       approvedPlan,
@@ -63,13 +63,12 @@ export async function POST(request: NextRequest) {
       apiKey: apiKeys?.anthropic || process.env.ANTHROPIC_API_KEY,
     });
 
-    // Map model selection to effort level
-    const effortMap: Record<string, "low" | "medium" | "high"> = {
-      "opus-4-5-low": "low",
-      "opus-4-5-medium": "medium",
-      "opus-4-5-high": "high",
+    // Map model selection to Anthropic model ID
+    const modelIdMap: Record<string, string> = {
+      "sonnet-4-5": "claude-sonnet-4-5",
+      "opus-4-5": "claude-opus-4-5",
     };
-    const effort = effortMap[model] || "medium";
+    const anthropicModelId = modelIdMap[model] || "claude-sonnet-4-5";
 
     // Check if this is a retry request with error context
     const retryContext = (body as { retryContext?: { failedChanges: FlowChanges; evalResult: EvaluationResult } }).retryContext;
@@ -80,10 +79,8 @@ export async function POST(request: NextRequest) {
       finalSystemPrompt = systemPrompt + "\n\n" + buildRetryContext(retryContext.failedChanges, retryContext.evalResult);
     }
 
-    // Build provider options based on thinking and effort settings
-    const providerOptions: AnthropicProviderOptions = {
-      effort,
-    };
+    // Build provider options based on thinking settings
+    const providerOptions: AnthropicProviderOptions = {};
 
     if (thinkingEnabled) {
       providerOptions.thinking = {
@@ -92,9 +89,9 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // Stream response from Claude Opus 4.5 with effort parameter
+    // Stream response from selected Claude model
     const result = streamText({
-      model: anthropic("claude-opus-4-5-20251101"),
+      model: anthropic(anthropicModelId),
       system: finalSystemPrompt,
       messages: messages.map((msg) => ({
         role: msg.role,

@@ -134,7 +134,7 @@ export interface AutopilotMessage {
   retryInstructions?: string;
 }
 
-export type AutopilotModel = "opus-4-5-low" | "opus-4-5-medium" | "opus-4-5-high";
+export type AutopilotModel = "sonnet-4-5" | "opus-4-5";
 
 // API request/response types
 export interface AutopilotRequest {

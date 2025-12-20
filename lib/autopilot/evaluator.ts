@@ -1,4 +1,4 @@
-import type { FlowSnapshot, FlowChanges, EvaluationResult } from "./types";
+import type { FlowSnapshot, FlowChanges, EvaluationResult, AddNodeAction } from "./types";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText } from "ai";
 
@@ -9,14 +9,65 @@ export interface EvaluatorOptions {
   apiKey?: string;
 }
 
+// Valid model IDs - used for programmatic validation
+const VALID_TEXT_MODELS: Record<string, string[]> = {
+  openai: ["gpt-5.2", "gpt-5-mini", "gpt-5-nano"],
+  google: ["gemini-3-pro-preview", "gemini-3-flash-preview"],
+  anthropic: ["claude-opus-4-5", "claude-sonnet-4-5", "claude-haiku-4-5"],
+};
+
+const VALID_IMAGE_MODELS: Record<string, string[]> = {
+  openai: ["gpt-image-1", "dall-e-3", "dall-e-2"],
+  google: ["gemini-2.5-flash-image", "gemini-3-pro-image-preview", "imagen-4.0-generate-001", "imagen-4.0-ultra-generate-001", "imagen-4.0-fast-generate-001"],
+};
+
 /**
- * Evaluate flow changes using Claude Haiku for fast validation.
- * Checks semantic correctness, structural validity, and completeness.
+ * Programmatically validate model IDs in the changes.
+ * Returns array of issues found.
+ */
+function validateModelIds(changes: FlowChanges): string[] {
+  const issues: string[] = [];
+
+  for (const action of changes.actions) {
+    if (action.type === "addNode") {
+      const node = (action as AddNodeAction).node;
+      const nodeType = node.type;
+      const data = node.data as { provider?: string; model?: string; label?: string };
+
+      if (!data.provider || !data.model) continue;
+
+      const provider = data.provider.toLowerCase();
+      const model = data.model;
+      const label = data.label || node.id;
+
+      if (nodeType === "text-generation" || nodeType === "react-component") {
+        const validModels = VALID_TEXT_MODELS[provider];
+        if (validModels && !validModels.includes(model)) {
+          issues.push(`Node "${label}": Invalid model ID "${model}" for provider "${provider}". Valid models: ${validModels.join(", ")}`);
+        }
+      } else if (nodeType === "image-generation") {
+        const validModels = VALID_IMAGE_MODELS[provider];
+        if (validModels && !validModels.includes(model)) {
+          issues.push(`Node "${label}": Invalid model ID "${model}" for provider "${provider}". Valid models: ${validModels.join(", ")}`);
+        }
+      }
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * Evaluate flow changes using Claude Sonnet for validation.
+ * Model IDs are validated programmatically first, then LLM checks semantics and structure.
  */
 export async function evaluateFlowChanges(
   options: EvaluatorOptions
 ): Promise<EvaluationResult> {
   const { userRequest, flowSnapshot, changes, apiKey } = options;
+
+  // First, do programmatic model ID validation
+  const modelIdIssues = validateModelIds(changes);
 
   const anthropic = createAnthropic({
     apiKey: apiKey || process.env.ANTHROPIC_API_KEY,
@@ -31,16 +82,48 @@ export async function evaluateFlowChanges(
       maxOutputTokens: 500,
     });
 
-    return parseEvaluationResponse(result.text);
+    const llmResult = parseEvaluationResponse(result.text);
+
+    // Combine programmatic issues with LLM issues
+    const allIssues = [...modelIdIssues, ...llmResult.issues];
+
+    return {
+      valid: allIssues.length === 0,
+      issues: allIssues,
+      suggestions: llmResult.suggestions,
+    };
   } catch (error) {
     console.error("Evaluation error:", error);
-    // On error, assume valid to avoid blocking
+    // On error, still return model ID issues if any
+    if (modelIdIssues.length > 0) {
+      return {
+        valid: false,
+        issues: modelIdIssues,
+        suggestions: [],
+      };
+    }
     return {
       valid: true,
       issues: [],
       suggestions: [],
     };
   }
+}
+
+/**
+ * Filter out model-related issues from LLM response.
+ * The LLM sometimes still flags model IDs despite instructions to skip.
+ */
+function filterModelIssues(issues: string[]): string[] {
+  const modelKeywords = [
+    "model id", "model \"", "model '", "does not exist",
+    "invalid model", "gpt-4", "gpt-5", "gemini", "claude",
+    "not a valid model", "valid models are", "valid model"
+  ];
+  return issues.filter(issue => {
+    const lower = issue.toLowerCase();
+    return !modelKeywords.some(keyword => lower.includes(keyword));
+  });
 }
 
 /**
@@ -53,9 +136,14 @@ function parseEvaluationResponse(response: string): EvaluationResult {
 
   try {
     const parsed = JSON.parse(jsonStr);
+    // Filter out model-related issues that the LLM might still report
+    const filteredIssues = filterModelIssues(
+      Array.isArray(parsed.issues) ? parsed.issues : []
+    );
     return {
-      valid: Boolean(parsed.valid),
-      issues: Array.isArray(parsed.issues) ? parsed.issues : [],
+      // Valid if no issues remain after filtering (even if LLM said invalid due to model issues)
+      valid: filteredIssues.length === 0,
+      issues: filteredIssues,
       suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
     };
   } catch {
@@ -84,18 +172,6 @@ function parseEvaluationResponse(response: string): EvaluationResult {
 /**
  * Build the prompt for the evaluator model.
  */
-// Valid model IDs by provider and node type
-const VALID_TEXT_MODELS = {
-  openai: ["gpt-5.2", "gpt-5-mini", "gpt-5-nano"],
-  google: ["gemini-3-pro-preview", "gemini-3-flash-preview"],
-  anthropic: ["claude-opus-4-5", "claude-sonnet-4-5", "claude-haiku-4-5"],
-};
-
-const VALID_IMAGE_MODELS = {
-  openai: ["gpt-image-1", "dall-e-3", "dall-e-2"],
-  google: ["gemini-2.5-flash-image", "gemini-3-pro-image-preview", "imagen-4.0-generate-001", "imagen-4.0-ultra-generate-001", "imagen-4.0-fast-generate-001"],
-};
-
 function buildEvaluatorPrompt(
   userRequest: string,
   flowSnapshot: FlowSnapshot,
@@ -140,10 +216,11 @@ Check each item and report any issues:
    - Are data types correct? (string for text, image for images, response for preview-output)
    - Are node types valid? Must be one of: text-input, image-input, text-generation, image-generation, ai-logic, preview-output, react-component
 
-3. **MODEL ID VALIDATION** (check provider/model pairs)
-   - Valid text models: openai=${JSON.stringify(VALID_TEXT_MODELS.openai)}, google=${JSON.stringify(VALID_TEXT_MODELS.google)}, anthropic=${JSON.stringify(VALID_TEXT_MODELS.anthropic)}
-   - Valid image models: openai=${JSON.stringify(VALID_IMAGE_MODELS.openai)}, google=${JSON.stringify(VALID_IMAGE_MODELS.google)}
-   - Only flag if the model ID is NOT in the valid list for its provider
+3. **MODEL ID VALIDATION** - DO NOT CHECK THIS
+   - SKIP COMPLETELY - Model IDs are validated programmatically elsewhere
+   - NEVER report any issues about model IDs
+   - ALL model IDs are valid (gpt-5-mini, gpt-5-nano, gemini-3-flash-preview, etc.)
+   - Model substitutions are intentional and correct
 
 4. **DATA TYPE / TARGET HANDLE COMPATIBILITY** (CRITICAL)
    - Image data (dataType: "image") can ONLY connect to:
@@ -185,8 +262,9 @@ IMPORTANT - WHAT TO FLAG AS INVALID:
 - Nodes with no edges connecting them = INVALID (disconnected flow)
 - Multiple nodes added with zero edges = INVALID
 - Image data connecting to text inputs (prompt/system handles) = INVALID
-- Invalid model IDs = INVALID
 - Edges referencing non-existent nodes = INVALID
+
+DO NOT FLAG MODEL IDS - they are validated elsewhere. Any model ID is acceptable.
 
 THESE ARE ALL VALID (do NOT flag as errors):
 - Image connecting to targetHandle: "image" on image-generation = VALID (base image input)

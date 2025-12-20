@@ -111,10 +111,14 @@ export function useAutopilotChat({
   const sendMessage = useCallback(
     async (
       content: string,
-      model: AutopilotModel = "opus-4-5-medium",
+      model: AutopilotModel = "sonnet-4-5",
       options?: SendMessageOptions
     ) => {
-      if (!content.trim() || isLoading) return;
+      // Skip if no content, or if already loading (unless this is a retry)
+      // Retries bypass the isLoading check because they're triggered internally
+      // after setIsLoading(false), but the closure may have stale state
+      if (!content.trim()) return;
+      if (isLoading && !options?.retryContext) return;
 
       setError(null);
       setIsLoading(true);
@@ -128,13 +132,9 @@ export function useAutopilotChat({
         timestamp: Date.now(),
       };
 
-      // Prepare messages for API using ref to get current state (avoids stale closure)
-      const apiMessages = [
-        ...messagesRef.current.map((m) => ({ role: m.role, content: m.content })),
-        { role: "user" as const, content: content.trim() },
-      ];
-
       // Add user message unless this is a retry (skipUserMessage)
+      // For retries, the original request is already in the message history,
+      // and the retry context is appended to the system prompt
       if (options?.skipUserMessage) {
         // Retry: only add assistant message placeholder
         setMessages((prev) => [...prev, assistantMessage]);
@@ -148,6 +148,19 @@ export function useAutopilotChat({
         };
         setMessages((prev) => [...prev, userMessage, assistantMessage]);
       }
+
+      // Prepare messages for API using ref to get current state (avoids stale closure)
+      // For retries, remind Claude of the original request AND ask to fix validation errors
+      // This ensures Claude doesn't lose sight of what the user actually wanted
+      const apiMessages = [
+        ...messagesRef.current.map((m) => ({ role: m.role, content: m.content })),
+        {
+          role: "user" as const,
+          content: options?.skipUserMessage
+            ? `My original request was: "${content.trim()}"\n\nYour previous response had validation errors. Please fix those errors while still accomplishing my original request.`
+            : content.trim(),
+        },
+      ];
 
       try {
         // Create abort controller for cancellation
@@ -410,7 +423,7 @@ export function useAutopilotChat({
   );
 
   const approvePlan = useCallback(
-    async (messageId: string, model: AutopilotModel = "opus-4-5-medium") => {
+    async (messageId: string, model: AutopilotModel = "sonnet-4-5") => {
       const message = messagesRef.current.find((m) => m.id === messageId);
       if (!message?.pendingPlan) return;
 
@@ -467,6 +480,36 @@ export function useAutopilotChat({
     [onApplyChanges]
   );
 
+  const retryFix = useCallback(
+    async (messageId: string, model: AutopilotModel = "sonnet-4-5") => {
+      const message = messagesRef.current.find((m) => m.id === messageId);
+      if (!message?.pendingChanges || !message.evaluationResult) return;
+
+      // Find the original user request by looking backwards from this message
+      const messageIndex = messagesRef.current.findIndex((m) => m.id === messageId);
+      let originalRequest = "";
+      for (let i = messageIndex - 1; i >= 0; i--) {
+        if (messagesRef.current[i].role === "user") {
+          originalRequest = messagesRef.current[i].content;
+          break;
+        }
+      }
+
+      if (!originalRequest) return;
+
+      // Trigger another retry
+      await sendMessage(originalRequest, model, {
+        retryContext: {
+          failedChanges: message.pendingChanges,
+          evalResult: message.evaluationResult,
+        },
+        skipEvaluation: false,
+        skipUserMessage: true,
+      });
+    },
+    [sendMessage]
+  );
+
   const clearHistory = useCallback(() => {
     setMessages([]);
     setError(null);
@@ -490,6 +533,7 @@ export function useAutopilotChat({
     approvePlan,
     undoChanges,
     applyAnyway,
+    retryFix,
     clearHistory,
     cancelRequest,
   };

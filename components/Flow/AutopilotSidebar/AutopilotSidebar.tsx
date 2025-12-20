@@ -52,6 +52,7 @@ export function AutopilotSidebar({
     approvePlan,
     undoChanges,
     applyAnyway,
+    retryFix,
     clearHistory,
   } = useAutopilotChat({ nodes, edges, onApplyChanges, onUndoChanges });
 
@@ -145,6 +146,7 @@ export function AutopilotSidebar({
           onApprovePlan={approvePlan}
           onUndoChanges={undoChanges}
           onApplyAnyway={applyAnyway}
+          onRetryFix={retryFix}
           nodes={nodes}
           edges={edges}
           suggestions={suggestions}
