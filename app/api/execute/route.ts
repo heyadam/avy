@@ -5,6 +5,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import OpenAI from "openai";
 import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
+import type { MagicEvalTestCase, MagicEvalResults } from "@/types/flow";
 
 interface ApiKeys {
   openai?: string;
@@ -624,19 +625,7 @@ CODE: return String(input1 || '') + ' ' + String(input2 || '');`;
         }
 
         // Basic evaluation: syntax check and test execution
-        interface EvalTestCase {
-          input1: string | number | null;
-          input2: string | number | null;
-          result?: string | number | null;
-          error?: string;
-        }
-
-        const evalResults: {
-          syntaxValid: boolean;
-          syntaxError?: string;
-          testCases: EvalTestCase[];
-          allPassed: boolean;
-        } = {
+        const evalResults: MagicEvalResults = {
           syntaxValid: false,
           testCases: [],
           allPassed: false,
@@ -659,7 +648,7 @@ CODE: return String(input1 || '') + ' ' + String(input2 || '');`;
           // Run test cases
           let allPassed = true;
           for (const tc of testCases) {
-            const testResult: EvalTestCase = {
+            const testResult: MagicEvalTestCase = {
               input1: tc.input1,
               input2: tc.input2,
             };
