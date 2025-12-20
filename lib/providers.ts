@@ -118,8 +118,8 @@ export const IMAGE_PROVIDERS = {
 } as const;
 
 export type ImageProviderId = keyof typeof IMAGE_PROVIDERS;
-export const DEFAULT_IMAGE_PROVIDER: ImageProviderId = "openai";
-export const DEFAULT_IMAGE_MODEL = "gpt-5.2";
+export const DEFAULT_IMAGE_PROVIDER: ImageProviderId = "google";
+export const DEFAULT_IMAGE_MODEL = "gemini-2.5-flash-image";
 
 export const ASPECT_RATIO_OPTIONS = [
   { value: "1:1", label: "Square (1:1)" },

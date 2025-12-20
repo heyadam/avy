@@ -67,7 +67,7 @@ const defaultNodeData: Record<NodeType, Record<string, unknown>> = {
   "image-input": { label: "Input Image" },
   "preview-output": { label: "Preview Output" },
   "text-generation": { label: "AI Text", prompt: "", provider: "google", model: "gemini-3-flash-preview", googleThinkingConfig: { thinkingLevel: "low" }, googleSafetyPreset: "default" },
-  "image-generation": { label: "AI Image", prompt: "", outputFormat: "webp", size: "1024x1024", quality: "low", partialImages: 3 },
+  "image-generation": { label: "AI Image", prompt: "", provider: "google", model: "gemini-2.5-flash-image", aspectRatio: "1:1" },
   "ai-logic": { label: "AI Logic", transformPrompt: "", codeExpanded: false },
   "comment": { label: "Comment", description: "", color: "gray" },
   "react-component": { label: "React Component", userPrompt: "", provider: "anthropic", model: "claude-sonnet-4-5", stylePreset: "simple" },

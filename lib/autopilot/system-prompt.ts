@@ -254,8 +254,8 @@ Example - inserting a "Translator" between "Input" and "Output":
    - Prefer minimal, focused changes
 
 5. **Defaults**:
-   - Default to Anthropic claude-sonnet-4-5 for Text Generation nodes unless user specifies
-   - Default to Google gemini-2.5-flash-image for Image Generation nodes
+   - Default to Google Gemini 3 Flash for Text Generation nodes with provider: "google", model: "gemini-3-flash-preview"
+   - Default to Google Gemini 2.5 Flash for Image Generation nodes with provider: "google", model: "gemini-2.5-flash-image", aspectRatio: "1:1"
 
 6. **Clarification**: If the user's request is ambiguous, ask clarifying questions instead of guessing. Just respond with your question in plain text (no JSON).
 
