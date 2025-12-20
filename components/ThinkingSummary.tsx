@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { Brain, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Shimmer } from "@/components/ai-elements/shimmer";
 
 interface ThinkingSummaryProps {
   reasoning: string;
   defaultExpanded?: boolean;
   maxHeight?: string;
   className?: string;
+  isStreaming?: boolean;
 }
 
 export function ThinkingSummary({
@@ -16,6 +18,7 @@ export function ThinkingSummary({
   defaultExpanded = false,
   maxHeight = "120px",
   className,
+  isStreaming = false,
 }: ThinkingSummaryProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
@@ -28,7 +31,13 @@ export function ThinkingSummary({
         className="nodrag w-full flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-muted-foreground bg-muted/50 hover:bg-muted transition-colors"
       >
         <Brain className="h-3 w-3" />
-        <span>Thinking</span>
+        {isStreaming ? (
+          <Shimmer as="span" duration={1.5}>
+            Thinking
+          </Shimmer>
+        ) : (
+          <span>Thinking</span>
+        )}
         {expanded ? (
           <ChevronDown className="h-3 w-3 ml-auto" />
         ) : (

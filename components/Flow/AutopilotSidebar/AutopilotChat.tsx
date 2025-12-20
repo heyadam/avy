@@ -203,6 +203,7 @@ export function AutopilotChat({
                           defaultExpanded
                           maxHeight="150px"
                           className="mb-2"
+                          isStreaming={isLoading && messages[messages.length - 1]?.id === message.id && !message.content}
                         />
                       )}
                       {(() => {
@@ -330,7 +331,7 @@ export function AutopilotChat({
             ))}
             {isLoading && messages[messages.length - 1]?.content === "" && (
               <Shimmer className="text-sm" duration={1.5}>
-                Thinking...
+                Running AI agents...
               </Shimmer>
             )}
             <div ref={bottomRef} />
