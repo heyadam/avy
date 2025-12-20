@@ -623,7 +623,72 @@ CODE: return String(input1 || '') + ' ' + String(input2 || '');`;
           );
         }
 
-        return NextResponse.json({ code, explanation });
+        // Basic evaluation: syntax check and test execution
+        interface EvalTestCase {
+          input1: string | number | null;
+          input2: string | number | null;
+          result?: string | number | null;
+          error?: string;
+        }
+
+        const evalResults: {
+          syntaxValid: boolean;
+          syntaxError?: string;
+          testCases: EvalTestCase[];
+          allPassed: boolean;
+        } = {
+          syntaxValid: false,
+          testCases: [],
+          allPassed: false,
+        };
+
+        // Test cases to run
+        const testCases: Array<{ input1: string | number | null; input2: string | number | null }> = [
+          { input1: null, input2: null },
+          { input1: "hello", input2: null },
+          { input1: "hello", input2: "world" },
+          { input1: 42, input2: 10 },
+          { input1: "", input2: "" },
+        ];
+
+        try {
+          // Syntax validation: try to create the function
+          const fn = new Function("input1", "input2", `"use strict"; ${code}`);
+          evalResults.syntaxValid = true;
+
+          // Run test cases
+          let allPassed = true;
+          for (const tc of testCases) {
+            const testResult: EvalTestCase = {
+              input1: tc.input1,
+              input2: tc.input2,
+            };
+
+            try {
+              const result = fn(tc.input1, tc.input2);
+              testResult.result = result;
+
+              // Validate return type (should be string, number, or null)
+              if (result !== null && typeof result !== "string" && typeof result !== "number") {
+                testResult.error = `Unexpected return type: ${typeof result}`;
+                allPassed = false;
+              }
+            } catch (execError) {
+              testResult.error = execError instanceof Error ? execError.message : "Execution failed";
+              allPassed = false;
+            }
+
+            evalResults.testCases.push(testResult);
+          }
+
+          evalResults.allPassed = allPassed;
+        } catch (syntaxError) {
+          evalResults.syntaxValid = false;
+          evalResults.syntaxError = syntaxError instanceof Error ? syntaxError.message : "Syntax error";
+          evalResults.allPassed = false;
+        }
+
+        return NextResponse.json({ code, explanation, eval: evalResults });
       } catch (genError) {
         console.error("[API] magic-generate error:", genError);
         return NextResponse.json(

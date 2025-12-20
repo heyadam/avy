@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useReactFlow, useEdges, type NodeProps, type Node } from "@xyflow/react";
 import type { MagicNodeData } from "@/types/flow";
-import { Sparkles, ChevronDown, ChevronRight, RefreshCw, AlertCircle, Loader2 } from "lucide-react";
+import { Sparkles, ChevronDown, ChevronRight, RefreshCw, AlertCircle, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { NodeFrame } from "./NodeFrame";
 import { PortRow } from "./PortLabel";
 import { InputWithHandle } from "./InputWithHandle";
@@ -65,6 +65,7 @@ export function MagicNode({ id, data }: NodeProps<MagicNodeType>) {
       updateNodeData(id, {
         generatedCode: result.code,
         codeExplanation: result.explanation,
+        evalResults: result.eval,
         isGenerating: false,
         generationError: undefined,
       });
@@ -81,6 +82,19 @@ export function MagicNode({ id, data }: NodeProps<MagicNodeType>) {
   // Toggle code view
   const toggleCodeView = () => {
     updateNodeData(id, { codeExpanded: !data.codeExpanded });
+  };
+
+  // Toggle eval view
+  const toggleEvalView = () => {
+    updateNodeData(id, { evalExpanded: !data.evalExpanded });
+  };
+
+  // Format value for display
+  const formatValue = (val: string | number | null | undefined): string => {
+    if (val === null) return "null";
+    if (val === undefined) return "undefined";
+    if (typeof val === "string") return val === "" ? '""' : `"${val}"`;
+    return String(val);
   };
 
   return (
@@ -198,6 +212,70 @@ export function MagicNode({ id, data }: NodeProps<MagicNodeType>) {
               <pre className="nodrag text-xs font-mono bg-muted/50 rounded-md p-2 whitespace-pre-wrap break-words max-h-[120px] overflow-auto border">
                 <code className="text-muted-foreground">{data.generatedCode}</code>
               </pre>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
+        {/* Collapsible eval results - only shown when code exists and eval results available */}
+        {!isTransformConnected && hasCode && !hasError && data.evalResults && (
+          <Collapsible open={data.evalExpanded} onOpenChange={toggleEvalView}>
+            <CollapsibleTrigger className="nodrag flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground w-full">
+              {data.evalExpanded ? (
+                <ChevronDown className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5" />
+              )}
+              <span className="flex items-center gap-1.5">
+                Eval
+                {data.evalResults.allPassed ? (
+                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                ) : (
+                  <XCircle className="h-3 w-3 text-destructive" />
+                )}
+              </span>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2 space-y-2">
+              {!data.evalResults.syntaxValid && (
+                <div className="rounded-md bg-destructive/10 border border-destructive/30 p-2">
+                  <p className="text-xs text-destructive">
+                    Syntax error: {data.evalResults.syntaxError}
+                  </p>
+                </div>
+              )}
+              {data.evalResults.syntaxValid && (
+                <div className="space-y-1">
+                  {data.evalResults.testCases.map((tc, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "text-xs font-mono rounded px-2 py-1 border",
+                        tc.error
+                          ? "bg-destructive/10 border-destructive/30"
+                          : "bg-muted/50 border-transparent"
+                      )}
+                    >
+                      <div className="flex items-start gap-1">
+                        {tc.error ? (
+                          <XCircle className="h-3 w-3 text-destructive shrink-0 mt-0.5" />
+                        ) : (
+                          <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0 mt-0.5" />
+                        )}
+                        <div className="min-w-0 overflow-hidden">
+                          <span className="text-muted-foreground">
+                            ({formatValue(tc.input1)}, {formatValue(tc.input2)})
+                          </span>
+                          <span className="text-muted-foreground/60"> → </span>
+                          {tc.error ? (
+                            <span className="text-destructive">{tc.error}</span>
+                          ) : (
+                            <span className="text-foreground">{formatValue(tc.result)}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CollapsibleContent>
           </Collapsible>
         )}

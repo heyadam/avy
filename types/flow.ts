@@ -101,14 +101,32 @@ export interface ImageInputNodeData extends Record<string, unknown>, ExecutionDa
   uploadedImage?: string; // Stringified ImageData JSON, runtime only
 }
 
+// Evaluation test case result
+export interface MagicEvalTestCase {
+  input1: string | number | null;
+  input2: string | number | null;
+  result?: string | number | null;
+  error?: string;
+}
+
+// Evaluation results for generated code
+export interface MagicEvalResults {
+  syntaxValid: boolean;
+  syntaxError?: string;
+  testCases: MagicEvalTestCase[];
+  allPassed: boolean;
+}
+
 export interface MagicNodeData extends Record<string, unknown>, ExecutionData {
   label: string;
   transformPrompt?: string;    // User's natural language transformation description
   generatedCode?: string;      // Cached generated JavaScript code
   codeExplanation?: string;    // Plain English explanation of what the code does
   codeExpanded?: boolean;      // Whether code view is expanded
+  evalExpanded?: boolean;      // Whether eval results are expanded
   isGenerating?: boolean;      // Loading state for generation
   generationError?: string;    // Error from code generation
+  evalResults?: MagicEvalResults; // Evaluation results from test execution
 }
 
 // React component style presets
