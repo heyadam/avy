@@ -20,6 +20,10 @@ Requires API keys for the AI providers you want to use:
 - `GOOGLE_GENERATIVE_AI_API_KEY` - For Google Gemini models
 - `ANTHROPIC_API_KEY` - For Anthropic Claude models
 
+Supabase authentication:
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY` - Supabase anon/publishable key
+
 See `AI_MODELS.md` for the full list of supported models per provider.
 
 ## Database
@@ -114,6 +118,23 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 
 **Node Sidebar** (`components/Flow/NodeSidebar.tsx`): Collapsible node palette triggered by "Add Node" button. Nodes are drag-and-drop onto canvas.
 
+**Action Bar** (`components/Flow/ActionBar.tsx`): Bottom-center floating toolbar with:
+- Add Node toggle (opens node palette)
+- Comment Around (wraps selected nodes in comment)
+- Reset button
+- Run/Cancel button
+
+**Profile Dropdown** (`components/Flow/ProfileDropdown.tsx`): User authentication UI in header:
+- Sign in with Google button when logged out
+- Avatar with dropdown menu when signed in
+- Sign out option
+
+**Settings Dialog** (`components/Flow/SettingsDialogControlled.tsx`): Tabbed settings modal:
+- API Keys tab: Configure provider API keys (OpenAI, Google, Anthropic), password unlock for pre-configured keys
+- Appearance tab: Canvas background customization (pattern, gap, colors)
+
+**Save Flow Dialog** (`components/Flow/SaveFlowDialog.tsx`): Modal for naming flows when saving.
+
 **Autopilot Sidebar** (`components/Flow/AutopilotSidebar/`): AI-powered chat interface for natural language flow editing:
 - `AutopilotSidebar.tsx`: Main container with resizable width (320-600px)
 - `AutopilotChat.tsx`: Chat UI with effort level selector (Low/Medium/High) and dynamic LLM-generated suggestions
@@ -139,9 +160,13 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 - `app/api/autopilot/evaluate/route.ts`: Validates flow changes using Claude Haiku 4.5
 - `app/api/autopilot/suggestions/route.ts`: Generates dynamic prompt suggestions based on current flow state
 
+**Auth API Route** (`app/api/auth-keys/route.ts`): Password-based unlock endpoint for pre-configured API keys.
+
 **Autopilot Hooks** (`lib/hooks/`):
 - `useAutopilotChat.ts`: Manages conversation state, streaming responses, post-stream evaluation, auto-retry on validation failure, auto-apply on success, and undo functionality.
 - `useSuggestions.ts`: Fetches dynamic LLM-generated prompt suggestions based on current flow state. Refreshable with default fallback suggestions.
+- `useBackgroundSettings.ts`: Canvas appearance settings (pattern variant, gap, colors) persisted to localStorage.
+- `useClipboard.ts`: Clipboard operations for copy/paste functionality.
 
 **Comment System**:
 - `CommentEditContext.tsx`: React context for tracking user-edited comments to prevent AI overwrites
@@ -149,6 +174,35 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 - `lib/hooks/useCommentSuggestions.ts`: Manages auto-generation of comment suggestions
 
 **Example Flow** (`lib/example-flow.ts`): Default flow configuration loaded on startup.
+
+### Authentication & User Management
+
+**Auth System** (`lib/auth/`): Supabase-based authentication with Google OAuth:
+- `context.tsx`: AuthProvider with `useAuth` hook
+- `types.ts`: User, Session, Profile interfaces
+- Provides: `user`, `profile`, `signInWithGoogle`, `signOut`, `isLoading`
+
+**Supabase Client** (`lib/supabase/`):
+- `client.ts`: Browser client with cookie-based session storage
+- `server.ts`: Server-side client for API routes
+- `middleware.ts`: Next.js middleware for session refresh
+
+### API Key Management
+
+**API Keys System** (`lib/api-keys/`): Provider API key storage and management:
+- `context.tsx`: ApiKeysProvider with `useApiKeys` hook
+- `storage.ts`: localStorage persistence with encryption support
+- `types.ts`: ProviderId, ApiKeys, ApiKeyStatus interfaces
+- Supports password-based unlock for pre-configured keys
+- Development mode detection (uses env vars when available)
+
+### Flow Storage
+
+**Flow Storage** (`lib/flow-storage/`): Flow persistence and file operations:
+- `storage.ts`: Save/load flows to localStorage, download as JSON, file picker
+- `validation.ts`: Flow schema validation with error reporting
+- `types.ts`: SavedFlow, FlowMetadata, LoadFlowResult interfaces
+- Flows saved with `.avy.json` extension
 
 **API Route** (`app/api/execute/route.ts`): Server-side execution handler for text-generation and image-generation nodes:
 - Text generation nodes: Uses Vercel AI SDK with `streamText` for real-time streaming responses. Supports OpenAI, Google, and Anthropic providers with provider-specific options.
