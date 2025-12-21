@@ -31,7 +31,7 @@ import { useCommentSuggestions } from "@/lib/hooks/useCommentSuggestions";
 import { useSuggestions } from "@/lib/hooks/useSuggestions";
 import { useClipboard } from "@/lib/hooks/useClipboard";
 import type { NodeType, CommentColor } from "@/types/flow";
-import { Github } from "lucide-react";
+import { Github, User, Settings, Folder } from "lucide-react";
 import { executeFlow } from "@/lib/execution/engine";
 import type { NodeExecutionState } from "@/lib/execution/types";
 import type { FlowChanges, AddNodeAction, AddEdgeAction, RemoveEdgeAction, RemoveNodeAction, AppliedChangesInfo, RemovedNodeInfo, RemovedEdgeInfo } from "@/lib/autopilot/types";
@@ -109,6 +109,9 @@ export function AgentFlow() {
   const [autopilotHighlightedIds, setAutopilotHighlightedIds] = useState<Set<string>>(new Set());
   const [nodesPaletteOpen, setNodesPaletteOpen] = useState(false);
   const [responsesOpen, setResponsesOpen] = useState(true);
+
+  // Flow ID for future collaboration feature
+  const [flowId] = useState(() => Math.floor(Math.random() * 900 + 100).toString());
 
   // API keys context
   const { keys: apiKeys, hasRequiredKey } = useApiKeys();
@@ -1181,16 +1184,46 @@ export function AgentFlow() {
         <div className="absolute top-0 left-0 right-0 z-10 flex justify-center pt-4 pb-8 bg-gradient-to-b from-black/90 to-transparent">
           <AvyLogo isPanning={isPanning} />
         </div>
-        {/* GitHub link */}
-        <a
-          href="https://github.com/heyadam/avy"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="absolute top-4 right-4 z-10 p-2 text-muted-foreground/60 hover:text-foreground transition-colors"
-          title="View on GitHub"
-        >
-          <Github className="w-5 h-5" />
-        </a>
+        {/* Flow with ID (top left) */}
+        <div className="absolute top-4 left-4 z-10">
+          <button
+            className="flex items-center gap-1.5 px-2.5 py-2 text-muted-foreground/60 hover:text-foreground transition-colors rounded-full border border-muted-foreground/20 hover:border-muted-foreground/40 bg-background/50 backdrop-blur-sm text-sm"
+            title="Files"
+          >
+            <Folder className="w-4 h-4" />
+            <span>Flow</span>
+            <span className="w-px h-4 bg-muted-foreground/30 mx-1" />
+            <span className="w-2 h-2 rounded-full bg-green-500" title="Connected" />
+            <span className="font-mono">{flowId}</span>
+          </button>
+        </div>
+        {/* GitHub, Settings, and Profile icons (top right, left of responses sidebar) */}
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+          {/* GitHub */}
+          <a
+            href="https://github.com/heyadam/avy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 text-muted-foreground/60 hover:text-foreground transition-colors rounded-full border border-muted-foreground/20 hover:border-muted-foreground/40 bg-background/50 backdrop-blur-sm"
+            title="View on GitHub"
+          >
+            <Github className="w-5 h-5" />
+          </a>
+          {/* Settings */}
+          <button
+            className="p-2 text-muted-foreground/60 hover:text-foreground transition-colors rounded-full border border-muted-foreground/20 hover:border-muted-foreground/40 bg-background/50 backdrop-blur-sm"
+            title="Settings"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+          {/* Profile */}
+          <button
+            className="p-2 text-muted-foreground/60 hover:text-foreground transition-colors rounded-full border border-muted-foreground/20 hover:border-muted-foreground/40 bg-background/50 backdrop-blur-sm"
+            title="Profile"
+          >
+            <User className="w-5 h-5" />
+          </button>
+        </div>
         <ActionBar
           onToggleNodes={() => setNodesPaletteOpen(!nodesPaletteOpen)}
           onToggleAutopilot={() => setAutopilotOpen(!autopilotOpen)}
