@@ -641,59 +641,66 @@ function MiniNodeCanvasDemo() {
 
   return (
     <HeroPanel>
-      <div className="pointer-events-none absolute inset-0 z-20">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          fitView
-          fitViewOptions={{ padding: 0.05, minZoom: 0.1, maxZoom: 1.0 }}
-          minZoom={0.1}
-          maxZoom={1.0}
-          proOptions={{ hideAttribution: true }}
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable={false}
-          zoomOnScroll={false}
-          zoomOnPinch={false}
-          zoomOnDoubleClick={false}
-          panOnScroll={false}
-          panOnDrag={false}
-        />
+      <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+        <div className="absolute inset-x-0 -top-12 h-[calc(100%+48px)]">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            fitView
+            fitViewOptions={{ padding: 0.15, minZoom: 0.1, maxZoom: 0.65 }}
+            minZoom={0.1}
+            maxZoom={1.0}
+            proOptions={{ hideAttribution: true }}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            elementsSelectable={false}
+            zoomOnScroll={false}
+            zoomOnPinch={false}
+            zoomOnDoubleClick={false}
+            panOnScroll={false}
+            panOnDrag={false}
+          />
+        </div>
       </div>
 
-      <div className="absolute bottom-5 left-5 z-30 max-w-[340px]">
+      <div className="absolute bottom-5 left-1/2 z-30 w-[300px] -translate-x-1/2">
         {isRunning ? (
-          <div className="pointer-events-none rounded-xl border bg-background/75 p-4 text-sm text-muted-foreground shadow-sm backdrop-blur-sm">
+          <div className="pointer-events-none rounded-xl border bg-background/90 p-4 shadow-sm backdrop-blur-sm">
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Takes a prompt, generates a short story, then illustrates a key scene.
+            </p>
+            <hr className="my-3 border-border/50" />
             <div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase leading-none tracking-wider text-muted-foreground/70">
-              <span>Demo flow</span>
+              <span>Composer Agent</span>
               <Loader2 className="h-2.5 w-2.5 animate-spin text-primary" />
             </div>
-            <Shimmer className="font-medium" duration={1.5}>{progressLabel}</Shimmer>
+            <Shimmer className="text-sm font-medium" duration={1.5}>{progressLabel}</Shimmer>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => setShowOutputs(true)}
-            className="group cursor-pointer rounded-xl border bg-background/75 p-4 text-left text-sm shadow-sm backdrop-blur-sm transition-colors hover:bg-background/90"
-          >
+          <div className="rounded-xl border bg-background/90 p-4 shadow-sm backdrop-blur-sm">
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Takes a prompt, generates a short story, then illustrates a key scene.
+            </p>
+            <hr className="my-3 border-border/50" />
             <div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase leading-none tracking-wider text-muted-foreground/70">
-              <span>Demo flow</span>
+              <span>Composer Agent</span>
               <Check className="h-2.5 w-2.5 text-green-500" />
               <RotateCcw
-                className="h-2.5 w-2.5 cursor-pointer text-muted-foreground hover:text-foreground"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  retryDemo();
-                }}
+                className="h-2.5 w-2.5 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
+                onClick={retryDemo}
               />
             </div>
-            <div className="flex items-center gap-1.5 font-medium text-foreground">
-              Flow done, view outputs
+            <button
+              type="button"
+              onClick={() => setShowOutputs(true)}
+              className="group flex cursor-pointer items-center gap-1.5 text-sm font-medium text-foreground transition-colors hover:text-primary"
+            >
+              View outputs
               <ChevronRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-            </div>
-          </button>
+            </button>
+          </div>
         )}
       </div>
 
@@ -714,7 +721,7 @@ function MiniNodeCanvasDemo() {
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
               <div className="space-y-4">
-                <div className="text-xs text-muted-foreground">Demo flow</div>
+                <div className="text-xs text-muted-foreground">Composer Agent</div>
 
                 {/* Input Prompt */}
                 <div className="space-y-1.5">
@@ -812,6 +819,8 @@ function DialogShell({
   children,
   onBack,
   hero,
+  preventOutsideClose,
+  onClose,
 }: {
   step: 1 | 2;
   title: ReactNode;
@@ -819,22 +828,33 @@ function DialogShell({
   children: ReactNode;
   onBack?: () => void;
   hero: ReactNode;
+  preventOutsideClose?: boolean;
+  onClose?: () => void;
 }) {
+  const closeButton = (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      className="absolute right-4 top-4 z-30 cursor-pointer rounded-full border bg-background/70 backdrop-blur-sm hover:bg-background/80"
+      aria-label="Close"
+      onClick={onClose}
+    >
+      <X className="h-4 w-4" />
+    </Button>
+  );
+
   return (
     <DialogContent
       showCloseButton={false}
       className="max-h-[calc(100vh-2rem)] p-0 gap-0 overflow-hidden sm:max-w-[980px]"
+      onInteractOutside={preventOutsideClose ? (e) => e.preventDefault() : undefined}
+      onEscapeKeyDown={preventOutsideClose ? (e) => e.preventDefault() : undefined}
     >
-      <DialogClose asChild>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="absolute right-4 top-4 z-30 cursor-pointer rounded-full border bg-background/70 backdrop-blur-sm hover:bg-background/80"
-          aria-label="Close"
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </DialogClose>
+      {onClose ? (
+        closeButton
+      ) : (
+        <DialogClose asChild>{closeButton}</DialogClose>
+      )}
       <div className="grid h-full md:min-h-[560px] grid-rows-[auto_minmax(220px,1fr)] md:grid-cols-[1fr_1.15fr] md:grid-rows-1">
         {/* Left: content */}
         <div className="relative flex min-h-0 flex-col justify-between p-6 sm:p-8">
@@ -1021,17 +1041,14 @@ export function WelcomeDialog({ onOpenSettings }: WelcomeDialogProps) {
 
   // Step 1: Sign in (only shown if not signed in)
   return (
-    <Dialog
-      open={true}
-      onOpenChange={(open) => {
-        if (!open) handleSkipSignIn();
-      }}
-    >
+    <Dialog open={true}>
       <DialogShell
         step={1}
         title="Welcome to Composer"
         description="Design, run, and iterate on visual AI workflows"
         hero={<MiniNodeCanvasDemo />}
+        preventOutsideClose
+        onClose={completeNux}
       >
         <div className="grid gap-6">
           <div className="grid gap-3">
