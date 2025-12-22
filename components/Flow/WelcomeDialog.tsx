@@ -676,7 +676,7 @@ function MiniNodeCanvasDemo() {
           <button
             type="button"
             onClick={() => setShowOutputs(true)}
-            className="group rounded-xl border bg-background/75 p-4 text-left text-sm shadow-sm backdrop-blur-sm transition-colors hover:bg-background/90"
+            className="group cursor-pointer rounded-xl border bg-background/75 p-4 text-left text-sm shadow-sm backdrop-blur-sm transition-colors hover:bg-background/90"
           >
             <div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase leading-none tracking-wider text-muted-foreground/70">
               <span>Demo flow</span>
@@ -707,7 +707,7 @@ function MiniNodeCanvasDemo() {
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => setShowOutputs(false)}
-                className="rounded-full"
+                className="rounded-full cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -829,7 +829,7 @@ function DialogShell({
         <Button
           variant="ghost"
           size="icon-sm"
-          className="absolute right-4 top-4 z-30 rounded-full border bg-background/70 backdrop-blur-sm hover:bg-background/80"
+          className="absolute right-4 top-4 z-30 cursor-pointer rounded-full border bg-background/70 backdrop-blur-sm hover:bg-background/80"
           aria-label="Close"
         >
           <X className="h-4 w-4" />
@@ -846,7 +846,7 @@ function DialogShell({
                   variant="ghost"
                   size="sm"
                   onClick={onBack}
-                  className="-ml-2 h-8 px-2 text-muted-foreground hover:text-foreground"
+                  className="-ml-2 h-8 cursor-pointer px-2 text-muted-foreground hover:text-foreground"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Back
@@ -1009,7 +1009,7 @@ export function WelcomeDialog({ onOpenSettings }: WelcomeDialogProps) {
             </div>
 
             <div className="grid gap-2">
-              <Button onClick={handleSetupApiKeys} className="h-10 w-full">
+              <Button onClick={handleSetupApiKeys} className="h-10 w-full cursor-pointer">
                 Open API Keys
               </Button>
             </div>
@@ -1061,13 +1061,13 @@ export function WelcomeDialog({ onOpenSettings }: WelcomeDialogProps) {
           </div>
 
           <div className="grid gap-2">
-            <Button onClick={signInWithGoogle} className="h-10 w-full">
+            <Button onClick={signInWithGoogle} className="h-10 w-full cursor-pointer">
               Continue with Google
             </Button>
             <Button
               variant="outline"
               onClick={handleSkipSignIn}
-              className="mt-2 h-10 w-full"
+              className="mt-2 h-10 w-full cursor-pointer"
             >
               Continue Without an Account
             </Button>
