@@ -152,10 +152,10 @@ export function AgentFlow() {
   }, []);
 
   // Sidebar and palette states
-  const [autopilotOpen, setAutopilotOpen] = useState(true);
+  const [autopilotOpen, setAutopilotOpen] = useState(false);
   const [autopilotHighlightedIds, setAutopilotHighlightedIds] = useState<Set<string>>(new Set());
   const [nodesPaletteOpen, setNodesPaletteOpen] = useState(false);
-  const [responsesOpen, setResponsesOpen] = useState(true);
+  const [responsesOpen, setResponsesOpen] = useState(false);
   
   // Canvas width for responsive label hiding
   const [canvasWidth, setCanvasWidth] = useState<number>(0);
