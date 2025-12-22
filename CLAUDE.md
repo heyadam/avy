@@ -16,6 +16,8 @@ npm run start    # Start production server
 
 ## Environment Setup
 
+**Node.js 24+** required. Use `nvm use` to activate the version in `.nvmrc`.
+
 Requires API keys for the AI providers you want to use:
 - `OPENAI_API_KEY` - For OpenAI models
 - `GOOGLE_GENERATIVE_AI_API_KEY` - For Google Gemini models
@@ -188,13 +190,15 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 
 **Auth API Route** (`app/api/auth-keys/route.ts`): Password-based unlock endpoint for pre-configured API keys.
 
-**Autopilot Hooks** (`lib/hooks/`):
+**Hooks** (`lib/hooks/`):
 - `useAutopilotChat.ts`: Manages conversation state, streaming responses, post-stream evaluation, auto-retry on validation failure, auto-apply on success, and undo functionality.
 - `useAutopilotIntegration.ts`: Handles applying/undoing autopilot changes to the flow, highlight management for newly added nodes. Extracted from AgentFlow for testability.
 - `useSuggestions.ts`: Fetches dynamic LLM-generated prompt suggestions based on current flow state. Refreshable with default fallback suggestions.
 - `useBackgroundSettings.ts`: Canvas appearance settings (pattern variant, gap, colors) persisted to localStorage.
 - `useClipboard.ts`: Clipboard operations for copy/paste functionality.
 - `useFlowExecution.ts`: Manages flow execution state, preview/debug entries, run/cancel/reset operations. Extracted from AgentFlow for testability.
+- `useNodeParenting.ts`: Handles node parenting behavior within comments - auto-parenting when dragged into comments, unparenting when dragged out, comment deletion with cascading unparenting, and resize capture/release.
+- `useFlowOperations.ts`: Manages flow file operations - new/blank flow creation, template selection, cloud save/load, file picker operations, and flow metadata state.
 
 **Comment System**:
 - `CommentEditContext.tsx`: React context for tracking user-edited comments to prevent AI overwrites
@@ -208,6 +212,8 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 Unit tests use **Vitest** with React Testing Library. Test files are in `lib/hooks/__tests__/`:
 - `useFlowExecution.test.ts`: Tests for flow execution hook
 - `useAutopilotIntegration.test.ts`: Tests for autopilot integration hook
+- `useNodeParenting.test.ts`: Tests for node parenting behavior (comment auto-parenting, deletion cascading)
+- `useFlowOperations.test.ts`: Tests for flow file operations (save, load, templates)
 
 Run tests with `npm test` or `npm run test:watch` for watch mode.
 
@@ -254,6 +260,9 @@ Run tests with `npm test` or `npm run test:watch` for watch mode.
 - `types.ts`: ProviderId, ApiKeys, ApiKeyStatus interfaces
 - Supports password-based unlock for pre-configured keys
 - Development mode detection (uses env vars when available)
+
+**Shared Provider Helpers** (`lib/api/`):
+- `providers.ts`: Shared helper functions for creating AI provider clients (e.g., `getAnthropicClient(apiKeys)`) - used by autopilot and comment-suggest routes
 
 ### Flow Storage
 
