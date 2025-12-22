@@ -185,7 +185,8 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 **Supabase Client** (`lib/supabase/`):
 - `client.ts`: Browser client with cookie-based session storage
 - `server.ts`: Server-side client for API routes
-- `middleware.ts`: Next.js middleware for session refresh
+- `proxy.ts`: Session refresh helper used by `proxy.ts`
+**Proxy** (`proxy.ts`): Next.js Proxy for session refresh
 
 ### API Key Management
 

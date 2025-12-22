@@ -71,14 +71,40 @@ const cookieStorage = {
 // Singleton instance for browser client
 let browserClient: SupabaseClient | null = null
 
+function createServerStub(): SupabaseClient {
+  return new Proxy({} as SupabaseClient, {
+    get() {
+      throw new Error(
+        'Supabase client is not available during server rendering. Use the server client or ensure this code only runs in the browser.'
+      )
+    },
+  })
+}
+
 export function createClient() {
   if (browserClient) {
     return browserClient
   }
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL
+  const supabaseKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    process.env.SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseKey) {
+    if (typeof window === 'undefined') {
+      browserClient = createServerStub()
+      return browserClient
+    }
+    throw new Error(
+      'Missing Supabase environment variables. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY).'
+    )
+  }
+
   browserClient = createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       auth: {
         storage: cookieStorage,
