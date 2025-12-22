@@ -205,22 +205,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize auth state
   useEffect(() => {
     const initAuth = async () => {
-      console.log("[Auth] Initializing auth state...")
       // Timeout after 10 seconds to prevent infinite loading (increased for retries)
       const timeoutId = setTimeout(() => {
-        console.log("[Auth] Timeout reached, setting isLoading to false")
         setIsLoading(false)
       }, 10000)
 
       try {
         // Parse session directly from cookies (bypassing getSession which hangs)
-        console.log("[Auth] Parsing session from cookies...")
         const sessionData = parseSessionFromCookies()
-        console.log("[Auth] Parsed session:", {
-          hasSession: !!sessionData,
-          userId: sessionData?.user?.id,
-          email: sessionData?.user?.email
-        })
         clearTimeout(timeoutId)
 
         if (sessionData?.user) {
@@ -237,19 +229,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             created_at: authUser.created_at || new Date().toISOString(),
             updated_at: authUser.updated_at || new Date().toISOString(),
           }
-          console.log("[Auth] Using profile from metadata:", {
-            fullName: metadataProfile.full_name,
-            avatarUrl: metadataProfile.avatar_url
-          })
           setProfile(metadataProfile)
-        } else {
-          console.log("[Auth] No session found in cookies")
         }
       } catch (err) {
         clearTimeout(timeoutId)
         console.error("[Auth] Init error:", err)
       } finally {
-        console.log("[Auth] Init complete, setting isLoading to false")
         setIsLoading(false)
       }
     }
@@ -299,8 +284,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [supabase])
 
   const signOut = useCallback(async () => {
-    console.log("[Auth] Signing out...")
-
     // Clear state immediately
     setUser(null)
     setProfile(null)

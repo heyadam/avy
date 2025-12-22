@@ -76,11 +76,8 @@ export async function POST(request: NextRequest) {
     const apiKey = apiKeys?.anthropic || process.env.ANTHROPIC_API_KEY;
 
     if (!apiKey) {
-      console.log("[suggestions] No API key, returning defaults");
       return NextResponse.json({ suggestions: DEFAULT_SUGGESTIONS });
     }
-
-    console.log("[suggestions] Generating new suggestions...");
 
     const anthropic = createAnthropic({ apiKey });
 
@@ -116,10 +113,8 @@ export async function POST(request: NextRequest) {
       const parsed = JSON.parse(text);
       const suggestions = validateAndNormalize(parsed);
       if (suggestions) {
-        console.log("[suggestions] Generated:", suggestions.map(s => s.text));
         return NextResponse.json({ suggestions });
       }
-      console.log("[suggestions] Validation failed for:", text);
     } catch {
       // Try to extract array from response
       const match = text.match(/\[[\s\S]*\]/);
@@ -128,18 +123,15 @@ export async function POST(request: NextRequest) {
           const parsed = JSON.parse(match[0]);
           const suggestions = validateAndNormalize(parsed);
           if (suggestions) {
-            console.log("[suggestions] Generated (extracted):", suggestions.map(s => s.text));
             return NextResponse.json({ suggestions });
           }
         } catch {
           // Fall through to default
         }
       }
-      console.log("[suggestions] Failed to parse:", text);
     }
 
     // Fallback to defaults
-    console.log("[suggestions] Returning defaults");
     return NextResponse.json({ suggestions: DEFAULT_SUGGESTIONS });
   } catch (error) {
     console.error("[suggestions] Error:", error);

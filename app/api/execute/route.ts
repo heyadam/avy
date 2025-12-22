@@ -238,7 +238,6 @@ export async function POST(request: NextRequest) {
       // Handle Google Gemini image generation/editing
       if (provider === "google") {
         try {
-          console.log("Google image request:", { model, fullPrompt, aspectRatio, isImageEdit });
           const google = createGoogleGenerativeAI({
             apiKey: apiKeys?.google || process.env.GOOGLE_GENERATIVE_AI_API_KEY,
           });
@@ -273,8 +272,6 @@ export async function POST(request: NextRequest) {
               },
             });
 
-            console.log("Google image edit result:", JSON.stringify(result, null, 2));
-
             // Extract image from result.files
             if (result.files && result.files.length > 0) {
               const file = result.files[0];
@@ -301,8 +298,6 @@ export async function POST(request: NextRequest) {
               } satisfies GoogleGenerativeAIProviderOptions,
             },
           });
-
-          console.log("Google image result:", JSON.stringify(result, null, 2));
 
           // Extract image from result.files
           if (result.files && result.files.length > 0) {
