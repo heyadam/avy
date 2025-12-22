@@ -135,6 +135,16 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 
 **Save Flow Dialog** (`components/Flow/SaveFlowDialog.tsx`): Modal for naming flows when saving.
 
+**My Flows Dialog** (`components/Flow/MyFlowsDialog.tsx`): Modal for browsing and loading cloud-saved flows:
+- Lists user's flows from Supabase storage
+- Shows name and relative timestamp (Today, Yesterday, X days ago)
+- Delete flows with confirmation
+- Refresh list button
+
+**Node Toolbar** (`components/Flow/NodeToolbar.tsx`): Floating toolbar for quick node insertion with icons for each node type.
+
+**Flow Context Menu** (`components/Flow/FlowContextMenu.tsx`): Right-click context menu on canvas with "Comment Around" option for selected nodes.
+
 **Autopilot Sidebar** (`components/Flow/AutopilotSidebar/`): AI-powered chat interface for natural language flow editing:
 - `AutopilotSidebar.tsx`: Main container with resizable width (320-600px)
 - `AutopilotChat.tsx`: Chat UI with effort level selector (Low/Medium/High) and dynamic LLM-generated suggestions
@@ -199,11 +209,17 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 
 ### Flow Storage
 
-**Flow Storage** (`lib/flow-storage/`): Flow persistence and file operations:
+**Local Flow Storage** (`lib/flow-storage/`): Local flow persistence and file operations:
 - `storage.ts`: Save/load flows to localStorage, download as JSON, file picker
 - `validation.ts`: Flow schema validation with error reporting
 - `types.ts`: SavedFlow, FlowMetadata, LoadFlowResult interfaces
 - Flows saved with `.avy.json` extension
+
+**Cloud Flow Storage** (`lib/flows/`): Supabase-backed flow persistence for authenticated users:
+- `api.ts`: Client-side API calls for CRUD operations (listFlows, createFlow, updateFlow, loadFlow, deleteFlow)
+- `types.ts`: FlowRecord, FlowListItem, response interfaces
+- Metadata stored in `flows` table, flow JSON stored in Supabase Storage
+- API routes: `app/api/flows/route.ts` (list, create), `app/api/flows/[id]/route.ts` (get, update, delete)
 
 **API Route** (`app/api/execute/route.ts`): Server-side execution handler for text-generation and image-generation nodes:
 - Text generation nodes: Uses Vercel AI SDK with `streamText` for real-time streaming responses. Supports OpenAI, Google, and Anthropic providers with provider-specific options.

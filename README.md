@@ -29,6 +29,8 @@ A visual workflow builder for creating AI agent pipelines using drag-and-drop no
 - **Editable Labels**: Click any node title to rename it inline
 - **Execution Tracking**: Visual feedback showing node execution status (running/success/error)
 - **Selection Feedback**: Selected nodes show animated yellow glow
+- **Cloud Storage**: Save and load flows to the cloud with Supabase (requires sign-in)
+- **My Flows Browser**: Browse, load, and delete saved cloud flows
 - **AI Autopilot**: Natural language flow editing - describe changes and Claude builds them
   - Add, remove, connect, and insert nodes between existing ones
   - Collapsible JSON preview with syntax highlighting and auto-scroll during streaming
@@ -109,6 +111,12 @@ Open [http://localhost:3000](http://localhost:3000) to use the workflow builder.
 3. Claude generates and auto-applies the changes
 4. Use "Undo" to revert if needed
 
+### Cloud Storage
+1. Sign in with Google using the profile button in the header
+2. Use Flow → Save to Cloud to save your current flow
+3. Use Flow → My Flows to browse and load saved flows
+4. Flows are stored securely in your Supabase account
+
 ## Tech Stack
 
 - [Next.js 16](https://nextjs.org/) - React framework
@@ -116,6 +124,7 @@ Open [http://localhost:3000](http://localhost:3000) to use the workflow builder.
 - [React Three Fiber](https://docs.pmnd.rs/react-three-fiber) - 3D WebGL rendering for logo
 - [Vercel AI SDK](https://sdk.vercel.ai/) - Streaming LLM responses
 - [OpenAI SDK](https://platform.openai.com/docs/libraries) - Image generation with streaming
+- [Supabase](https://supabase.com/) - Authentication and cloud storage
 - [Tailwind CSS v4](https://tailwindcss.com/) - Styling
 - [shadcn/ui](https://ui.shadcn.com/) - UI components
 - [AI Elements](https://registry.ai-sdk.dev/) - AI SDK component registry
