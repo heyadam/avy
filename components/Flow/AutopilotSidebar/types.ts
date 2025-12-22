@@ -20,4 +20,6 @@ export interface AutopilotSidebarProps {
   onMessageSent?: () => void;
   pendingMessage?: PendingAutopilotMessage;
   onPendingMessageConsumed?: () => void;
+  /** Increment to trigger clearing the chat history */
+  clearHistoryTrigger?: number;
 }

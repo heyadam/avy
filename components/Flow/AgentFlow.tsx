@@ -159,6 +159,7 @@ export function AgentFlow() {
   // Sidebar and palette states
   const [autopilotOpen, setAutopilotOpen] = useState(false);
   const [nodesPaletteOpen, setNodesPaletteOpen] = useState(false);
+  const [autopilotClearTrigger, setAutopilotClearTrigger] = useState(0);
 
   // Autopilot integration hook
   const {
@@ -805,15 +806,16 @@ export function AgentFlow() {
     setCurrentFlowId(null);
     resetExecution();
     clearAutopilotHighlights();
+    setAutopilotClearTrigger((prev) => prev + 1);
     updateIdCounter([]);
   }, [setNodes, setEdges, resetExecution, clearAutopilotHighlights]);
 
   const handleNewFlow = useCallback(() => {
-    // Show templates modal if not permanently dismissed
+    // Always clear the canvas first
+    loadBlankCanvas();
+    // Then show templates modal if not permanently dismissed
     if (shouldShowTemplatesModal()) {
       setTemplatesModalOpen(true);
-    } else {
-      loadBlankCanvas();
     }
   }, [loadBlankCanvas]);
 
@@ -825,6 +827,7 @@ export function AgentFlow() {
       setCurrentFlowId(null);
       resetExecution();
       clearAutopilotHighlights();
+      setAutopilotClearTrigger((prev) => prev + 1);
       updateIdCounter(flow.nodes);
 
       // Fit view to show loaded template
@@ -879,6 +882,7 @@ export function AgentFlow() {
       setCurrentFlowId(flowId);
       resetExecution();
       clearAutopilotHighlights();
+      setAutopilotClearTrigger((prev) => prev + 1);
 
       // Update node ID counter to avoid collisions
       updateIdCounter(result.flow.nodes);
@@ -902,6 +906,7 @@ export function AgentFlow() {
       setCurrentFlowId(null); // Clear cloud flow ID when loading from file
       resetExecution();
       clearAutopilotHighlights();
+      setAutopilotClearTrigger((prev) => prev + 1);
 
       // Update node ID counter to avoid collisions
       updateIdCounter(result.flow.nodes);
@@ -937,6 +942,7 @@ export function AgentFlow() {
         onMessageSent={handleAutopilotMessageSent}
         pendingMessage={pendingAutopilotMessage ?? undefined}
         onPendingMessageConsumed={() => setPendingAutopilotMessage(null)}
+        clearHistoryTrigger={autopilotClearTrigger}
       />
       <div ref={reactFlowWrapper} className="flex-1 h-full bg-muted/10 relative">
         <NodeToolbar
