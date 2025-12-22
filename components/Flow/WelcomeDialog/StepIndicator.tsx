@@ -11,8 +11,7 @@ export function StepIndicator({ currentStep }: StepIndicatorProps) {
       aria-label={`Step ${currentStep} of 2`}
     >
       <span>Step {currentStep} of 2</span>
-      <span aria-hidden className="h-1 w-1 rounded-full bg-muted-foreground/40" />
-      <span aria-hidden className="inline-flex items-center gap-1">
+      <span aria-hidden className="inline-flex items-center gap-1.5">
         <span
           className={[
             "h-1.5 w-1.5 rounded-full",
