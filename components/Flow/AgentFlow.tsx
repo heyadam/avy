@@ -58,7 +58,7 @@ import {
 } from "@/components/ui/tooltip";
 import { executeFlow } from "@/lib/execution/engine";
 import type { NodeExecutionState } from "@/lib/execution/types";
-import type { FlowChanges, AddNodeAction, AddEdgeAction, RemoveEdgeAction, RemoveNodeAction, AppliedChangesInfo, RemovedNodeInfo, RemovedEdgeInfo } from "@/lib/autopilot/types";
+import type { FlowChanges, AddNodeAction, AddEdgeAction, RemoveEdgeAction, RemoveNodeAction, AppliedChangesInfo, RemovedNodeInfo, RemovedEdgeInfo, PendingAutopilotMessage, AutopilotMode, AutopilotModel } from "@/lib/autopilot/types";
 import { ResponsesSidebar, type PreviewEntry, type DebugEntry } from "./ResponsesSidebar";
 import { useApiKeys, type ProviderId } from "@/lib/api-keys";
 import {
@@ -184,6 +184,7 @@ export function AgentFlow() {
   // Templates modal state
   const [templatesModalOpen, setTemplatesModalOpen] = useState(false);
   const { dismissPermanently: dismissTemplatesPermanently } = useTemplatesModalState();
+  const [pendingAutopilotMessage, setPendingAutopilotMessage] = useState<PendingAutopilotMessage | null>(null);
 
   // Auto-open templates modal on app load (after NUX is complete)
   useEffect(() => {
@@ -209,6 +210,18 @@ export function AgentFlow() {
       setTemplatesModalOpen(false);
     }
   }, [templatesModalOpen]);
+
+  // Handle prompt submission from templates modal
+  const handleTemplatesPromptSubmit = useCallback((
+    prompt: string,
+    mode: AutopilotMode,
+    model: AutopilotModel,
+    thinkingEnabled: boolean
+  ) => {
+    setPendingAutopilotMessage({ prompt, mode, model, thinkingEnabled });
+    setAutopilotOpen(true);
+    setTemplatesModalOpen(false);
+  }, []);
 
   // Background settings
   const { settings: bgSettings } = useBackgroundSettings();
@@ -1300,6 +1313,8 @@ export function AgentFlow() {
         suggestionsLoading={suggestionsLoading}
         onRefreshSuggestions={refreshSuggestions}
         onMessageSent={handleAutopilotMessageSent}
+        pendingMessage={pendingAutopilotMessage ?? undefined}
+        onPendingMessageConsumed={() => setPendingAutopilotMessage(null)}
       />
       <div ref={reactFlowWrapper} className="flex-1 h-full bg-muted/10 relative">
         <NodeToolbar
@@ -1530,6 +1545,7 @@ export function AgentFlow() {
         onSelectTemplate={handleSelectTemplate}
         onDismiss={loadBlankCanvas}
         onDismissPermanently={dismissTemplatesPermanently}
+        onSubmitPrompt={handleTemplatesPromptSubmit}
       />
       <WelcomeDialog onOpenSettings={() => setSettingsOpen(true)} />
     </div>

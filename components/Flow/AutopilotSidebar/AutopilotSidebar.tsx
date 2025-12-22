@@ -35,6 +35,8 @@ export function AutopilotSidebar({
   suggestionsLoading,
   onRefreshSuggestions,
   onMessageSent,
+  pendingMessage,
+  onPendingMessageConsumed,
 }: AutopilotSidebarProps) {
   const [width, setWidth] = useState(getInitialWidth);
   const [isResizing, setIsResizing] = useState(false);
@@ -67,6 +69,16 @@ export function AutopilotSidebar({
     },
     [sendMessage, onMessageSent]
   );
+
+  // Handle pending message from templates modal
+  useEffect(() => {
+    if (pendingMessage) {
+      setMode(pendingMessage.mode);
+      setThinkingEnabled(pendingMessage.thinkingEnabled);
+      sendMessage(pendingMessage.prompt, pendingMessage.model);
+      onPendingMessageConsumed?.();
+    }
+  }, [pendingMessage, setMode, setThinkingEnabled, sendMessage, onPendingMessageConsumed]);
 
   // Save width to localStorage when it changes (but not during active drag)
   useEffect(() => {

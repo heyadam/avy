@@ -18,11 +18,9 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { templates, type TemplateDefinition } from "./templates";
 import type { SavedFlow } from "@/lib/flow-storage/types";
+import type { AutopilotMode, AutopilotModel } from "@/lib/autopilot/types";
 
 const templateIcons = [Sparkles, Wand2, Zap];
-
-type AutopilotMode = "execute" | "plan";
-type AutopilotModel = "sonnet-4-5" | "opus-4-5";
 
 const MODES: { id: AutopilotMode; name: string; icon: typeof Zap }[] = [
   { id: "execute", name: "Execute", icon: Zap },
@@ -40,6 +38,7 @@ interface TemplatesModalProps {
   onSelectTemplate: (flow: SavedFlow) => void;
   onDismiss: () => void;
   onDismissPermanently: () => void;
+  onSubmitPrompt?: (prompt: string, mode: AutopilotMode, model: AutopilotModel, thinkingEnabled: boolean) => void;
 }
 
 export function TemplatesModal({
@@ -48,21 +47,25 @@ export function TemplatesModal({
   onSelectTemplate,
   onDismiss,
   onDismissPermanently,
+  onSubmitPrompt,
 }: TemplatesModalProps) {
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [mode, setMode] = useState<AutopilotMode>("execute");
   const [selectedModel, setSelectedModel] = useState<AutopilotModel>("sonnet-4-5");
   const [thinkingEnabled, setThinkingEnabled] = useState(false);
+  const [inputValue, setInputValue] = useState("");
   const panelRef = useRef<HTMLDivElement>(null);
 
   const currentModel = MODELS.find((m) => m.id === selectedModel) ?? MODELS[0];
 
-  // Reset checkbox state when modal opens
+  // Reset state when modal opens
   useEffect(() => {
     if (open) {
       // Safe: resetting local UI state when modal opens
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setDontShowAgain(false);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setInputValue("");
     }
   }, [open]);
 
@@ -124,12 +127,24 @@ export function TemplatesModal({
           <h2 className="text-2xl font-bold">What do you want to create?</h2>
         </div>
 
-        {/* AI Prompt Input (not hooked up yet) */}
+        {/* AI Prompt Input */}
         <div className="mb-6">
-          <PromptInput onSubmit={() => {}}>
+          <PromptInput
+            onSubmit={({ text }) => {
+              if (text.trim() && onSubmitPrompt) {
+                if (dontShowAgain) {
+                  onDismissPermanently();
+                }
+                onSubmitPrompt(text, mode, selectedModel, thinkingEnabled);
+                setInputValue("");
+              }
+            }}
+          >
             <PromptInputTextarea
               placeholder="Ask Composer to build..."
               className="min-h-[80px] text-sm"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
             />
             <PromptInputFooter className="justify-between items-center pt-2">
               <div className="flex items-center gap-1">
@@ -212,7 +227,7 @@ export function TemplatesModal({
                   <span>Think</span>
                 </Button>
               </div>
-              <PromptInputSubmit className="h-7 w-7" />
+              <PromptInputSubmit className="h-7 w-7" disabled={!inputValue.trim() || !onSubmitPrompt} />
             </PromptInputFooter>
           </PromptInput>
         </div>
