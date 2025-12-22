@@ -32,6 +32,7 @@ Required for local auth + providers:
 - **Auth Provider**: `lib/auth/context.tsx` (workarounds for client hanging).
 - **Profile UI**: `components/Flow/ProfileDropdown.tsx` (sign-in/out + avatar).
 - **Top Bar**: `components/Flow/AgentFlow.tsx` renders the profile control.
+- **Proxy**: `proxy.ts` uses `lib/supabase/proxy.ts` to refresh Supabase sessions.
 
 ## Architecture Highlights
 - Node types live in `components/Flow/nodes/`.
