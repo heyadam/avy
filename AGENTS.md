@@ -39,10 +39,15 @@ Required for local auth + providers:
 ## Architecture Highlights
 - Node types live in `components/Flow/nodes/`.
 - Execution engine: `lib/execution/engine.ts`.
-- Core hooks: `lib/hooks/useFlowExecution.ts` (execution state), `lib/hooks/useAutopilotIntegration.ts` (autopilot apply/undo).
+- Core hooks in `lib/hooks/`:
+  - `useFlowExecution.ts`: Execution state, run/cancel/reset
+  - `useAutopilotIntegration.ts`: Autopilot apply/undo, highlight management
+  - `useNodeParenting.ts`: Comment auto-parenting, deletion cascading
+  - `useFlowOperations.ts`: Flow save/load/template operations
+- Shared API helpers: `lib/api/providers.ts` (e.g., `getAnthropicClient`)
 - Model list: `docs/AI_MODELS.md` is the source of truth.
 - Design text standards: use `/content-design` skill.
-- Tests: `lib/hooks/__tests__/` using Vitest + React Testing Library.
+- Tests: `lib/hooks/__tests__/` using Vitest + React Testing Library (55 tests).
 
 ## New User Experience (NUX)
 - **Welcome Dialog**: `components/Flow/WelcomeDialog/` — two-step onboarding.

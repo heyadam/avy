@@ -97,7 +97,7 @@ https://your-domain.com/auth/callback
 
 ```bash
 npm run dev      # Start development server
-npm test         # Run unit tests
+npm test         # Run unit tests (55 tests)
 npm run build    # Production build
 ```
 
