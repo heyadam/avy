@@ -4,7 +4,9 @@ import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import * as THREE from "three";
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
-import { ReactFlow } from "@xyflow/react";
+import { ReactFlow, type Node, type Edge } from "@xyflow/react";
+import { executeFlow } from "@/lib/execution/engine";
+import type { NodeExecutionState } from "@/lib/execution/types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,7 +17,8 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
-import { ArrowLeft, KeyRound, Sparkles, X } from "lucide-react";
+import { ArrowLeft, Check, KeyRound, Loader2, Sparkles, X } from "lucide-react";
+import { Shimmer } from "@/components/ai-elements/shimmer";
 import { nodeTypes } from "./nodes";
 import { edgeTypes } from "./edges/ColoredEdge";
 import { welcomePreviewEdges, welcomePreviewNodes } from "@/lib/welcome-preview-flow";
@@ -54,43 +57,57 @@ function RoundedTile({
   size?: number;
   children?: ReactNode;
 }) {
-  const geom = useMemo(() => {
-    const r = 0.25;
-    const w = size;
-    const h = size;
-    const x = -w / 2;
-    const y = -h / 2;
-    const shape = new THREE.Shape();
-    shape.moveTo(x + r, y);
-    shape.lineTo(x + w - r, y);
-    shape.quadraticCurveTo(x + w, y, x + w, y + r);
-    shape.lineTo(x + w, y + h - r);
-    shape.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    shape.lineTo(x + r, y + h);
-    shape.quadraticCurveTo(x, y + h, x, y + h - r);
-    shape.lineTo(x, y + r);
-    shape.quadraticCurveTo(x, y, x + r, y);
-    return new THREE.ShapeGeometry(shape, 24);
-  }, [size]);
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame(({ clock }) => {
+    if (!groupRef.current) return;
+    // Unique rotation based on position for organic feel
+    const time = clock.getElapsedTime();
+    const offset = position[0] + position[1] * 2; // Unique seed per cube
+    const speedX = 1.2 + Math.sin(offset) * 0.4;
+    const speedY = 1.0 + Math.cos(offset) * 0.3;
+    const speedZ = 0.8 + Math.sin(offset * 1.5) * 0.2;
+    
+    groupRef.current.rotation.x = Math.sin(time * speedX + offset) * 0.25;
+    groupRef.current.rotation.y = Math.cos(time * speedY + offset * 1.3) * 0.25;
+    groupRef.current.rotation.z = Math.sin(time * speedZ + offset * 0.7) * 0.1;
+  });
+
+  const depth = 0.4;
 
   return (
-    <group position={position}>
-      {/* Outer border */}
-      <mesh geometry={geom}>
-        <meshBasicMaterial color={"#1f1f22"} transparent opacity={0.95} />
+    <group position={position} ref={groupRef}>
+      {/* 3D Cube with better material */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[size, size, depth]} />
+        <meshStandardMaterial 
+          color="#1a1a1f" 
+          roughness={0.4}
+          metalness={0.6}
+          emissive="#0a0a0c"
+          emissiveIntensity={0.2}
+          transparent 
+          opacity={0.98}
+        />
       </mesh>
-      {/* Inner fill */}
-      <mesh scale={[0.96, 0.96, 1]}>
-        <primitive object={geom} attach="geometry" />
-        <meshBasicMaterial color={"#0B0B0C"} transparent opacity={0.92} />
+      {/* Edge glow */}
+      <mesh>
+        <boxGeometry args={[size * 1.01, size * 1.01, depth * 1.01]} />
+        <meshBasicMaterial color="#3a3a45" transparent opacity={0.3} wireframe />
       </mesh>
-      <group position={[0, 0, 0.02]}>{children}</group>
+      {/* Rim light effect */}
+      <mesh scale={1.005}>
+        <boxGeometry args={[size, size, depth]} />
+        <meshBasicMaterial color="#6366F1" transparent opacity={0.15} side={THREE.BackSide} />
+      </mesh>
+      {/* Icons on front face */}
+      <group position={[0, 0, depth / 2 + 0.02]}>{children}</group>
     </group>
   );
 }
 
 function GoogleIcon2D() {
-  // Gemini sparkle: four-pointed star with gradient colors
+  // Gemini sparkle: four-pointed star with gradient
   const starShape = useMemo(() => {
     const points = 4;
     const outerRadius = 0.45;
@@ -112,17 +129,31 @@ function GoogleIcon2D() {
     return shape;
   }, []);
 
+  // Create gradient texture
+  const gradientTexture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    const gradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+    gradient.addColorStop(0, '#A8C7FA');    // Light blue center
+    gradient.addColorStop(0.5, '#669DF6');  // Medium blue
+    gradient.addColorStop(1, '#4285F4');    // Darker blue edges
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 512, 512);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+  }, []);
+
   return (
     <group>
-      {/* Main star with blue gradient effect */}
       <mesh>
         <shapeGeometry args={[starShape]} />
-        <meshBasicMaterial color="#4285F4" />
-      </mesh>
-      {/* Add colored accents for Gemini's multi-color look */}
-      <mesh position={[-0.02, 0.02, 0.01]} scale={0.85}>
-        <shapeGeometry args={[starShape]} />
-        <meshBasicMaterial color="#9C9EFF" opacity={0.6} transparent />
+        <meshBasicMaterial map={gradientTexture} transparent />
       </mesh>
     </group>
   );
@@ -236,19 +267,43 @@ function OpenAIIcon2D() {
 
 function ComposerIcon2D() {
   const meshRef = useRef<THREE.Mesh>(null);
+  const glowRef = useRef<THREE.Mesh>(null);
 
   useFrame(({ clock }) => {
     if (!meshRef.current) return;
     // Smooth pulsing: scale between 0.95 and 1.05
     const pulse = 1 + Math.sin(clock.getElapsedTime() * 2) * 0.05;
     meshRef.current.scale.setScalar(pulse);
+    
+    // Sync glow with main sphere
+    if (glowRef.current) {
+      glowRef.current.scale.setScalar(pulse);
+    }
   });
 
   return (
-    <mesh ref={meshRef}>
-      <circleGeometry args={[0.48, 64]} />
-      <meshBasicMaterial color="#FFFFFF" />
-    </mesh>
+    <group>
+      {/* Purple-blue glow layers */}
+      <mesh ref={glowRef}>
+        <sphereGeometry args={[0.68, 32, 32]} />
+        <meshBasicMaterial color="#8B5CF6" transparent opacity={0.15} />
+      </mesh>
+      <mesh>
+        <sphereGeometry args={[0.58, 32, 32]} />
+        <meshBasicMaterial color="#6366F1" transparent opacity={0.25} />
+      </mesh>
+      {/* Main white sphere */}
+      <mesh ref={meshRef} castShadow>
+        <sphereGeometry args={[0.48, 32, 32]} />
+        <meshStandardMaterial 
+          color="#FFFFFF" 
+          roughness={0.3}
+          metalness={0.1}
+          emissive="#ffffff"
+          emissiveIntensity={0.2}
+        />
+      </mesh>
+    </group>
   );
 }
 
@@ -292,14 +347,22 @@ function CurvedLine2D({
 
   return (
     <group>
-      {/* Thick line */}
+      {/* Main line */}
       <mesh geometry={tubeGeometry}>
-        <meshBasicMaterial color={color} transparent opacity={0.5} />
+        <meshBasicMaterial color={color} transparent opacity={0.6} />
       </mesh>
-      {/* Animated flow particle */}
+      {/* Animated flow particle with glow */}
       <mesh ref={particleRef}>
-        <sphereGeometry args={[0.08, 16, 16]} />
-        <meshBasicMaterial color={color} />
+        {/* Outer glow */}
+        <mesh>
+          <sphereGeometry args={[0.14, 16, 16]} />
+          <meshBasicMaterial color={color} transparent opacity={0.25} />
+        </mesh>
+        {/* Main particle */}
+        <mesh>
+          <sphereGeometry args={[0.08, 16, 16]} />
+          <meshBasicMaterial color={color} />
+        </mesh>
       </mesh>
     </group>
   );
@@ -320,11 +383,43 @@ function ProvidersToComposerHero() {
       <div className="pointer-events-none absolute inset-0 z-20">
         <Canvas
           orthographic
-          camera={{ position: [0, 0, 10], zoom: 40 }}
+          camera={{ position: [0, 0, 10], zoom: 48 }}
           dpr={[1, 2]}
           frameloop="always"
           gl={{ antialias: true, alpha: true }}
+          shadows
         >
+          {/* Soft, diffused lighting */}
+          <ambientLight intensity={0.8} />
+          <hemisphereLight args={["#6366F1", "#1a1a1f", 0.6]} />
+          {/* Main shadow-casting light from above/front */}
+          <directionalLight 
+            position={[1, 4, 8]} 
+            target-position={[0, 0, 0]}
+            intensity={0.8} 
+            color="#ffffff"
+            castShadow
+            shadow-mapSize-width={2048}
+            shadow-mapSize-height={2048}
+            shadow-camera-far={20}
+            shadow-camera-left={-10}
+            shadow-camera-right={10}
+            shadow-camera-top={10}
+            shadow-camera-bottom={-10}
+            shadow-bias={-0.001}
+            shadow-radius={12}
+          />
+          {/* Fill lights for ambient look */}
+          <directionalLight position={[5, 3, 5]} intensity={0.3} color="#8B5CF6" />
+          <directionalLight position={[-5, -2, 5]} intensity={0.25} color="#4285F4" />
+          <pointLight position={[0, 0, 6]} intensity={0.2} distance={15} decay={2} />
+          
+          {/* Shadow-receiving plane behind cubes */}
+          <mesh position={[0, 0, -0.5]} receiveShadow>
+            <planeGeometry args={[20, 20]} />
+            <shadowMaterial transparent opacity={0.25} color="#000000" />
+          </mesh>
+          
           {/* Lines (behind) */}
           <CurvedLine2D
             from={new THREE.Vector3(openaiPos.x, openaiPos.y - 0.85, 0)}
@@ -367,13 +462,103 @@ function ProvidersToComposerHero() {
   );
 }
 
+// Module-level to persist across React Strict Mode remounts
+let demoAbortController: AbortController | null = null;
+let demoHasStarted = false;
+let demoSetNodes: React.Dispatch<React.SetStateAction<Node[]>> | null = null;
+let demoSetIsRunning: React.Dispatch<React.SetStateAction<boolean>> | null = null;
+let demoSetProgressLabel: React.Dispatch<React.SetStateAction<string>> | null = null;
+
+// Map node labels to user-friendly progress messages
+const NODE_PROGRESS_LABELS: Record<string, string> = {
+  "Story Writer": "Generating story...",
+  "Image Prompt Generator": "Creating image prompt...",
+  "Story Illustration": "Creating image from story...",
+};
+
 function MiniNodeCanvasDemo() {
+  // Deep copy initial nodes/edges so we can update them during execution
+  const [nodes, setNodes] = useState<Node[]>(() =>
+    welcomePreviewNodes.map((n) => ({ ...n, data: { ...n.data } }))
+  );
+  const [edges] = useState<Edge[]>(() =>
+    welcomePreviewEdges.map((e) => ({ ...e }))
+  );
+  const [isRunning, setIsRunning] = useState(true); // Start as running
+  const [progressLabel, setProgressLabel] = useState("Starting demo...");
+
+  // Keep module-level refs to latest setters (survives strict mode remounts)
+  useEffect(() => {
+    demoSetNodes = setNodes;
+    demoSetIsRunning = setIsRunning;
+    demoSetProgressLabel = setProgressLabel;
+  }, [setNodes, setIsRunning, setProgressLabel]);
+
+  useEffect(() => {
+    // Only run once across all mounts (survives React Strict Mode)
+    if (demoHasStarted) return;
+    demoHasStarted = true;
+
+    demoAbortController = new AbortController();
+
+    // Callback to update node state - uses module ref for latest setNodes
+    const updateNodeState = (nodeId: string, state: NodeExecutionState) => {
+      console.log("[NUX Demo] Node state:", nodeId, state.status, state.error || "");
+
+      // Update progress label when a node starts running
+      if (state.status === "running") {
+        demoSetNodes?.((prev) => {
+          const node = prev.find((n) => n.id === nodeId);
+          const nodeLabel = node?.data?.label as string | undefined;
+          if (nodeLabel && NODE_PROGRESS_LABELS[nodeLabel]) {
+            demoSetProgressLabel?.(NODE_PROGRESS_LABELS[nodeLabel]);
+          }
+          return prev;
+        });
+      }
+
+      demoSetNodes?.((prev) =>
+        prev.map((node) =>
+          node.id === nodeId
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  executionStatus: state.status,
+                  executionOutput: state.output,
+                  executionError: state.error,
+                  executionReasoning: state.reasoning,
+                },
+              }
+            : node
+        )
+      );
+    };
+
+    console.log("[NUX Demo] Starting execution with", nodes.length, "nodes");
+
+    // Execute with undefined apiKeys - server uses env vars
+    executeFlow(nodes, edges, updateNodeState, undefined, demoAbortController.signal)
+      .then(() => {
+        console.log("[NUX Demo] Execution completed");
+        demoSetIsRunning?.(false);
+      })
+      .catch((err) => {
+        if (err?.name !== "AbortError") {
+          console.error("[NUX Demo] Execution error:", err);
+        }
+        demoSetIsRunning?.(false);
+      });
+
+    // Don't abort on unmount - let demo run to completion
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <HeroPanel>
       <div className="pointer-events-none absolute inset-0 z-20">
         <ReactFlow
-          nodes={welcomePreviewNodes}
-          edges={welcomePreviewEdges}
+          nodes={nodes}
+          edges={edges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView
@@ -393,8 +578,17 @@ function MiniNodeCanvasDemo() {
       </div>
 
       <div className="pointer-events-none absolute bottom-5 left-5 z-30 max-w-[340px] rounded-xl border bg-background/75 p-4 text-sm text-muted-foreground shadow-sm backdrop-blur-sm">
-        <div className="font-medium text-foreground">Build flows visually</div>
-        <div className="mt-1">Connect nodes to turn inputs into outputs</div>
+        {isRunning ? (
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <Shimmer className="font-medium" duration={1.5}>{progressLabel}</Shimmer>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 font-medium text-foreground">
+            <Check className="h-4 w-4 text-green-500" />
+            Flow done, view outputs
+          </div>
+        )}
       </div>
     </HeroPanel>
   );
