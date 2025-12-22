@@ -39,6 +39,11 @@ A visual workflow builder for creating AI agent pipelines using drag-and-drop no
   - Auto-apply with full undo support (restores removed nodes/edges)
   - Dynamic LLM-generated prompt suggestions based on current flow
   - Shimmer loading effects during AI operations
+- **Welcome Experience**: Two-step onboarding for new users
+  - Interactive demo flow that auto-executes to show capabilities
+  - 3D animated hero with provider icons flowing into Composer
+  - Google sign-in or continue without account
+  - Guided API keys setup
 
 ### Supported Models
 
@@ -128,3 +133,22 @@ Open [http://localhost:3000](http://localhost:3000) to use the workflow builder.
 - [Tailwind CSS v4](https://tailwindcss.com/) - Styling
 - [shadcn/ui](https://ui.shadcn.com/) - UI components
 - [AI Elements](https://registry.ai-sdk.dev/) - AI SDK component registry
+
+## Development
+
+### Claude Code Skills
+
+This project includes a Supabase skill for Claude Code at `.claude/skills/supabase/`:
+
+```
+.claude/skills/supabase/
+├── SKILL.md           # Router with quick reference
+├── SQL_STYLE.md       # SQL naming and formatting
+├── FUNCTIONS.md       # Database functions & triggers
+├── MIGRATIONS.md      # Migration files & RLS setup
+├── RLS.md             # Row Level Security policies
+├── EDGE_FUNCTIONS.md  # Deno/TypeScript edge functions
+└── REALTIME.md        # Broadcast, presence, triggers
+```
+
+Invoke with `/supabase` in Claude Code to load context-appropriate guidance for database work.

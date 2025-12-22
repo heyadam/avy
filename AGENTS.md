@@ -37,13 +37,15 @@ Required for local auth + providers:
 ## Architecture Highlights
 - Node types live in `components/Flow/nodes/`.
 - Execution engine: `lib/execution/engine.ts`.
-- Model list: `AI_MODELS.md` is the source of truth.
-- Design text standards: follow `CONTENT_DESIGN.md`.
+- Model list: `docs/AI_MODELS.md` is the source of truth.
+- Design text standards: use `/content-design` skill.
 
-## Known Issues & Workarounds
-- Supabase client calls can hang; see `DBissues.md`.
-  - Auth initialization uses cookie parsing instead of `getSession`.
-  - Sign-out clears cookies and refreshes the page.
+## New User Experience (NUX)
+- **Welcome Dialog**: `components/Flow/WelcomeDialog/` — two-step onboarding.
+- **State**: Persisted to `avy-nux-step` in localStorage (values: `1`, `2`, `done`).
+- **Step 1**: Welcome + Google sign-in (or skip).
+- **Step 2**: API keys setup prompt.
+- **Heroes**: Interactive React Flow demo (step 1) and 3D provider icons (step 2).
 
 ## When Unsure
 - Check `CLAUDE.md` for deeper architecture and component notes.

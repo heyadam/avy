@@ -33,8 +33,9 @@ import { useCommentSuggestions } from "@/lib/hooks/useCommentSuggestions";
 import { useSuggestions } from "@/lib/hooks/useSuggestions";
 import { useClipboard } from "@/lib/hooks/useClipboard";
 import type { NodeType, CommentColor } from "@/types/flow";
-import { Github, Settings, Folder, FilePlus, FolderOpen, Save, PanelLeft, PanelRight, Cloud } from "lucide-react";
+import { Settings, Folder, FilePlus, FolderOpen, Save, PanelLeft, PanelRight, Cloud } from "lucide-react";
 import { SettingsDialogControlled } from "./SettingsDialogControlled";
+import { WelcomeDialog, isNuxComplete } from "./WelcomeDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -124,11 +125,34 @@ export function AgentFlow() {
     };
   }, []);
 
+  // Track canvas width for responsive label hiding
+  useEffect(() => {
+    if (!reactFlowWrapper.current) return;
+
+    // Set initial width
+    setCanvasWidth(reactFlowWrapper.current.getBoundingClientRect().width);
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setCanvasWidth(entry.contentRect.width);
+      }
+    });
+
+    resizeObserver.observe(reactFlowWrapper.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   // Sidebar and palette states
-  const [autopilotOpen, setAutopilotOpen] = useState(false);
+  const [autopilotOpen, setAutopilotOpen] = useState(true);
   const [autopilotHighlightedIds, setAutopilotHighlightedIds] = useState<Set<string>>(new Set());
   const [nodesPaletteOpen, setNodesPaletteOpen] = useState(false);
   const [responsesOpen, setResponsesOpen] = useState(true);
+  
+  // Canvas width for responsive label hiding
+  const [canvasWidth, setCanvasWidth] = useState<number>(0);
 
   // Flow ID for future collaboration feature
   const [flowId] = useState(() => Math.floor(Math.random() * 900 + 100).toString());
@@ -144,8 +168,9 @@ export function AgentFlow() {
   const showSettingsWarning = !isDevMode && !hasAnyKey;
 
   // Auto-open settings dialog when no API keys are configured
+  // Only show if NUX is complete (step 2 of NUX guides users to API keys)
   useEffect(() => {
-    if (isLoaded && !isDevMode && !hasAnyKey) {
+    if (isLoaded && !isDevMode && !hasAnyKey && isNuxComplete()) {
       setSettingsOpen(true);
     }
   }, [isLoaded, isDevMode, hasAnyKey]);
@@ -1269,7 +1294,7 @@ export function AgentFlow() {
         </CommentEditContext.Provider>
         {/* Top center branding */}
         <div className="absolute top-0 left-0 right-0 z-10 flex justify-center pt-4 pb-8 bg-gradient-to-b from-black/90 to-transparent">
-          <AvyLogo isPanning={isPanning} />
+          <AvyLogo isPanning={isPanning} canvasWidth={canvasWidth} />
         </div>
         {/* Autopilot and Flow (top left) */}
         <TooltipProvider delayDuration={200}>
@@ -1279,32 +1304,39 @@ export function AgentFlow() {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => setAutopilotOpen(!autopilotOpen)}
-                  className={`flex items-center gap-1.5 px-2.5 py-2 transition-colors rounded-full border bg-background/50 backdrop-blur-sm text-sm ${
+                  className={`flex items-center px-2.5 py-2 transition-colors rounded-full border bg-background/50 backdrop-blur-sm text-sm cursor-pointer ${
+                    canvasWidth > 800 ? "gap-1.5" : ""
+                  } ${
                     autopilotOpen
                       ? "text-foreground border-muted-foreground/40"
                       : "text-muted-foreground/60 hover:text-foreground border-muted-foreground/20 hover:border-muted-foreground/40"
                   }`}
                 >
-                  <PanelLeft className="w-4 h-4" />
-                  <span>AI</span>
+                  <PanelLeft className="w-4 h-4 shrink-0" />
+                  {canvasWidth > 800 && <span>AI</span>}
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="bg-neutral-800 text-white border-neutral-700">
-                Autopilot
+                Composer AI
               </TooltipContent>
             </Tooltip>
             {/* Flow dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="flex items-center gap-1.5 px-2.5 py-2 text-muted-foreground/60 hover:text-foreground transition-colors rounded-full border border-muted-foreground/20 hover:border-muted-foreground/40 bg-background/50 backdrop-blur-sm text-sm"
+                  className={`flex items-center px-2.5 py-2 text-muted-foreground/60 hover:text-foreground transition-colors rounded-full border border-muted-foreground/20 hover:border-muted-foreground/40 bg-background/50 backdrop-blur-sm text-sm cursor-pointer ${
+                    canvasWidth > 800 ? "gap-1.5" : ""
+                  }`}
                   title="Files"
                 >
-                  <Folder className="w-4 h-4" />
-                  <span>Flow</span>
-                  <span className="w-px h-4 bg-muted-foreground/30 mx-1" />
-                  <span className="w-2 h-2 rounded-full bg-green-500" title="Connected" />
-                  <span className="font-mono">{flowId}</span>
+                  <Folder className="w-4 h-4 shrink-0" />
+                  {canvasWidth > 800 && (
+                    <>
+                      <span>Flow</span>
+                      <span className="w-px h-4 bg-muted-foreground/30 mx-1 shrink-0" />
+                      <span className="font-mono">{flowId}</span>
+                    </>
+                  )}
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -1345,31 +1377,15 @@ export function AgentFlow() {
             </DropdownMenu>
           </div>
         </TooltipProvider>
-        {/* GitHub, Settings, and Profile icons (top right, left of responses sidebar) */}
+        {/* Settings, Profile, and Preview icons (top right, left of responses sidebar) */}
         <TooltipProvider delayDuration={200}>
           <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-            {/* GitHub */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <a
-                  href="https://github.com/heyadam/avy"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 text-muted-foreground/60 hover:text-foreground transition-colors rounded-full border border-muted-foreground/20 hover:border-muted-foreground/40 bg-background/50 backdrop-blur-sm"
-                >
-                  <Github className="w-5 h-5" />
-                </a>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="bg-neutral-800 text-white border-neutral-700">
-                View on GitHub
-              </TooltipContent>
-            </Tooltip>
             {/* Settings */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   onClick={() => setSettingsOpen(true)}
-                  className={`p-2 transition-colors rounded-full border bg-background/50 backdrop-blur-sm relative ${
+                  className={`p-2 transition-colors rounded-full border bg-background/50 backdrop-blur-sm relative cursor-pointer ${
                     showSettingsWarning
                       ? "text-amber-400 hover:text-amber-300 border-amber-500/50 hover:border-amber-400/50"
                       : "text-muted-foreground/60 hover:text-foreground border-muted-foreground/20 hover:border-muted-foreground/40"
@@ -1392,14 +1408,16 @@ export function AgentFlow() {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => setResponsesOpen(!responsesOpen)}
-                  className={`flex items-center gap-1.5 px-2.5 py-2 transition-colors rounded-full border bg-background/50 backdrop-blur-sm text-sm ${
+                  className={`flex items-center px-2.5 py-2 transition-colors rounded-full border bg-background/50 backdrop-blur-sm text-sm cursor-pointer ${
+                    canvasWidth > 800 ? "gap-1.5" : ""
+                  } ${
                     responsesOpen
                       ? "text-foreground border-muted-foreground/40"
                       : "text-muted-foreground/60 hover:text-foreground border-muted-foreground/20 hover:border-muted-foreground/40"
                   }`}
                 >
-                  <span>Preview</span>
-                  <PanelRight className="w-4 h-4" />
+                  {canvasWidth > 800 && <span>Preview</span>}
+                  <PanelRight className="w-4 h-4 shrink-0" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="bg-neutral-800 text-white border-neutral-700">
@@ -1444,6 +1462,7 @@ export function AgentFlow() {
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
       />
+      <WelcomeDialog onOpenSettings={() => setSettingsOpen(true)} />
     </div>
   );
 }
