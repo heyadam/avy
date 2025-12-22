@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText } from "ai";
 import type { FlowSnapshot } from "@/lib/autopilot/types";
-
-interface ApiKeys {
-  openai?: string;
-  google?: string;
-  anthropic?: string;
-}
+import type { ApiKeys } from "@/lib/api-keys/types";
+import { getAnthropicClient } from "@/lib/api/providers";
 
 interface SuggestionsRequest {
   flowSnapshot: FlowSnapshot;
@@ -73,13 +68,11 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as SuggestionsRequest;
     const { flowSnapshot, apiKeys } = body;
 
-    const apiKey = apiKeys?.anthropic || process.env.ANTHROPIC_API_KEY;
-
-    if (!apiKey) {
+    if (!apiKeys?.anthropic && !process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json({ suggestions: DEFAULT_SUGGESTIONS });
     }
 
-    const anthropic = createAnthropic({ apiKey });
+    const anthropic = getAnthropicClient(apiKeys);
 
     const result = await generateText({
       model: anthropic("claude-haiku-4-5"),

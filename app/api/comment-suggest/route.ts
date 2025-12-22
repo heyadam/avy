@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamText } from "ai";
-import { createAnthropic } from "@ai-sdk/anthropic";
-
-interface ApiKeys {
-  openai?: string;
-  google?: string;
-  anthropic?: string;
-}
+import type { ApiKeys } from "@/lib/api-keys/types";
+import { getAnthropicClient } from "@/lib/api/providers";
 
 interface ChildNodeInfo {
   id: string;
@@ -69,9 +64,7 @@ export async function POST(request: NextRequest) {
     const userPrompt = `Child nodes:\n${nodeDescriptions.join("\n")}`;
 
     // Create Anthropic client with custom or env API key
-    const anthropic = createAnthropic({
-      apiKey: apiKeys?.anthropic || process.env.ANTHROPIC_API_KEY,
-    });
+    const anthropic = getAnthropicClient(apiKeys);
 
     // Stream response from Claude
     const result = streamText({

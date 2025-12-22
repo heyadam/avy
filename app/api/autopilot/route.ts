@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamText } from "ai";
-import { createAnthropic, type AnthropicProviderOptions } from "@ai-sdk/anthropic";
+import { type AnthropicProviderOptions } from "@ai-sdk/anthropic";
 import {
   buildSystemPrompt,
   buildPlanModeSystemPrompt,
@@ -9,12 +9,8 @@ import {
 import { buildRetryContext } from "@/lib/autopilot/evaluator";
 import { getRandomBadJson } from "@/lib/autopilot/test-fixtures";
 import type { AutopilotRequest, FlowChanges, EvaluationResult } from "@/lib/autopilot/types";
-
-interface ApiKeys {
-  openai?: string;
-  google?: string;
-  anthropic?: string;
-}
+import type { ApiKeys } from "@/lib/api-keys/types";
+import { getAnthropicClient } from "@/lib/api/providers";
 
 export async function POST(request: NextRequest) {
   try {
@@ -76,9 +72,7 @@ This should work perfectly!`;
     }
 
     // Create Anthropic client with custom or env API key
-    const anthropic = createAnthropic({
-      apiKey: apiKeys?.anthropic || process.env.ANTHROPIC_API_KEY,
-    });
+    const anthropic = getAnthropicClient(apiKeys);
 
     // Map model selection to Anthropic model ID
     const modelIdMap: Record<string, string> = {
