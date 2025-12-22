@@ -1530,7 +1530,6 @@ export function AgentFlow() {
         onSelectTemplate={handleSelectTemplate}
         onDismiss={loadBlankCanvas}
         onDismissPermanently={dismissTemplatesPermanently}
-        canvasRef={reactFlowWrapper}
       />
       <WelcomeDialog onOpenSettings={() => setSettingsOpen(true)} />
     </div>

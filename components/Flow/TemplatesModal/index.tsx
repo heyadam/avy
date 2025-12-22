@@ -14,7 +14,6 @@ interface TemplatesModalProps {
   onSelectTemplate: (flow: SavedFlow) => void;
   onDismiss: () => void;
   onDismissPermanently: () => void;
-  canvasRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function TemplatesModal({
@@ -23,7 +22,6 @@ export function TemplatesModal({
   onSelectTemplate,
   onDismiss,
   onDismissPermanently,
-  canvasRef,
 }: TemplatesModalProps) {
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -45,18 +43,19 @@ export function TemplatesModal({
     onOpenChange(false);
   }, [dontShowAgain, onDismiss, onDismissPermanently, onOpenChange]);
 
-  // Handle clicks on the canvas (outside the panel but inside the canvas area)
+  // Handle clicks on the React Flow pane (the actual canvas background)
   useEffect(() => {
     if (!open) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
+      const target = event.target as HTMLElement;
       const isOutsidePanel = panelRef.current && !panelRef.current.contains(target);
-      const isInsideCanvas = canvasRef?.current && canvasRef.current.contains(target);
 
-      // Only dismiss if clicking inside the canvas area but outside the modal
-      // This prevents dismissing when clicking on sidebars or other UI elements
-      if (isOutsidePanel && isInsideCanvas) {
+      // Only dismiss if clicking specifically on the React Flow pane
+      // This prevents dismissing when clicking on UI elements like buttons, sidebars, etc.
+      const isOnReactFlowPane = target.classList?.contains("react-flow__pane");
+
+      if (isOutsidePanel && isOnReactFlowPane) {
         handleClose();
       }
     };
@@ -71,7 +70,7 @@ export function TemplatesModal({
       clearTimeout(timeoutId);
       document.removeEventListener("mousedown", handleClickOutside, true);
     };
-  }, [open, handleClose, canvasRef]);
+  }, [open, handleClose]);
 
   const handleSelect = (template: TemplateDefinition) => {
     if (dontShowAgain) {
