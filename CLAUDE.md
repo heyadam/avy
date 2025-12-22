@@ -10,6 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev      # Start development server (http://localhost:3000)
 npm run build    # Production build
 npm run lint     # Run ESLint
+npm test         # Run Vitest unit tests
 npm run start    # Start production server
 ```
 
@@ -189,9 +190,11 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 
 **Autopilot Hooks** (`lib/hooks/`):
 - `useAutopilotChat.ts`: Manages conversation state, streaming responses, post-stream evaluation, auto-retry on validation failure, auto-apply on success, and undo functionality.
+- `useAutopilotIntegration.ts`: Handles applying/undoing autopilot changes to the flow, highlight management for newly added nodes. Extracted from AgentFlow for testability.
 - `useSuggestions.ts`: Fetches dynamic LLM-generated prompt suggestions based on current flow state. Refreshable with default fallback suggestions.
 - `useBackgroundSettings.ts`: Canvas appearance settings (pattern variant, gap, colors) persisted to localStorage.
 - `useClipboard.ts`: Clipboard operations for copy/paste functionality.
+- `useFlowExecution.ts`: Manages flow execution state, preview/debug entries, run/cancel/reset operations. Extracted from AgentFlow for testability.
 
 **Comment System**:
 - `CommentEditContext.tsx`: React context for tracking user-edited comments to prevent AI overwrites
@@ -199,6 +202,14 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 - `lib/hooks/useCommentSuggestions.ts`: Manages auto-generation of comment suggestions
 
 **Example Flow** (`lib/example-flow.ts`): Default flow configuration loaded on startup.
+
+### Testing
+
+Unit tests use **Vitest** with React Testing Library. Test files are in `lib/hooks/__tests__/`:
+- `useFlowExecution.test.ts`: Tests for flow execution hook
+- `useAutopilotIntegration.test.ts`: Tests for autopilot integration hook
+
+Run tests with `npm test` or `npm run test:watch` for watch mode.
 
 **Mobile Blocker** (`components/Flow/MobileBlocker.tsx`): Full-screen blocker for mobile devices:
 - Detects mobile via user agent (not screen width) using `useMobileDetection` hook

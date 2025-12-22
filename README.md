@@ -96,7 +96,9 @@ https://your-domain.com/auth/callback
 ### Development
 
 ```bash
-npm run dev
+npm run dev      # Start development server
+npm test         # Run unit tests
+npm run build    # Production build
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to use the workflow builder.
@@ -134,6 +136,7 @@ Open [http://localhost:3000](http://localhost:3000) to use the workflow builder.
 - [Tailwind CSS v4](https://tailwindcss.com/) - Styling
 - [shadcn/ui](https://ui.shadcn.com/) - UI components
 - [AI Elements](https://registry.ai-sdk.dev/) - AI SDK component registry
+- [Vitest](https://vitest.dev/) - Unit testing framework
 
 ## Development
 

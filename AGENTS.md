@@ -12,6 +12,7 @@ This file is a quick-reference guide for coding agents working in this repo.
 npm run dev      # Start dev server (http://localhost:3000)
 npm run build    # Production build
 npm run lint     # Lint
+npm test         # Run Vitest unit tests
 npm run start    # Start production server
 ```
 
@@ -37,8 +38,10 @@ Required for local auth + providers:
 ## Architecture Highlights
 - Node types live in `components/Flow/nodes/`.
 - Execution engine: `lib/execution/engine.ts`.
+- Core hooks: `lib/hooks/useFlowExecution.ts` (execution state), `lib/hooks/useAutopilotIntegration.ts` (autopilot apply/undo).
 - Model list: `docs/AI_MODELS.md` is the source of truth.
 - Design text standards: use `/content-design` skill.
+- Tests: `lib/hooks/__tests__/` using Vitest + React Testing Library.
 
 ## New User Experience (NUX)
 - **Welcome Dialog**: `components/Flow/WelcomeDialog/` — two-step onboarding.

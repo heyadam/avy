@@ -37,6 +37,7 @@ export function AutopilotSidebar({
   onMessageSent,
   pendingMessage,
   onPendingMessageConsumed,
+  clearHistoryTrigger,
 }: AutopilotSidebarProps) {
   const [width, setWidth] = useState(getInitialWidth);
   const [isResizing, setIsResizing] = useState(false);
@@ -79,6 +80,15 @@ export function AutopilotSidebar({
       onPendingMessageConsumed?.();
     }
   }, [pendingMessage, setMode, setThinkingEnabled, sendMessage, onPendingMessageConsumed]);
+
+  // Clear history when trigger changes (used when creating new flow)
+  const prevTriggerRef = useRef(clearHistoryTrigger);
+  useEffect(() => {
+    if (clearHistoryTrigger !== undefined && clearHistoryTrigger !== prevTriggerRef.current) {
+      prevTriggerRef.current = clearHistoryTrigger;
+      clearHistory();
+    }
+  }, [clearHistoryTrigger, clearHistory]);
 
   // Save width to localStorage when it changes (but not during active drag)
   useEffect(() => {
