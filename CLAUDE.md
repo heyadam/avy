@@ -16,6 +16,8 @@ npm run start    # Start production server
 
 ## Environment Setup
 
+**Node.js 24+** required. Use `nvm use` to activate the version in `.nvmrc`.
+
 Requires API keys for the AI providers you want to use:
 - `OPENAI_API_KEY` - For OpenAI models
 - `GOOGLE_GENERATIVE_AI_API_KEY` - For Google Gemini models

@@ -9,6 +9,7 @@ This file is a quick-reference guide for coding agents working in this repo.
 
 ## Key Commands
 ```bash
+nvm use          # Activate Node.js 24 from .nvmrc
 npm run dev      # Start dev server (http://localhost:3000)
 npm run build    # Production build
 npm run lint     # Lint
