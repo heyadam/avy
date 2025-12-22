@@ -2,10 +2,10 @@
 
 import { useReactFlow, useEdges, type NodeProps, type Node } from "@xyflow/react";
 import type { OutputNodeData } from "@/types/flow";
-import { Square, ImageIcon } from "lucide-react";
+import { Square } from "lucide-react";
 import { NodeFrame } from "./NodeFrame";
 import { PortRow } from "./PortLabel";
-import { isImageOutput } from "@/lib/image-utils";
+import { isImageOutput, parseImageOutput, getImageDataUrl } from "@/lib/image-utils";
 
 type OutputNodeType = Node<OutputNodeData, "preview-output">;
 
@@ -28,14 +28,20 @@ export function OutputNode({ id, data }: NodeProps<OutputNodeType>) {
     }
 
     if (data.executionOutput) {
-      // Don't render image data in the node, just show a placeholder
+      // Show image thumbnail preview
       if (isImageOutput(data.executionOutput)) {
-        return (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <ImageIcon className="h-3.5 w-3.5" />
-            <span>Image (view in sidebar)</span>
-          </div>
-        );
+        const imageData = parseImageOutput(data.executionOutput);
+        if (imageData) {
+          return (
+            <div className="rounded-md overflow-hidden border border-border/50">
+              <img
+                src={getImageDataUrl(imageData)}
+                alt="Generated image"
+                className="w-full h-auto max-h-[160px] object-contain bg-muted/30"
+              />
+            </div>
+          );
+        }
       }
 
       return (

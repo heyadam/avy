@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Canvas, useFrame, useLoader } from "@react-three/fiber";
+import * as THREE from "three";
+import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 import { ReactFlow } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +15,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
-import { ArrowLeft, KeyRound, Play, Sparkles, X } from "lucide-react";
+import { ArrowLeft, KeyRound, Sparkles, X } from "lucide-react";
 import { nodeTypes } from "./nodes";
 import { edgeTypes } from "./edges/ColoredEdge";
 import { welcomePreviewEdges, welcomePreviewNodes } from "@/lib/welcome-preview-flow";
@@ -42,6 +45,328 @@ function HeroPanel({ children }: { children: ReactNode }) {
   );
 }
 
+function RoundedTile({
+  position,
+  size = 1.55,
+  children,
+}: {
+  position: [number, number, number];
+  size?: number;
+  children?: ReactNode;
+}) {
+  const geom = useMemo(() => {
+    const r = 0.25;
+    const w = size;
+    const h = size;
+    const x = -w / 2;
+    const y = -h / 2;
+    const shape = new THREE.Shape();
+    shape.moveTo(x + r, y);
+    shape.lineTo(x + w - r, y);
+    shape.quadraticCurveTo(x + w, y, x + w, y + r);
+    shape.lineTo(x + w, y + h - r);
+    shape.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    shape.lineTo(x + r, y + h);
+    shape.quadraticCurveTo(x, y + h, x, y + h - r);
+    shape.lineTo(x, y + r);
+    shape.quadraticCurveTo(x, y, x + r, y);
+    return new THREE.ShapeGeometry(shape, 24);
+  }, [size]);
+
+  return (
+    <group position={position}>
+      {/* Outer border */}
+      <mesh geometry={geom}>
+        <meshBasicMaterial color={"#1f1f22"} transparent opacity={0.95} />
+      </mesh>
+      {/* Inner fill */}
+      <mesh scale={[0.96, 0.96, 1]}>
+        <primitive object={geom} attach="geometry" />
+        <meshBasicMaterial color={"#0B0B0C"} transparent opacity={0.92} />
+      </mesh>
+      <group position={[0, 0, 0.02]}>{children}</group>
+    </group>
+  );
+}
+
+function GoogleIcon2D() {
+  // Gemini sparkle: four-pointed star with gradient colors
+  const starShape = useMemo(() => {
+    const points = 4;
+    const outerRadius = 0.45;
+    const innerRadius = 0.16;
+    
+    const shape = new THREE.Shape();
+    for (let i = 0; i < points * 2; i++) {
+      const radius = i % 2 === 0 ? outerRadius : innerRadius;
+      const angle = (i * Math.PI) / points - Math.PI / 2; // Start from top
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      if (i === 0) {
+        shape.moveTo(x, y);
+      } else {
+        shape.lineTo(x, y);
+      }
+    }
+    shape.closePath();
+    return shape;
+  }, []);
+
+  return (
+    <group>
+      {/* Main star with blue gradient effect */}
+      <mesh>
+        <shapeGeometry args={[starShape]} />
+        <meshBasicMaterial color="#4285F4" />
+      </mesh>
+      {/* Add colored accents for Gemini's multi-color look */}
+      <mesh position={[-0.02, 0.02, 0.01]} scale={0.85}>
+        <shapeGeometry args={[starShape]} />
+        <meshBasicMaterial color="#9C9EFF" opacity={0.6} transparent />
+      </mesh>
+    </group>
+  );
+}
+
+function ClaudeIcon2D() {
+  const svgData = useLoader(SVGLoader, "/claude.svg");
+  
+  const shapes = useMemo(() => {
+    if (!svgData || !svgData.paths) return [];
+    
+    const allShapes: { shape: THREE.Shape; color: string }[] = [];
+    svgData.paths.forEach((path) => {
+      const pathShapes = SVGLoader.createShapes(path);
+      pathShapes.forEach((shape) => {
+        allShapes.push({
+          shape,
+          color: path.color ? `#${path.color.getHexString()}` : "#F59E0B",
+        });
+      });
+    });
+    return allShapes;
+  }, [svgData]);
+
+  const { center, scale } = useMemo(() => {
+    if (shapes.length === 0) {
+      return { center: new THREE.Vector3(), scale: 1 };
+    }
+    
+    const box = new THREE.Box3();
+    shapes.forEach(({ shape }) => {
+      const points = shape.getPoints();
+      points.forEach((p) => box.expandByPoint(new THREE.Vector3(p.x, p.y, 0)));
+    });
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    const maxDim = Math.max(size.x, size.y);
+    const targetSize = 0.7;
+    const scale = maxDim > 0 ? targetSize / maxDim : 1;
+    return { center, scale };
+  }, [shapes]);
+
+  if (shapes.length === 0) return null;
+
+  return (
+    <group scale={[scale, -scale, 1]} position={[-center.x * scale, center.y * scale, 0]}>
+      {shapes.map(({ shape, color }, i) => (
+        <mesh key={i}>
+          <shapeGeometry args={[shape]} />
+          <meshBasicMaterial color={color} side={THREE.DoubleSide} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function OpenAIIcon2D() {
+  const svgData = useLoader(SVGLoader, "/openai.svg");
+  
+  const shapes = useMemo(() => {
+    if (!svgData || !svgData.paths) return [];
+    
+    const allShapes: { shape: THREE.Shape; color: string }[] = [];
+    svgData.paths.forEach((path) => {
+      const pathShapes = SVGLoader.createShapes(path);
+      pathShapes.forEach((shape) => {
+        allShapes.push({
+          shape,
+          color: "#FFFFFF", // Force white since the SVG has black fill
+        });
+      });
+    });
+    return allShapes;
+  }, [svgData]);
+
+  const { center, scale } = useMemo(() => {
+    if (shapes.length === 0) {
+      return { center: new THREE.Vector3(), scale: 1 };
+    }
+    
+    const box = new THREE.Box3();
+    shapes.forEach(({ shape }) => {
+      const points = shape.getPoints();
+      points.forEach((p) => box.expandByPoint(new THREE.Vector3(p.x, p.y, 0)));
+    });
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    const maxDim = Math.max(size.x, size.y);
+    const targetSize = 0.7;
+    const scale = maxDim > 0 ? targetSize / maxDim : 1;
+    return { center, scale };
+  }, [shapes]);
+
+  if (shapes.length === 0) return null;
+
+  return (
+    <group scale={[scale, -scale, 1]} position={[-center.x * scale, center.y * scale, 0]}>
+      {shapes.map(({ shape, color }, i) => (
+        <mesh key={i}>
+          <shapeGeometry args={[shape]} />
+          <meshBasicMaterial color={color} side={THREE.DoubleSide} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function ComposerIcon2D() {
+  const meshRef = useRef<THREE.Mesh>(null);
+
+  useFrame(({ clock }) => {
+    if (!meshRef.current) return;
+    // Smooth pulsing: scale between 0.95 and 1.05
+    const pulse = 1 + Math.sin(clock.getElapsedTime() * 2) * 0.05;
+    meshRef.current.scale.setScalar(pulse);
+  });
+
+  return (
+    <mesh ref={meshRef}>
+      <circleGeometry args={[0.48, 64]} />
+      <meshBasicMaterial color="#FFFFFF" />
+    </mesh>
+  );
+}
+
+function CurvedLine2D({
+  from,
+  to,
+  color,
+}: {
+  from: THREE.Vector3;
+  to: THREE.Vector3;
+  color: string;
+}) {
+  const particleRef = useRef<THREE.Mesh>(null);
+  
+  const { curve, tubeGeometry } = useMemo(() => {
+    const mid = new THREE.Vector3((from.x + to.x) / 2, (from.y + to.y) / 2, 0);
+    mid.y += 0.9;
+    const curve = new THREE.QuadraticBezierCurve3(from, mid, to);
+    const tubeGeometry = new THREE.TubeGeometry(curve, 48, 0.035, 8, false);
+    return { curve, tubeGeometry };
+  }, [from, to]);
+
+  useFrame(({ clock }) => {
+    if (!particleRef.current) return;
+    // Animate particle along the curve from 0 to 1
+    const t = (clock.getElapsedTime() * 0.3) % 1;
+    const point = curve.getPoint(t);
+    particleRef.current.position.copy(point);
+    
+    // Scale: grow from 0 at start, shrink to 0 at end
+    let scale = 1;
+    if (t < 0.15) {
+      // Grow in first 15%
+      scale = t / 0.15;
+    } else if (t > 0.85) {
+      // Shrink in last 15%
+      scale = (1 - t) / 0.15;
+    }
+    particleRef.current.scale.setScalar(scale);
+  });
+
+  return (
+    <group>
+      {/* Thick line */}
+      <mesh geometry={tubeGeometry}>
+        <meshBasicMaterial color={color} transparent opacity={0.5} />
+      </mesh>
+      {/* Animated flow particle */}
+      <mesh ref={particleRef}>
+        <sphereGeometry args={[0.08, 16, 16]} />
+        <meshBasicMaterial color={color} />
+      </mesh>
+    </group>
+  );
+}
+
+function ProvidersToComposerHero() {
+  const topY = 1.85;
+  const bottomY = -2.05;
+  const topX = [-2.25, 0, 2.25] as const;
+
+  const composerPos = new THREE.Vector3(0, bottomY, 0);
+  const openaiPos = new THREE.Vector3(topX[0], topY, 0);
+  const googlePos = new THREE.Vector3(topX[1], topY, 0);
+  const claudePos = new THREE.Vector3(topX[2], topY, 0);
+
+  return (
+    <HeroPanel>
+      <div className="pointer-events-none absolute inset-0 z-20">
+        <Canvas
+          orthographic
+          camera={{ position: [0, 0, 10], zoom: 40 }}
+          dpr={[1, 2]}
+          frameloop="always"
+          gl={{ antialias: true, alpha: true }}
+        >
+          {/* Lines (behind) */}
+          <CurvedLine2D
+            from={new THREE.Vector3(openaiPos.x, openaiPos.y - 0.85, 0)}
+            to={new THREE.Vector3(composerPos.x, composerPos.y + 0.9, 0)}
+            color="#FFFFFF"
+          />
+          <CurvedLine2D
+            from={new THREE.Vector3(googlePos.x, googlePos.y - 0.85, 0)}
+            to={new THREE.Vector3(composerPos.x, composerPos.y + 0.9, 0)}
+            color="#4285F4"
+          />
+          <CurvedLine2D
+            from={new THREE.Vector3(claudePos.x, claudePos.y - 0.85, 0)}
+            to={new THREE.Vector3(composerPos.x, composerPos.y + 0.9, 0)}
+            color="#F97316"
+          />
+
+          {/* Provider tiles */}
+          <RoundedTile position={[openaiPos.x, openaiPos.y, 0]}>
+            <Suspense fallback={null}>
+              <OpenAIIcon2D />
+            </Suspense>
+          </RoundedTile>
+          <RoundedTile position={[googlePos.x, googlePos.y, 0]}>
+            <GoogleIcon2D />
+          </RoundedTile>
+          <RoundedTile position={[claudePos.x, claudePos.y, 0]}>
+            <Suspense fallback={null}>
+              <ClaudeIcon2D />
+            </Suspense>
+          </RoundedTile>
+
+          {/* Composer tile */}
+          <RoundedTile position={[composerPos.x, composerPos.y, 0]} size={1.75}>
+            <ComposerIcon2D />
+          </RoundedTile>
+        </Canvas>
+      </div>
+    </HeroPanel>
+  );
+}
+
 function MiniNodeCanvasDemo() {
   return (
     <HeroPanel>
@@ -52,7 +377,9 @@ function MiniNodeCanvasDemo() {
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView
-          fitViewOptions={{ padding: 0.18 }}
+          fitViewOptions={{ padding: 0.05, minZoom: 0.1, maxZoom: 1.0 }}
+          minZoom={0.1}
+          maxZoom={1.0}
           proOptions={{ hideAttribution: true }}
           nodesDraggable={false}
           nodesConnectable={false}
@@ -105,126 +432,6 @@ interface WelcomeDialogProps {
   onOpenSettings: () => void;
 }
 
-function HeroVideo({
-  src = "/welcome.mp4",
-  poster = "/welcome-poster.png",
-  title = "Composer preview video",
-  overlay,
-}: {
-  src?: string;
-  poster?: string;
-  title?: string;
-  overlay?: ReactNode;
-}) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    const el = videoRef.current;
-    if (!el) return;
-
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-
-    el.addEventListener("play", handlePlay);
-    el.addEventListener("pause", handlePause);
-    return () => {
-      el.removeEventListener("play", handlePlay);
-      el.removeEventListener("pause", handlePause);
-    };
-  }, []);
-
-  useEffect(() => {
-    const el = videoRef.current;
-    if (!el) return;
-    if (hasError) return;
-
-    // Try to autoplay (muted) for a modern "hero" feel, but degrade gracefully.
-    el.muted = true;
-    const p = el.play();
-    if (p && typeof p.catch === "function") {
-      p.catch(() => {
-        // Autoplay may be blocked; user can click to play.
-      });
-    }
-  }, [hasError]);
-
-  const togglePlayback = async () => {
-    const el = videoRef.current;
-    if (!el) return;
-
-    if (el.paused) {
-      try {
-        await el.play();
-      } catch {
-        // ignore
-      }
-      return;
-    }
-
-    el.pause();
-  };
-
-  return (
-    <HeroPanel>
-      <button
-        type="button"
-        onClick={togglePlayback}
-        className="group absolute inset-0 z-10 grid cursor-pointer place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-        aria-label={isPlaying ? "Pause video" : "Play video"}
-        aria-pressed={isPlaying}
-      >
-        <span className="sr-only">{isPlaying ? "Pause video" : "Play video"}</span>
-
-        {/* Play affordance */}
-        <span
-          className={[
-            "grid place-items-center rounded-full border bg-background/70 text-foreground shadow-sm backdrop-blur-sm transition-all",
-            "h-12 w-12 sm:h-14 sm:w-14",
-            isPlaying ? "opacity-0 scale-95" : "opacity-100 scale-100",
-            "group-hover:scale-105 group-hover:bg-background/80",
-            "group-focus-visible:opacity-100 group-focus-visible:scale-105",
-          ].join(" ")}
-        >
-          <Play className="h-5 w-5 translate-x-[1px]" />
-        </span>
-      </button>
-
-      <video
-        ref={videoRef}
-        className="absolute inset-0 h-full w-full object-cover"
-        muted
-        playsInline
-        loop
-        preload="metadata"
-        poster={poster}
-        aria-label={title}
-        disablePictureInPicture
-        disableRemotePlayback
-        controls={false}
-        onError={() => setHasError(true)}
-      >
-        {!hasError && <source src={src} type="video/mp4" />}
-      </video>
-
-      {hasError && (
-        <div className="pointer-events-none absolute inset-0 grid place-items-center px-6 text-center">
-          <div className="max-w-sm rounded-xl border bg-background/75 p-4 text-sm text-muted-foreground shadow-sm backdrop-blur-sm">
-            <div className="font-medium text-foreground">Add a product video</div>
-            <div className="mt-1">
-              Place <span className="font-medium text-foreground">welcome.mp4</span> in{" "}
-              <span className="font-medium text-foreground">/public</span> to enable this hero
-            </div>
-          </div>
-        </div>
-      )}
-
-      {overlay}
-    </HeroPanel>
-  );
-}
-
 function DialogShell({
   step,
   title,
@@ -238,7 +445,7 @@ function DialogShell({
   description: ReactNode;
   children: ReactNode;
   onBack?: () => void;
-  hero?: ReactNode;
+  hero: ReactNode;
 }) {
   return (
     <DialogContent
@@ -303,7 +510,7 @@ function DialogShell({
 
         {/* Right: hero */}
         <div className="min-h-[220px] border-t md:min-h-0 md:border-t-0 md:border-l">
-          {hero ?? <HeroVideo />}
+          {hero}
         </div>
       </div>
     </DialogContent>
@@ -396,9 +603,10 @@ export function WelcomeDialog({ onOpenSettings }: WelcomeDialogProps) {
       >
         <DialogShell
           step={2}
-        title="Connect Your AI Providers"
+          title="Connect Your AI Providers"
           description="Add at least one API key to run nodes"
           onBack={!user ? handleBackToSignIn : undefined}
+          hero={<ProvidersToComposerHero />}
         >
           <div className="grid gap-5">
             <div className="grid gap-3">
