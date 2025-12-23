@@ -13,7 +13,7 @@ import { ArrowLeft, X } from "lucide-react";
 import { StepIndicator } from "./StepIndicator";
 
 interface DialogShellProps {
-  step: 1 | 2;
+  step: 1 | 2 | 3;
   title: ReactNode;
   description: ReactNode;
   children: ReactNode;
@@ -56,7 +56,7 @@ export function DialogShell({
       onInteractOutside={preventOutsideClose ? (e) => e.preventDefault() : undefined}
       onEscapeKeyDown={preventOutsideClose ? (e) => e.preventDefault() : undefined}
     >
-      {onClose ? closeButton : <DialogClose asChild>{closeButton}</DialogClose>}
+      {!preventOutsideClose && (onClose ? closeButton : <DialogClose asChild>{closeButton}</DialogClose>)}
       <div className="flex h-full flex-col overflow-y-auto sm:grid sm:overflow-hidden md:min-h-[560px] md:grid-cols-[1fr_1.15fr]">
         {/* Left: content */}
         <div className="relative flex shrink-0 flex-col justify-between p-6 sm:p-8">
