@@ -248,7 +248,7 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
                   <div className="flex items-center gap-1.5">
                     <Input
                       type="password"
-                      placeholder="Enter VIP code"
+                      placeholder={vipSuccess ? "Success" : "Enter VIP code"}
                       value={password}
                       onChange={(e) => {
                         setPassword(e.target.value);
