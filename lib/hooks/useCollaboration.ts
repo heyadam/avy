@@ -145,6 +145,8 @@ export function useCollaboration({
   const lastBroadcastTimeRef = useRef<number>(0);
   const lastBroadcastNodesRef = useRef<Node[]>([]);
   const lastBroadcastEdgesRef = useRef<Edge[]>([]);
+  const pendingPositionUpdatesRef = useRef<Map<string, PositionPayload["position"]>>(new Map());
+  const pendingPositionRafRef = useRef<number | null>(null);
 
   // Debounce timer
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -183,6 +185,29 @@ export function useCollaboration({
     },
     []
   );
+
+  const areEdgesEquivalent = useCallback((prevEdges: Edge[], nextEdges: Edge[]): boolean => {
+    if (prevEdges.length !== nextEdges.length) return false;
+
+    const prevById = new Map(prevEdges.map((edge) => [edge.id, edge]));
+    for (const current of nextEdges) {
+      const previous = prevById.get(current.id);
+      if (!previous) return false;
+
+      if (
+        previous.source !== current.source ||
+        previous.target !== current.target ||
+        previous.sourceHandle !== current.sourceHandle ||
+        previous.targetHandle !== current.targetHandle ||
+        previous.type !== current.type ||
+        previous.data !== current.data
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  }, []);
 
   // Initialize flow from collaboration data
   useEffect(() => {
@@ -318,6 +343,9 @@ export function useCollaboration({
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
+      if (pendingPositionRafRef.current !== null) {
+        cancelAnimationFrame(pendingPositionRafRef.current);
+      }
     };
   }, []);
 
@@ -397,21 +425,38 @@ export function useCollaboration({
       if (senderId === sessionIdRef.current) return;
 
       isApplyingRemoteRef.current = true;
-      setNodes((currentNodes) => {
-        if (positions.length === 0) return currentNodes;
+      for (const update of positions) {
+        pendingPositionUpdatesRef.current.set(update.id, update.position);
+      }
 
-        const positionMap = new Map(positions.map((p) => [p.id, p.position]));
-        const result = currentNodes.map((node) => {
-          const position = positionMap.get(node.id);
-          if (!position) return node;
-          return { ...node, position };
+      if (pendingPositionRafRef.current !== null) return;
+
+      pendingPositionRafRef.current = requestAnimationFrame(() => {
+        pendingPositionRafRef.current = null;
+        const positionMap = pendingPositionUpdatesRef.current;
+        pendingPositionUpdatesRef.current = new Map();
+
+        setNodes((currentNodes) => {
+          if (positionMap.size === 0) return currentNodes;
+
+          const result = currentNodes.map((node) => {
+            const position = positionMap.get(node.id);
+            if (!position) return node;
+            if (
+              node.position.x === position.x &&
+              node.position.y === position.y
+            ) {
+              return node;
+            }
+            return { ...node, position };
+          });
+
+          prevNodesRef.current = result;
+          lastBroadcastNodesRef.current = result;
+          return result;
         });
-
-        prevNodesRef.current = result;
-        lastBroadcastNodesRef.current = result;
-        return result;
+        setTimeout(() => { isApplyingRemoteRef.current = false; }, 0);
       });
-      setTimeout(() => { isApplyingRemoteRef.current = false; }, 0);
     },
     [setNodes]
   );
@@ -636,7 +681,7 @@ export function useCollaboration({
     const nodeChange = getNodeChangeSummary(prevNodes, nodes);
     const positionOnly = nodeChange.type === "position";
     const nodesChanged = nodeChange.type !== "none";
-    const edgesChanged = edges !== prevEdges;
+    const edgesChanged = !areEdgesEquivalent(prevEdges, edges);
     const now = Date.now();
     const timeSinceLastBroadcast = now - lastBroadcastTimeRef.current;
 
@@ -743,6 +788,7 @@ export function useCollaboration({
     nodeToPayload,
     edgeToPayload,
     getNodeChangeSummary,
+    areEdgesEquivalent,
   ]);
 
   // Clean up stale collaborators
