@@ -11,6 +11,7 @@ type SetEdges = React.Dispatch<React.SetStateAction<Edge[]>>;
 // Broadcast message types for realtime sync
 type BroadcastMessage =
   | { type: "nodes_updated"; nodes: NodePayload[]; senderId: string }
+  | { type: "positions_updated"; positions: PositionPayload[]; senderId: string }
   | { type: "edges_updated"; edges: EdgePayload[]; senderId: string }
   | { type: "nodes_deleted"; nodeIds: string[]; senderId: string }
   | { type: "edges_deleted"; edgeIds: string[]; senderId: string }
@@ -27,6 +28,8 @@ interface NodePayload {
   data: Record<string, unknown>;
   parentId?: string;
 }
+
+type PositionPayload = Pick<NodePayload, "id" | "position">;
 
 interface EdgePayload {
   id: string;
@@ -106,6 +109,8 @@ const getSupabaseClient = () => {
   return createClient(url, key);
 };
 
+const BROADCAST_THROTTLE_MS = 50;
+
 /**
  * Hook for collaboration mode - handles live flow initialization, debounced saving, and realtime sync
  */
@@ -137,9 +142,37 @@ export function useCollaboration({
   // Track previous state for diffing
   const prevNodesRef = useRef<Node[]>([]);
   const prevEdgesRef = useRef<Edge[]>([]);
+  const lastBroadcastTimeRef = useRef<number>(0);
+  const lastBroadcastNodesRef = useRef<Node[]>([]);
+  const lastBroadcastEdgesRef = useRef<Edge[]>([]);
 
   // Debounce timer
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isPositionOnlyChange = useCallback((prevNodes: Node[], newNodes: Node[]): boolean => {
+    if (prevNodes.length !== newNodes.length) return false;
+
+    const prevById = new Map(prevNodes.map((node) => [node.id, node]));
+    let sawPositionChange = false;
+
+    for (const current of newNodes) {
+      const previous = prevById.get(current.id);
+      if (!previous) return false;
+
+      const posChanged =
+        previous.position.x !== current.position.x || previous.position.y !== current.position.y;
+      const dataChanged = previous.data !== current.data;
+      const sizeChanged =
+        previous.width !== current.width || previous.height !== current.height;
+      const typeChanged = previous.type !== current.type;
+      const parentChanged = previous.parentId !== current.parentId;
+
+      if (dataChanged || sizeChanged || typeChanged || parentChanged) return false;
+      if (posChanged) sawPositionChange = true;
+    }
+
+    return sawPositionChange;
+  }, []);
 
   // Initialize flow from collaboration data
   useEffect(() => {
@@ -297,6 +330,11 @@ export function useCollaboration({
     parentId: node.parentId,
   }), []);
 
+  const nodeToPositionPayload = useCallback((node: Node): PositionPayload => ({
+    id: node.id,
+    position: node.position,
+  }), []);
+
   // Convert React Flow Edge to broadcast payload
   const edgeToPayload = useCallback((edge: Edge): EdgePayload => ({
     id: edge.id,
@@ -342,10 +380,36 @@ export function useCollaboration({
 
       const result = Array.from(nodeMap.values());
       prevNodesRef.current = result; // Update prev ref to avoid re-broadcasting
+      lastBroadcastNodesRef.current = result;
       return result;
     });
     setTimeout(() => { isApplyingRemoteRef.current = false; }, 0);
   }, [setNodes]);
+
+  // Apply incoming position-only updates from remote collaborators
+  const applyRemotePositionUpdates = useCallback(
+    (positions: PositionPayload[], senderId: string) => {
+      if (senderId === sessionIdRef.current) return;
+
+      isApplyingRemoteRef.current = true;
+      setNodes((currentNodes) => {
+        if (positions.length === 0) return currentNodes;
+
+        const positionMap = new Map(positions.map((p) => [p.id, p.position]));
+        const result = currentNodes.map((node) => {
+          const position = positionMap.get(node.id);
+          if (!position) return node;
+          return { ...node, position };
+        });
+
+        prevNodesRef.current = result;
+        lastBroadcastNodesRef.current = result;
+        return result;
+      });
+      setTimeout(() => { isApplyingRemoteRef.current = false; }, 0);
+    },
+    [setNodes]
+  );
 
   // Apply incoming edge updates from remote collaborators
   const applyRemoteEdgeUpdates = useCallback((payloads: EdgePayload[], senderId: string) => {
@@ -382,6 +446,7 @@ export function useCollaboration({
 
       const result = Array.from(edgeMap.values());
       prevEdgesRef.current = result;
+      lastBroadcastEdgesRef.current = result;
       return result;
     });
     setTimeout(() => { isApplyingRemoteRef.current = false; }, 0);
@@ -395,6 +460,7 @@ export function useCollaboration({
     setNodes((currentNodes) => {
       const result = currentNodes.filter((n) => !nodeIds.includes(n.id));
       prevNodesRef.current = result;
+      lastBroadcastNodesRef.current = result;
       return result;
     });
     setEdges((currentEdges) => {
@@ -402,6 +468,7 @@ export function useCollaboration({
         (e) => !nodeIds.includes(e.source) && !nodeIds.includes(e.target)
       );
       prevEdgesRef.current = result;
+      lastBroadcastEdgesRef.current = result;
       return result;
     });
     setTimeout(() => { isApplyingRemoteRef.current = false; }, 0);
@@ -415,6 +482,7 @@ export function useCollaboration({
     setEdges((currentEdges) => {
       const result = currentEdges.filter((e) => !edgeIds.includes(e.id));
       prevEdgesRef.current = result;
+      lastBroadcastEdgesRef.current = result;
       return result;
     });
     setTimeout(() => { isApplyingRemoteRef.current = false; }, 0);
@@ -477,6 +545,9 @@ export function useCollaboration({
         case "nodes_updated":
           applyRemoteNodeUpdates(message.nodes, message.senderId);
           break;
+        case "positions_updated":
+          applyRemotePositionUpdates(message.positions, message.senderId);
+          break;
         case "edges_updated":
           applyRemoteEdgeUpdates(message.edges, message.senderId);
           break;
@@ -531,6 +602,7 @@ export function useCollaboration({
     isCollaborating,
     initialized,
     applyRemoteNodeUpdates,
+    applyRemotePositionUpdates,
     applyRemoteEdgeUpdates,
     applyRemoteNodeDeletions,
     applyRemoteEdgeDeletions,
@@ -544,14 +616,52 @@ export function useCollaboration({
     if (!isCollaborating || !initialized || !isRealtimeConnected || isApplyingRemoteRef.current) return;
     if (!channelRef.current) return;
 
+    const prevNodes = lastBroadcastNodesRef.current;
+    const prevEdges = lastBroadcastEdgesRef.current;
+
     // Calculate what changed
-    const prevNodeIds = new Set(prevNodesRef.current.map((n) => n.id));
-    const prevEdgeIds = new Set(prevEdgesRef.current.map((e) => e.id));
+    const prevNodeIds = new Set(prevNodes.map((n) => n.id));
+    const prevEdgeIds = new Set(prevEdges.map((e) => e.id));
     const currentNodeIds = new Set(nodes.map((n) => n.id));
     const currentEdgeIds = new Set(edges.map((e) => e.id));
 
     const deletedNodeIds = [...prevNodeIds].filter((id) => !currentNodeIds.has(id));
     const deletedEdgeIds = [...prevEdgeIds].filter((id) => !currentEdgeIds.has(id));
+
+    const positionOnly = isPositionOnlyChange(prevNodes, nodes);
+    const edgesChanged = edges !== prevEdges;
+    const now = Date.now();
+    const timeSinceLastBroadcast = now - lastBroadcastTimeRef.current;
+
+    if (
+      positionOnly &&
+      deletedNodeIds.length === 0 &&
+      deletedEdgeIds.length === 0 &&
+      !edgesChanged &&
+      timeSinceLastBroadcast < BROADCAST_THROTTLE_MS
+    ) {
+      const timeoutId = setTimeout(() => {
+        if (!channelRef.current || nodes.length === 0) return;
+
+        lastBroadcastTimeRef.current = Date.now();
+        lastBroadcastNodesRef.current = nodes;
+        channelRef.current.send({
+          type: "broadcast",
+          event: "sync",
+          payload: {
+            type: "positions_updated",
+            positions: nodes.map(nodeToPositionPayload),
+            senderId: sessionIdRef.current,
+          } as BroadcastMessage,
+        });
+      }, BROADCAST_THROTTLE_MS - timeSinceLastBroadcast);
+
+      return () => clearTimeout(timeoutId);
+    }
+
+    lastBroadcastTimeRef.current = now;
+    lastBroadcastNodesRef.current = nodes;
+    lastBroadcastEdgesRef.current = edges;
 
     // Broadcast deletions
     if (deletedNodeIds.length > 0) {
@@ -580,15 +690,27 @@ export function useCollaboration({
 
     // Broadcast node updates (all nodes for simplicity)
     if (nodes.length > 0) {
-      channelRef.current.send({
-        type: "broadcast",
-        event: "sync",
-        payload: {
-          type: "nodes_updated",
-          nodes: nodes.map(nodeToPayload),
-          senderId: sessionIdRef.current,
-        } as BroadcastMessage,
-      });
+      if (positionOnly) {
+        channelRef.current.send({
+          type: "broadcast",
+          event: "sync",
+          payload: {
+            type: "positions_updated",
+            positions: nodes.map(nodeToPositionPayload),
+            senderId: sessionIdRef.current,
+          } as BroadcastMessage,
+        });
+      } else {
+        channelRef.current.send({
+          type: "broadcast",
+          event: "sync",
+          payload: {
+            type: "nodes_updated",
+            nodes: nodes.map(nodeToPayload),
+            senderId: sessionIdRef.current,
+          } as BroadcastMessage,
+        });
+      }
     }
 
     // Broadcast edge updates
@@ -603,7 +725,17 @@ export function useCollaboration({
         } as BroadcastMessage,
       });
     }
-  }, [nodes, edges, isCollaborating, initialized, isRealtimeConnected, nodeToPayload, edgeToPayload]);
+  }, [
+    nodes,
+    edges,
+    isCollaborating,
+    initialized,
+    isRealtimeConnected,
+    nodeToPayload,
+    nodeToPositionPayload,
+    edgeToPayload,
+    isPositionOnlyChange,
+  ]);
 
   // Clean up stale collaborators
   useEffect(() => {
