@@ -11,6 +11,65 @@ export interface FlowRecord {
   storage_path: string;
   created_at: string;
   updated_at: string;
+  // Live sharing fields
+  live_id: string | null;
+  share_token: string | null;
+  allow_public_execute: boolean;
+  use_owner_keys: boolean;
+  daily_execution_count: number;
+  daily_execution_reset: string;
+}
+
+/**
+ * Database record for a flow node (normalized storage)
+ */
+export interface FlowNodeRecord {
+  id: string;
+  flow_id: string;
+  type: string;
+  position_x: number;
+  position_y: number;
+  width?: number | null;
+  height?: number | null;
+  data: Record<string, unknown>;
+  private_data: Record<string, unknown>;
+  parent_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Database record for a flow edge (normalized storage)
+ */
+export interface FlowEdgeRecord {
+  id: string;
+  flow_id: string;
+  source_node_id: string;
+  source_handle?: string | null;
+  target_node_id: string;
+  target_handle?: string | null;
+  edge_type?: string;
+  data?: Record<string, unknown>;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Live flow data returned by get_live_flow RPC
+ */
+export interface LiveFlowData {
+  flow: {
+    id: string;
+    name: string;
+    description: string | null;
+    live_id: string;
+    allow_public_execute: boolean;
+    use_owner_keys: boolean;
+    created_at: string;
+    updated_at: string;
+  };
+  nodes: FlowNodeRecord[];
+  edges: FlowEdgeRecord[];
 }
 
 /**

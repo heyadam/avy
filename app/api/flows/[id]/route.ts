@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { SavedFlow } from "@/lib/flow-storage/types";
-import type { FlowRecord } from "@/lib/flows/types";
+import type { FlowRecord, FlowNodeRecord, FlowEdgeRecord } from "@/lib/flows/types";
+import { recordsToNodes, recordsToEdges } from "@/lib/flows/transform";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -9,6 +10,9 @@ interface RouteParams {
 
 /**
  * GET /api/flows/[id] - Get a flow by ID
+ *
+ * Loads from DB tables (flow_nodes, flow_edges) first.
+ * Falls back to Storage for flows not yet migrated.
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
@@ -43,7 +47,42 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Download the flow content from storage
+    // Try to load from DB tables first
+    const { data: nodeRecords } = await supabase
+      .from("flow_nodes")
+      .select("*")
+      .eq("flow_id", id);
+
+    const { data: edgeRecords } = await supabase
+      .from("flow_edges")
+      .select("*")
+      .eq("flow_id", id);
+
+    // If we have nodes in DB, use DB data
+    if (nodeRecords && nodeRecords.length > 0) {
+      const nodes = recordsToNodes(nodeRecords as FlowNodeRecord[]);
+      const edges = recordsToEdges((edgeRecords || []) as FlowEdgeRecord[]);
+
+      const flow: SavedFlow = {
+        metadata: {
+          name: flowRecord.name,
+          description: flowRecord.description || undefined,
+          createdAt: flowRecord.created_at,
+          updatedAt: flowRecord.updated_at,
+          schemaVersion: 1,
+        },
+        nodes,
+        edges,
+      };
+
+      return NextResponse.json({
+        success: true,
+        flow,
+        metadata: flowRecord as FlowRecord,
+      });
+    }
+
+    // Fall back to Storage for non-migrated flows
     const { data: fileData, error: downloadError } = await supabase.storage
       .from("flows")
       .download(flowRecord.storage_path);
@@ -76,6 +115,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 /**
  * PUT /api/flows/[id] - Update an existing flow
+ *
+ * Saves to both Storage (backup) and DB tables (primary).
  */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
@@ -121,7 +162,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Update the flow content in storage (upsert)
+    // Update the flow content in storage (backup)
     const flowJson = JSON.stringify(flow);
     const { error: uploadError } = await supabase.storage
       .from("flows")
@@ -132,13 +173,64 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     if (uploadError) {
       console.error("Error updating flow in storage:", uploadError);
-      return NextResponse.json(
-        { success: false, error: "Failed to update flow content" },
-        { status: 500 }
-      );
+      // Continue anyway - DB is the primary storage now
     }
 
-    // Update the database record
+    // Update nodes in DB - delete existing and insert new
+    const { error: deleteNodesError } = await supabase
+      .from("flow_nodes")
+      .delete()
+      .eq("flow_id", id);
+
+    if (deleteNodesError) {
+      console.error("Error deleting existing nodes:", deleteNodesError);
+    }
+
+    const { error: deleteEdgesError } = await supabase
+      .from("flow_edges")
+      .delete()
+      .eq("flow_id", id);
+
+    if (deleteEdgesError) {
+      console.error("Error deleting existing edges:", deleteEdgesError);
+    }
+
+    // Import transform functions dynamically to avoid circular deps
+    const { nodesToRecords, edgesToRecords } = await import("@/lib/flows/transform");
+
+    // Insert nodes
+    if (flow.nodes.length > 0) {
+      const nodeRecords = nodesToRecords(flow.nodes, id);
+      const { error: insertNodesError } = await supabase
+        .from("flow_nodes")
+        .insert(nodeRecords);
+
+      if (insertNodesError) {
+        console.error("Error inserting nodes:", insertNodesError);
+        return NextResponse.json(
+          { success: false, error: "Failed to save nodes" },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Insert edges
+    if (flow.edges.length > 0) {
+      const edgeRecords = edgesToRecords(flow.edges, id);
+      const { error: insertEdgesError } = await supabase
+        .from("flow_edges")
+        .insert(edgeRecords);
+
+      if (insertEdgesError) {
+        console.error("Error inserting edges:", insertEdgesError);
+        return NextResponse.json(
+          { success: false, error: "Failed to save edges" },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Update the flows table metadata
     const { data: updatedFlow, error: updateError } = await supabase
       .from("flows")
       .update({

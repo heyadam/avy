@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent } from "react";
+import { useRouter } from "next/navigation";
 import {
   ReactFlow,
   Background,
@@ -28,6 +29,7 @@ import { SaveFlowDialog, type SaveMode } from "./SaveFlowDialog";
 import { MyFlowsDialog } from "./MyFlowsDialog";
 import { FlowContextMenu } from "./FlowContextMenu";
 import { CommentEditContext } from "./CommentEditContext";
+import { CollaboratorCursors } from "./CollaboratorCursors";
 // Removed: import { initialNodes, initialEdges, defaultFlow } from "@/lib/example-flow";
 // Canvas now starts empty, templates modal offers starter flows
 import { useCommentSuggestions } from "@/lib/hooks/useCommentSuggestions";
@@ -39,14 +41,11 @@ import { useNodeParenting } from "@/lib/hooks/useNodeParenting";
 import { useFlowOperations } from "@/lib/hooks/useFlowOperations";
 import { useUndoRedo } from "@/lib/hooks/useUndoRedo";
 import type { NodeType, CommentColor } from "@/types/flow";
-import { Settings, Folder, FilePlus, FolderOpen, Save, PanelLeft, PanelRight, Cloud } from "lucide-react";
+import { Settings, Folder, FilePlus, FolderOpen, Save, PanelLeft, PanelRight, Cloud, Globe } from "lucide-react";
 import { SettingsDialogControlled } from "./SettingsDialogControlled";
 import { WelcomeDialog, isNuxComplete } from "./WelcomeDialog";
 import { TemplatesModal } from "./TemplatesModal";
-import {
-  useTemplatesModalState,
-  shouldShowTemplatesModal,
-} from "./TemplatesModal/hooks";
+import { useTemplatesModal } from "./TemplatesModal/hooks";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,12 +66,21 @@ import { useApiKeys, type ProviderId } from "@/lib/api-keys";
 import type { FlowMetadata } from "@/lib/flow-storage";
 import { useBackgroundSettings } from "@/lib/hooks/useBackgroundSettings";
 import { ProfileDropdown } from "./ProfileDropdown";
+import { ShareDialog } from "./ShareDialog";
+import { LiveSettingsPopover } from "./LiveSettingsPopover";
+import { useCollaboration, type CollaborationModeProps } from "@/lib/hooks/useCollaboration";
+import { loadFlow } from "@/lib/flows/api";
 
 let id = 0;
 const getId = () => `node_${id++}`;
 const setIdCounter = (newId: number) => { id = newId; };
+const CURSOR_BROADCAST_THROTTLE_MS = 50;
 
 // ID counter initialized at 0, updated when loading templates or flows
+
+export interface AgentFlowProps {
+  collaborationMode?: CollaborationModeProps;
+}
 
 const defaultNodeData: Record<NodeType, Record<string, unknown>> = {
   "text-input": { label: "Input Text", inputValue: "" },
@@ -85,11 +93,14 @@ const defaultNodeData: Record<NodeType, Record<string, unknown>> = {
   "react-component": { label: "React Component", userPrompt: "", provider: "anthropic", model: "claude-sonnet-4-5", stylePreset: "simple" },
 };
 
-export function AgentFlow() {
+export function AgentFlow({ collaborationMode }: AgentFlowProps) {
+  const router = useRouter();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
+  const lastCursorBroadcastRef = useRef<number>(0);
+  const lastCursorPositionRef = useRef<{ x: number; y: number } | null>(null);
 
   // API keys context
   const { keys: apiKeys, hasRequiredKey, getKeyStatuses, isDevMode, isLoaded } = useApiKeys();
@@ -180,10 +191,6 @@ export function AgentFlow() {
 
   const [responsesOpen, setResponsesOpen] = useState(false);
 
-  // Templates modal state
-  const [templatesModalOpen, setTemplatesModalOpen] = useState(false);
-  const { dismissPermanently: dismissTemplatesPermanently } = useTemplatesModalState();
-
   // Flow operations hook
   const {
     flowMetadata,
@@ -193,10 +200,10 @@ export function AgentFlow() {
     setSaveDialogOpen,
     myFlowsDialogOpen,
     setMyFlowsDialogOpen,
-    loadBlankCanvas,
     handleNewFlow,
     handleSelectTemplate,
     handleSaveFlow,
+    saveFlowToCloud,
     handleLoadCloudFlow,
     handleOpenFlow,
   } = useFlowOperations({
@@ -212,15 +219,89 @@ export function AgentFlow() {
       clearHistory(); // Clear undo history when loading a new flow
     },
     setIdCounter,
-    shouldShowTemplatesModal,
-    setTemplatesModalOpen,
   });
-  
+
+  // Published flow info state (for owner collaboration mode and ShareDialog)
+  const [publishedFlowInfo, setPublishedFlowInfo] = useState<{
+    flowId: string;
+    liveId: string;
+    shareToken: string;
+    useOwnerKeys: boolean;
+  } | null>(null);
+
+  // Build owner collaboration mode when flow is published and we're not already in collaborator mode
+  const ownerCollaborationMode = useMemo(() => {
+    if (collaborationMode || !publishedFlowInfo?.shareToken) return undefined;
+    return {
+      shareToken: publishedFlowInfo.shareToken,
+      liveId: publishedFlowInfo.liveId,
+      initialFlow: null, // Owner already has flow loaded
+      isOwner: true,
+    };
+  }, [collaborationMode, publishedFlowInfo]);
+
+  // Use prop-based collaboration mode (for /[code]/[token] route) or owner mode (for / route with published flow)
+  const effectiveCollaborationMode = collaborationMode ?? ownerCollaborationMode;
+
+  // Collaboration mode hook
+  const {
+    isCollaborating,
+    liveId,
+    shareToken,
+    flowName: collaborationFlowName,
+    isSaving: isCollaborationSaving,
+    isRealtimeConnected,
+    collaborators,
+    broadcastCursor,
+    isOwner,
+  } = useCollaboration({
+    collaborationMode: effectiveCollaborationMode,
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    reactFlowInstance,
+    setIdCounter,
+  });
+
+  const liveSession = useMemo(() => {
+    if (publishedFlowInfo && currentFlowId) {
+      return {
+        flowId: currentFlowId,
+        liveId: publishedFlowInfo.liveId,
+        shareToken: publishedFlowInfo.shareToken,
+        useOwnerKeys: publishedFlowInfo.useOwnerKeys,
+      };
+    }
+
+    if (isCollaborating && liveId && shareToken) {
+      return {
+        flowId: undefined,
+        liveId,
+        shareToken,
+        useOwnerKeys: collaborationMode?.initialFlow?.flow.use_owner_keys ?? false,
+      };
+    }
+
+    return null;
+  }, [publishedFlowInfo, currentFlowId, isCollaborating, liveId, shareToken, collaborationMode]);
+
+  // Templates modal hook (after useCollaboration so we have isCollaborating)
+  const {
+    isOpen: templatesModalOpen,
+    open: openTemplatesModal,
+    close: closeTemplatesModal,
+    dismissPermanently: dismissTemplatesPermanently,
+  } = useTemplatesModal({
+    isLoaded,
+    isCollaborating,
+    nodes,
+    edges,
+    flowMetadata,
+  });
+
   // Canvas width for responsive label hiding
   const [canvasWidth, setCanvasWidth] = useState<number>(0);
-
-  // Flow ID for future collaboration feature
-  const [flowId] = useState(() => Math.floor(Math.random() * 900 + 100).toString());
 
   const statuses = getKeyStatuses();
   const hasAnyKey = statuses.some((s) => s.hasKey);
@@ -229,22 +310,78 @@ export function AgentFlow() {
   // Settings dialog state
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  // Share dialog state
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+
+  // Live settings popover state
+  const [livePopoverOpen, setLivePopoverOpen] = useState(false);
+
+  const handleDisconnect = useCallback(() => {
+    setLivePopoverOpen(false);
+    router.replace("/");
+  }, [router]);
+
+  // Fetch published state when flow loads
+  useEffect(() => {
+    if (!currentFlowId) {
+      setPublishedFlowInfo(null);
+      return;
+    }
+
+    let isActive = true;
+    const flowId = currentFlowId;
+
+    loadFlow(flowId).then((result) => {
+      if (!isActive) return;
+      // Access result.metadata (FlowRecord), not result.flow (SavedFlow)
+      if (result.success && result.metadata) {
+        const record = result.metadata;
+        if (record.live_id && record.share_token) {
+          setPublishedFlowInfo({
+            flowId,
+            liveId: record.live_id,
+            shareToken: record.share_token,
+            useOwnerKeys: record.use_owner_keys,
+          });
+        } else {
+          setPublishedFlowInfo((prev) => (prev?.flowId === flowId ? prev : null));
+        }
+      } else {
+        setPublishedFlowInfo((prev) => (prev?.flowId === flowId ? prev : null));
+      }
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [currentFlowId]);
+
+  // Unpublish flow when owner leaves the page
+  useEffect(() => {
+    if (!isOwner || !currentFlowId || !publishedFlowInfo) return;
+
+    const handleBeforeUnload = () => {
+      // Use sendBeacon for reliable delivery during page unload
+      navigator.sendBeacon(
+        `/api/flows/${currentFlowId}/publish`,
+        new Blob([JSON.stringify({ _method: "DELETE" })], { type: "application/json" })
+      );
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isOwner, currentFlowId, publishedFlowInfo]);
+
   // Auto-open settings dialog when no API keys are configured
   // Only show if NUX is complete (step 2 of NUX guides users to API keys)
+  // Skip in collaboration mode - collaborators may use owner's keys
   useEffect(() => {
-    if (isLoaded && !isDevMode && !hasAnyKey && isNuxComplete()) {
+    if (isLoaded && !isDevMode && !hasAnyKey && isNuxComplete() && !isCollaborating) {
       setSettingsOpen(true);
     }
-  }, [isLoaded, isDevMode, hasAnyKey]);
+  }, [isLoaded, isDevMode, hasAnyKey, isCollaborating]);
 
   const [pendingAutopilotMessage, setPendingAutopilotMessage] = useState<PendingAutopilotMessage | null>(null);
-
-  // Auto-open templates modal on app load (after NUX is complete)
-  useEffect(() => {
-    if (isLoaded && isNuxComplete() && shouldShowTemplatesModal()) {
-      setTemplatesModalOpen(true);
-    }
-  }, [isLoaded, setTemplatesModalOpen]);
 
   // Dismiss templates modal when node palette opens (user clicks "Add Node")
   const prevNodesPaletteOpen = useRef(nodesPaletteOpen);
@@ -253,16 +390,16 @@ export function AgentFlow() {
     prevNodesPaletteOpen.current = nodesPaletteOpen;
 
     if (wasClosedNowOpen && templatesModalOpen) {
-      setTemplatesModalOpen(false);
+      closeTemplatesModal();
     }
-  }, [nodesPaletteOpen, templatesModalOpen]);
+  }, [nodesPaletteOpen, templatesModalOpen, closeTemplatesModal]);
 
   // Dismiss templates modal when user sends autopilot message
   const handleAutopilotMessageSent = useCallback(() => {
     if (templatesModalOpen) {
-      setTemplatesModalOpen(false);
+      closeTemplatesModal();
     }
-  }, [templatesModalOpen]);
+  }, [templatesModalOpen, closeTemplatesModal]);
 
   // Handle prompt submission from templates modal
   const handleTemplatesPromptSubmit = useCallback((
@@ -273,7 +410,6 @@ export function AgentFlow() {
   ) => {
     setPendingAutopilotMessage({ prompt, mode, model, thinkingEnabled });
     setAutopilotOpen(true);
-    setTemplatesModalOpen(false);
   }, []);
 
   // Background settings
@@ -407,6 +543,62 @@ export function AgentFlow() {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
   }, []);
+
+  const broadcastCursorFromClient = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!isCollaborating || !reactFlowInstance.current) return;
+
+      const wrapper = reactFlowWrapper.current;
+      if (!wrapper) return;
+
+      const now = Date.now();
+      if (now - lastCursorBroadcastRef.current < CURSOR_BROADCAST_THROTTLE_MS) {
+        return;
+      }
+
+      const position = reactFlowInstance.current.screenToFlowPosition({
+        x: clientX,
+        y: clientY,
+      });
+
+      const lastPosition = lastCursorPositionRef.current;
+      if (
+        lastPosition &&
+        Math.abs(lastPosition.x - position.x) < 0.25 &&
+        Math.abs(lastPosition.y - position.y) < 0.25
+      ) {
+        return;
+      }
+
+      lastCursorBroadcastRef.current = now;
+      lastCursorPositionRef.current = position;
+      broadcastCursor(position);
+    },
+    [broadcastCursor, isCollaborating]
+  );
+
+  const handlePaneMouseMove = useCallback(
+    (event: MouseEvent) => {
+      broadcastCursorFromClient(event.clientX, event.clientY);
+    },
+    [broadcastCursorFromClient]
+  );
+
+  useEffect(() => {
+    if (!isCollaborating) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const wrapper = reactFlowWrapper.current;
+      if (!wrapper) return;
+      const target = event.target;
+      if (target instanceof HTMLElement && !wrapper.contains(target)) return;
+
+      broadcastCursorFromClient(event.clientX, event.clientY);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    return () => window.removeEventListener("pointermove", handlePointerMove);
+  }, [broadcastCursorFromClient, isCollaborating]);
 
   const onDrop = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
@@ -561,7 +753,11 @@ export function AgentFlow() {
         onPendingMessageConsumed={() => setPendingAutopilotMessage(null)}
         clearHistoryTrigger={autopilotClearTrigger}
       />
-      <div ref={reactFlowWrapper} className="flex-1 h-full bg-muted/10 relative">
+      <div
+        ref={reactFlowWrapper}
+        className="flex-1 h-full bg-muted/10 relative"
+        onMouseMove={handlePaneMouseMove}
+      >
         <NodeToolbar
           isOpen={nodesPaletteOpen}
           onClose={() => setNodesPaletteOpen(false)}
@@ -610,6 +806,7 @@ export function AgentFlow() {
                 style={{ backgroundColor: bgSettings.bgColor }}
               />
               <Controls />
+              <CollaboratorCursors collaborators={collaborators} />
             </ReactFlow>
             </FlowContextMenu>
           </ConnectionContext.Provider>
@@ -655,8 +852,9 @@ export function AgentFlow() {
                   {canvasWidth > 800 && (
                     <>
                       <span>Flow</span>
-                      <span className="w-px h-4 bg-muted-foreground/30 mx-1 shrink-0" />
-                      <span className="font-mono">{flowId}</span>
+                      {isCollaborating && isCollaborationSaving && (
+                        <span className="ml-1 text-xs text-muted-foreground/50">Saving...</span>
+                      )}
                     </>
                   )}
                 </button>
@@ -666,37 +864,113 @@ export function AgentFlow() {
                 sideOffset={8}
                 className="bg-neutral-900 border-neutral-700 text-white min-w-[160px]"
               >
-                <DropdownMenuItem
-                  onClick={handleNewFlow}
-                  className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
-                >
-                  <FilePlus className="h-4 w-4 mr-2" />
-                  New Flow
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-neutral-700" />
-                <DropdownMenuItem
-                  onClick={() => setMyFlowsDialogOpen(true)}
-                  className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
-                >
-                  <Cloud className="h-4 w-4 mr-2" />
-                  My Flows
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleOpenFlow}
-                  className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
-                >
-                  <FolderOpen className="h-4 w-4 mr-2" />
-                  Open from file...
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setSaveDialogOpen(true)}
-                  className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Save as...
-                </DropdownMenuItem>
+                {isCollaborating ? (
+                  <>
+                    {/* Collaboration mode: show flow name and limited actions */}
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                      {collaborationFlowName || "Live Flow"}
+                    </div>
+                    <DropdownMenuSeparator className="bg-neutral-700" />
+                    <DropdownMenuItem
+                      onClick={() => window.open("/", "_blank")}
+                      className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
+                    >
+                      <FilePlus className="h-4 w-4 mr-2" />
+                      New Flow (new tab)
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        handleNewFlow();
+                        openTemplatesModal();
+                      }}
+                      className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
+                    >
+                      <FilePlus className="h-4 w-4 mr-2" />
+                      New Flow
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-neutral-700" />
+                    <DropdownMenuItem
+                      onClick={() => setMyFlowsDialogOpen(true)}
+                      className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
+                    >
+                      <Cloud className="h-4 w-4 mr-2" />
+                      My Flows
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={handleOpenFlow}
+                      className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
+                    >
+                      <FolderOpen className="h-4 w-4 mr-2" />
+                      Open from file...
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setSaveDialogOpen(true)}
+                      className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      Save as...
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
+            {/* Live button - always shown */}
+            {liveSession ? (
+              <LiveSettingsPopover
+                flowId={liveSession.flowId}
+                liveId={liveSession.liveId}
+                shareToken={liveSession.shareToken}
+                useOwnerKeys={liveSession.useOwnerKeys}
+                isOwner={isOwner}
+                collaboratorCount={collaborators.length}
+                onUnpublish={isOwner ? () => setPublishedFlowInfo(null) : undefined}
+                onOwnerKeysChange={isOwner
+                  ? (enabled) => setPublishedFlowInfo(prev => prev ? { ...prev, useOwnerKeys: enabled } : null)
+                  : undefined}
+                onDisconnect={!isOwner && isCollaborating ? handleDisconnect : undefined}
+                open={livePopoverOpen}
+                onOpenChange={setLivePopoverOpen}
+              >
+                <button
+                  className="flex items-center gap-1.5 px-2.5 py-2 text-cyan-400 hover:text-cyan-300 transition-colors rounded-full border border-cyan-500/30 hover:border-cyan-400/50 bg-background/50 backdrop-blur-sm text-sm cursor-pointer"
+                  title="Live settings"
+                >
+                  <Globe className="w-4 h-4 shrink-0" />
+                  {canvasWidth > 800 && (
+                    <>
+                      <span>Live</span>
+                      {isRealtimeConnected && (
+                        <span className="flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                          <span className="text-xs text-green-400">{collaborators.length + 1}</span>
+                        </span>
+                      )}
+                    </>
+                  )}
+                </button>
+              </LiveSettingsPopover>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setShareDialogOpen(true)}
+                    className={`flex items-center px-2.5 py-2 text-muted-foreground/60 hover:text-foreground transition-colors rounded-full border border-muted-foreground/20 hover:border-muted-foreground/40 bg-background/50 backdrop-blur-sm text-sm cursor-pointer ${
+                      canvasWidth > 800 ? "gap-1.5" : ""
+                    }`}
+                    title="Go Live"
+                  >
+                    <Globe className="w-4 h-4 shrink-0" />
+                    {canvasWidth > 800 && <span>Live</span>}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="bg-neutral-800 text-white border-neutral-700">
+                  Go Live
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </TooltipProvider>
         {/* Settings, Profile, and Preview icons (top right, left of responses sidebar) */}
@@ -784,15 +1058,33 @@ export function AgentFlow() {
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
       />
+      <ShareDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        flowId={currentFlowId}
+        flowName={flowMetadata?.name || "Untitled Flow"}
+        initialLiveId={publishedFlowInfo?.liveId}
+        initialShareToken={publishedFlowInfo?.shareToken}
+        initialUseOwnerKeys={publishedFlowInfo?.useOwnerKeys}
+        onPublish={(flowId, liveId, shareToken, useOwnerKeys) => {
+          setPublishedFlowInfo({ flowId, liveId, shareToken, useOwnerKeys });
+          // Open the live settings popover after a brief delay to let the dialog close
+          setTimeout(() => setLivePopoverOpen(true), 100);
+        }}
+        onSaveFlow={saveFlowToCloud}
+        isSaving={isSaving}
+      />
       <TemplatesModal
         open={templatesModalOpen}
-        onOpenChange={setTemplatesModalOpen}
-        onSelectTemplate={handleSelectTemplate}
-        onDismiss={loadBlankCanvas}
+        onClose={closeTemplatesModal}
         onDismissPermanently={dismissTemplatesPermanently}
+        onSelectTemplate={handleSelectTemplate}
         onSubmitPrompt={handleTemplatesPromptSubmit}
       />
-      <WelcomeDialog onDone={handleNewFlow} />
+      <WelcomeDialog onDone={isCollaborating ? undefined : () => {
+        handleNewFlow();
+        openTemplatesModal();
+      }} />
     </div>
   );
 }

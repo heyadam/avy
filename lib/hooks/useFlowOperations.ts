@@ -36,8 +36,6 @@ export interface UseFlowOperationsOptions {
   reactFlowInstance: MutableRefObject<ReactFlowInstance | null>;
   onFlowChange?: () => void; // Callback when flow is loaded/changed
   setIdCounter: (id: number) => void;
-  shouldShowTemplatesModal: () => boolean;
-  setTemplatesModalOpen: (open: boolean) => void;
 }
 
 export interface UseFlowOperationsReturn {
@@ -54,7 +52,8 @@ export interface UseFlowOperationsReturn {
   loadBlankCanvas: () => void;
   handleNewFlow: () => void;
   handleSelectTemplate: (flow: SavedFlow) => void;
-  handleSaveFlow: (name: string, mode: SaveMode) => Promise<void>;
+  handleSaveFlow: (name: string, mode: SaveMode) => Promise<string | null>;
+  saveFlowToCloud: (name: string) => Promise<string | null>;
   handleLoadCloudFlow: (flowId: string) => Promise<void>;
   handleOpenFlow: () => Promise<void>;
 }
@@ -79,8 +78,6 @@ export function useFlowOperations({
   reactFlowInstance,
   onFlowChange,
   setIdCounter,
-  shouldShowTemplatesModal,
-  setTemplatesModalOpen,
 }: UseFlowOperationsOptions): UseFlowOperationsReturn {
   // Flow metadata state
   const [flowMetadata, setFlowMetadata] = useState<FlowMetadata | undefined>(undefined);
@@ -110,13 +107,10 @@ export function useFlowOperations({
     updateIdCounter([], setIdCounter);
   }, [setNodes, setEdges, resetExecution, clearHighlights, onFlowChange, setIdCounter]);
 
-  // Create a new flow (clears canvas, optionally shows templates)
+  // Create a new flow (clears canvas)
   const handleNewFlow = useCallback(() => {
     loadBlankCanvas();
-    if (shouldShowTemplatesModal()) {
-      setTemplatesModalOpen(true);
-    }
-  }, [loadBlankCanvas, shouldShowTemplatesModal, setTemplatesModalOpen]);
+  }, [loadBlankCanvas]);
 
   // Load a template flow
   const handleSelectTemplate = useCallback(
@@ -138,43 +132,59 @@ export function useFlowOperations({
     [setNodes, setEdges, resetExecution, clearHighlights, onFlowChange, setIdCounter, reactFlowInstance]
   );
 
-  // Save flow to cloud or download
-  const handleSaveFlow = useCallback(
-    async (name: string, mode: SaveMode) => {
+  // Core save to cloud function (no dialog side effects)
+  // Returns the flow ID if saved successfully, null otherwise
+  const saveFlowToCloud = useCallback(
+    async (name: string): Promise<string | null> => {
       const flow = createSavedFlow(nodes, edges, name, flowMetadata);
       setFlowMetadata(flow.metadata);
+      setIsSaving(true);
 
-      if (mode === "download") {
-        downloadFlow(flow);
-        setSaveDialogOpen(false);
-      } else {
-        // Cloud save
-        setIsSaving(true);
-        try {
-          let result;
-          if (currentFlowId) {
-            // Update existing flow
-            result = await updateFlow(currentFlowId, flow);
-          } else {
-            // Create new flow
-            result = await createFlow(flow);
-          }
-
-          if (result.success && result.flow) {
-            setCurrentFlowId(result.flow.id);
-            setSaveDialogOpen(false);
-          } else {
-            alert(result.error || "Failed to save flow");
-          }
-        } catch (error) {
-          console.error("Error saving flow:", error);
-          alert("Failed to save flow");
-        } finally {
-          setIsSaving(false);
+      try {
+        let result;
+        if (currentFlowId) {
+          result = await updateFlow(currentFlowId, flow);
+        } else {
+          result = await createFlow(flow);
         }
+
+        if (result.success && result.flow) {
+          setCurrentFlowId(result.flow.id);
+          return result.flow.id;
+        } else {
+          return null;
+        }
+      } catch (error) {
+        console.error("Error saving flow:", error);
+        return null;
+      } finally {
+        setIsSaving(false);
       }
     },
     [nodes, edges, flowMetadata, currentFlowId]
+  );
+
+  // Save flow to cloud or download (with dialog handling)
+  // Returns the flow ID if saved to cloud, null otherwise
+  const handleSaveFlow = useCallback(
+    async (name: string, mode: SaveMode): Promise<string | null> => {
+      if (mode === "download") {
+        const flow = createSavedFlow(nodes, edges, name, flowMetadata);
+        setFlowMetadata(flow.metadata);
+        downloadFlow(flow);
+        setSaveDialogOpen(false);
+        return null;
+      } else {
+        const flowId = await saveFlowToCloud(name);
+        if (flowId) {
+          setSaveDialogOpen(false);
+        } else {
+          alert("Failed to save flow");
+        }
+        return flowId;
+      }
+    },
+    [nodes, edges, flowMetadata, saveFlowToCloud]
   );
 
   // Load flow from cloud
@@ -246,6 +256,7 @@ export function useFlowOperations({
     handleNewFlow,
     handleSelectTemplate,
     handleSaveFlow,
+    saveFlowToCloud,
     handleLoadCloudFlow,
     handleOpenFlow,
   };

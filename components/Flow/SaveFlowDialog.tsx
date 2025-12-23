@@ -19,7 +19,7 @@ export type SaveMode = "cloud" | "download";
 interface SaveFlowDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (name: string, mode: SaveMode) => void | Promise<void>;
+  onSave: (name: string, mode: SaveMode) => void | Promise<void> | Promise<string | null>;
   defaultName?: string;
   isSaving?: boolean;
   existingFlowId?: string | null;
@@ -33,7 +33,7 @@ function SaveFlowDialogContent({
   isAuthenticated,
   existingFlowId,
 }: {
-  onSave: (name: string, mode: SaveMode) => void | Promise<void>;
+  onSave: (name: string, mode: SaveMode) => void | Promise<void> | Promise<string | null>;
   onClose: () => void;
   defaultName: string;
   isSaving: boolean;
