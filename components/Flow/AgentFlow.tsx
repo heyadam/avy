@@ -909,7 +909,7 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
         onDismissPermanently={dismissTemplatesPermanently}
         onSubmitPrompt={handleTemplatesPromptSubmit}
       />
-      <WelcomeDialog onDone={handleNewFlow} />
+      <WelcomeDialog onDone={isCollaborating ? undefined : handleNewFlow} />
     </div>
   );
 }
