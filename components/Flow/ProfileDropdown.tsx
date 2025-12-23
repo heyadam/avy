@@ -49,7 +49,7 @@ export function ProfileDropdown() {
       <Tooltip>
         <TooltipTrigger asChild>
           <button
-            onClick={signInWithGoogle}
+            onClick={() => signInWithGoogle(window.location.pathname)}
             className="p-2 text-muted-foreground/60 hover:text-foreground transition-colors rounded-full border border-muted-foreground/20 hover:border-muted-foreground/40 bg-background/50 backdrop-blur-sm cursor-pointer"
           >
             <User className="w-5 h-5" />

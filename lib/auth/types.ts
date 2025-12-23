@@ -14,7 +14,7 @@ export interface AuthContextValue {
   profile: Profile | null
   session: Session | null
   isLoading: boolean
-  signInWithGoogle: () => Promise<void>
+  signInWithGoogle: (returnUrl?: string) => Promise<void>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }

@@ -401,7 +401,7 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
           </div>
 
           <div className="grid gap-2">
-            <Button onClick={signInWithGoogle} className="h-10 w-full cursor-pointer">
+            <Button onClick={() => signInWithGoogle(window.location.pathname)} className="h-10 w-full cursor-pointer">
               Continue with Google
             </Button>
             <Button
