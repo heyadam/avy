@@ -213,6 +213,10 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 - `useNodeParenting.ts`: Handles node parenting behavior within comments - auto-parenting when dragged into comments, unparenting when dragged out, comment deletion with cascading unparenting, and resize capture/release.
 - `useFlowOperations.ts`: Manages flow file operations - new/blank flow creation, template selection, cloud save/load, file picker operations, and flow metadata state.
 - `useUndoRedo.ts`: Snapshot-based undo/redo for flow state with keyboard shortcuts (Cmd+Z/Ctrl+Z for undo, Shift+Cmd+Z/Ctrl+Y for redo). Maintains history stack up to 50 snapshots.
+- `useCollaboration.ts`: Core real-time collaboration logic - Supabase Realtime sync, presence tracking, auto-save, smooth position interpolation.
+- `usePerfectCursor.ts`: Wrapper around `perfect-cursors` npm package for smooth cursor/position animations.
+- `useNuxState.ts`: Manages NUX step state (`"1"` | `"2"` | `"3"` | `"done"`) persisted to localStorage.
+- `useDemoExecution.ts`: Auto-executes welcome-preview flow for NUX Step 1 demo.
 
 **Comment System**:
 - `CommentEditContext.tsx`: React context for tracking user-edited comments to prevent AI overwrites
@@ -220,6 +224,59 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 - `lib/hooks/useCommentSuggestions.ts`: Manages auto-generation of comment suggestions
 
 **Example Flow** (`lib/example-flow.ts`): Default flow configuration loaded on startup.
+
+### Live/Publish System
+
+**ShareDialog** (`components/Flow/ShareDialog.tsx`): Dialog for publishing flows and managing sharing:
+- Save & publish unsaved flows in multi-step flow
+- Toggle "Owner-Funded Execution" for collaborators to use owner's API keys
+- View/copy shareable link
+- Unpublish flows
+
+**LiveSettingsPopover** (`components/Flow/LiveSettingsPopover.tsx`): Popover for published flow settings:
+- View collaborator count with live indicator (green pulse)
+- Copy share URL
+- Owner-Funded Execution toggle (owner only)
+- Unpublish button (owner only)
+- Shows non-owner info when collaborating
+
+**Live Button** (in header): Globe icon that shows LiveSettingsPopover when published, ShareDialog when not.
+
+**Auto-Unpublish**: Flow is automatically unpublished when owner leaves the page (uses `navigator.sendBeacon` for reliable cleanup).
+
+**Publish API Route** (`app/api/flows/[id]/publish/route.ts`):
+- POST: Publishes flow with unique `live_id` and `share_token`
+- DELETE: Unpublishes flow (supports sendBeacon method override)
+
+### Real-time Collaboration
+
+**useCollaboration Hook** (`lib/hooks/useCollaboration.ts`): Core collaboration logic (974 lines):
+- Manages Supabase Realtime channel subscription for live sync
+- Debounced auto-save (500ms) with `updateLiveFlow`
+- Broadcasts node/edge changes using Supabase Broadcast API
+- Smooth position interpolation using PerfectCursor library for each node
+- Presence tracking: cursor positions, user join/leave events
+- Avoids re-broadcasting received remote changes via `isApplyingRemoteRef` flag
+- Handles position version tracking to ignore stale updates
+- Drags-in-progress detection to ignore incoming position updates during drag
+- Throttled broadcasts (50ms) to avoid network spam
+- Automatic cleanup of stale collaborators (30s timeout)
+
+**CollaboratorCursors** (`components/Flow/CollaboratorCursors.tsx`): Renders remote collaborator cursor positions:
+- Colored cursor + name label per collaborator
+- Crown icon for flow owner
+- Uses ViewportPortal for canvas integration
+
+**usePerfectCursor Hook** (`lib/hooks/usePerfectCursor.ts`): Wrapper around `perfect-cursors` npm package for smooth cursor/position animations.
+
+**Live Page Route** (`app/[code]/[token]/page.tsx`): Collaborator entry point for shared flows:
+- Validates share token format (12 alphanumeric chars)
+- Loads flow data via `loadLiveFlow`
+- Initializes collaboration mode with `useCollaboration`
+
+**Live API Routes**:
+- `app/api/live/[token]/route.ts`: Load live flow data for collaborators
+- `app/api/live/[token]/execute/route.ts`: Execute nodes in live flow (supports owner-funded execution)
 
 ### Testing
 
@@ -241,18 +298,19 @@ Run tests with `npm test` (66 tests) or `npm run test:watch` for watch mode.
 
 **Mobile Detection Hook** (`lib/hooks/useMobileDetection.ts`): SSR-safe hook that returns `null` until checked, then `true`/`false` based on user agent regex matching mobile devices.
 
-**Welcome Dialog (NUX)** (`components/Flow/WelcomeDialog/`): Two-step onboarding flow for new users:
+**Welcome Dialog (NUX)** (`components/Flow/WelcomeDialog/`): Three-step onboarding flow for new users:
 - `index.tsx`: Main dialog controller with step logic
 - `DialogShell.tsx`: Shared two-column layout (content left, hero right)
 - `StepIndicator.tsx`: Progress dots showing current step
-- `hooks/useNuxState.ts`: Manages NUX step state persisted to localStorage
+- `hooks/useNuxState.ts`: Manages NUX step state (`"1"` | `"2"` | `"3"` | `"done"`) persisted to localStorage
 - `heroes/DemoHero.tsx`: Interactive React Flow demo that auto-executes on mount
 - `heroes/ProvidersHero.tsx`: 3D scene showing provider icons flowing into Composer
 - `heroes/DemoOutputsModal.tsx`: Modal for viewing demo execution outputs
 - `heroes/HeroPanel.tsx`: Shared panel wrapper for hero content
 - `three/`: 3D components (RoundedTile, CurvedLine, SvgIcon, GoogleIcon, ComposerIcon)
-- Step 1: Welcome with sign-in options (Google OAuth or skip)
-- Step 2: API keys setup with link to settings dialog
+- Step 1: Welcome with sign-in options (Google OAuth or skip), interactive demo hero
+- Step 2: API keys introduction explaining benefits (control, privacy, mix providers)
+- Step 3: API keys form with inputs for Anthropic, OpenAI, Google Gemini, VIP code unlock
 - State persisted to `avy-nux-step` in localStorage
 
 ### Authentication & User Management
@@ -289,10 +347,10 @@ Run tests with `npm test` (66 tests) or `npm run test:watch` for watch mode.
 - Flows saved with `.avy.json` extension
 
 **Cloud Flow Storage** (`lib/flows/`): Supabase-backed flow persistence for authenticated users:
-- `api.ts`: Client-side API calls for CRUD operations (listFlows, createFlow, updateFlow, loadFlow, deleteFlow)
-- `types.ts`: FlowRecord, FlowListItem, response interfaces
+- `api.ts`: Client-side API calls for CRUD operations (listFlows, createFlow, updateFlow, loadFlow, deleteFlow, publishFlow, unpublishFlow, loadLiveFlow, updateLiveFlow, updatePublishSettings, getUserKeysStatus)
+- `types.ts`: FlowRecord (with `live_id`, `share_token`, `use_owner_keys`), FlowListItem, LiveFlowData, LiveFlowChanges, response interfaces
 - Metadata stored in `flows` table, flow JSON stored in Supabase Storage
-- API routes: `app/api/flows/route.ts` (list, create), `app/api/flows/[id]/route.ts` (get, update, delete)
+- API routes: `app/api/flows/route.ts` (list, create), `app/api/flows/[id]/route.ts` (get, update, delete), `app/api/flows/[id]/publish/route.ts` (publish, unpublish)
 
 **API Route** (`app/api/execute/route.ts`): Server-side execution handler for text-generation and image-generation nodes:
 - Text generation nodes: Uses Vercel AI SDK with `streamText` for real-time streaming responses. Supports OpenAI, Google, and Anthropic providers with provider-specific options.
