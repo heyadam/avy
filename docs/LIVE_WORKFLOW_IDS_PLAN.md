@@ -1,5 +1,84 @@
 # Live Workflow IDs with Realtime & MCP Support
 
+## Implementation Progress
+
+> Last updated: 2025-12-23
+
+### ✅ Completed
+
+- **Step 1: Database migrations** (8 migrations applied)
+  - Added `live_id`, `share_token`, `allow_public_execute`, `use_owner_keys` columns to `flows` table
+  - Created `flow_nodes` table with RLS
+  - Created `flow_edges` table with RLS
+  - Created `user_api_keys` table for encrypted key storage
+  - Created RPCs: `get_live_flow`, `execute_live_flow_check`, `update_live_flow`, `get_owner_keys_for_execution`
+
+- **Step 2: Migration endpoint** (`/api/migrate-flows`)
+  - One-time migration of existing flows from Storage to DB tables
+  - Splits node data into `data` (UI) and `private_data` (content)
+
+- **Step 3: Updated save/load logic**
+  - `POST /api/flows` - Now saves to both Storage (backup) and DB tables
+  - `GET /api/flows/[id]` - Loads from DB tables first, falls back to Storage
+  - `PUT /api/flows/[id]` - Updates both Storage and DB tables
+  - Created `lib/flows/transform.ts` for Node/Edge ↔ DB record conversion
+
+- **Step 4: Public API routes + key management**
+  - `POST/DELETE /api/flows/[id]/publish` - Publish/unpublish flows
+  - `GET/PUT /api/live/[token]` - Token-gated read/update via RPC
+  - `GET/PUT/DELETE /api/user/keys` - Encrypted API key storage
+  - Created `lib/encryption.ts` with AES-256-GCM helpers
+  - Added client-side API functions in `lib/flows/api.ts`
+
+- **Step 5: URL routing** (basic structure)
+  - Created `/[code]/[token]/page.tsx` collaboration page
+  - Fetches flow data, validates code matches live_id
+  - Redirects to correct URL if code mismatch
+
+- **Step 6: UI integration**
+  - Added "Go Live..." option to Flow dropdown menu
+  - Created `ShareDialog.tsx` with publish/unpublish functionality
+  - Share URL display with copy and open-in-new-tab buttons
+  - Warning about edit access for anyone with the link
+
+- **Step 7: Execute endpoint with owner keys**
+  - Created `POST /api/live/[token]/execute`
+  - Created `lib/execution/server-execute.ts` for server-side flow execution
+  - Supports text-generation, image-generation, ai-logic, and react-component nodes
+  - Owner key resolution via `get_owner_keys_for_execution` RPC
+  - Falls back to collaborator keys from request headers
+  - Atomic quota enforcement via `execute_live_flow_check` RPC
+  - Input overrides for text-input nodes
+
+- **Step 8: AgentFlow collaboration mode**
+  - Created `lib/hooks/useCollaboration.ts` hook
+  - Accepts collaboration props (shareToken, liveId, initialFlow)
+  - Initializes flow from DB records on mount
+  - Debounced auto-save (500ms) via `update_live_flow` RPC
+  - Collaboration UI indicators (Live badge, save status)
+  - Modified dropdown menu for collaboration context
+
+- **Step 9: Realtime collaboration**
+  - Set up Supabase Broadcast channel (`flow:{shareToken}`)
+  - Broadcast node/edge changes to collaborators immediately
+  - Receive and apply remote changes (nodes_updated, edges_updated, nodes_deleted, edges_deleted)
+  - User presence tracking (user_joined, user_left, cursor_moved)
+  - Collaborator count indicator with green pulsing dot
+  - Session ID-based sender filtering to prevent re-broadcasting own changes
+  - Stale collaborator cleanup (30s timeout)
+
+### ✅ All Steps Complete
+
+The Live Workflow IDs feature is now fully implemented with:
+- Database tables and RPCs for flow storage
+- Token-based access control
+- Debounced auto-save to DB
+- Realtime sync via Supabase Broadcast
+- Collaborator presence tracking
+- Visual indicators for live mode and collaborators
+
+---
+
 ## Overview
 
 Add unique 4-digit live workflow IDs that enable:

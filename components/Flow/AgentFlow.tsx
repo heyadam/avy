@@ -39,7 +39,7 @@ import { useNodeParenting } from "@/lib/hooks/useNodeParenting";
 import { useFlowOperations } from "@/lib/hooks/useFlowOperations";
 import { useUndoRedo } from "@/lib/hooks/useUndoRedo";
 import type { NodeType, CommentColor } from "@/types/flow";
-import { Settings, Folder, FilePlus, FolderOpen, Save, PanelLeft, PanelRight, Cloud } from "lucide-react";
+import { Settings, Folder, FilePlus, FolderOpen, Save, PanelLeft, PanelRight, Cloud, Globe } from "lucide-react";
 import { SettingsDialogControlled } from "./SettingsDialogControlled";
 import { WelcomeDialog, isNuxComplete } from "./WelcomeDialog";
 import { TemplatesModal } from "./TemplatesModal";
@@ -67,12 +67,18 @@ import { useApiKeys, type ProviderId } from "@/lib/api-keys";
 import type { FlowMetadata } from "@/lib/flow-storage";
 import { useBackgroundSettings } from "@/lib/hooks/useBackgroundSettings";
 import { ProfileDropdown } from "./ProfileDropdown";
+import { ShareDialog } from "./ShareDialog";
+import { useCollaboration, type CollaborationModeProps } from "@/lib/hooks/useCollaboration";
 
 let id = 0;
 const getId = () => `node_${id++}`;
 const setIdCounter = (newId: number) => { id = newId; };
 
 // ID counter initialized at 0, updated when loading templates or flows
+
+export interface AgentFlowProps {
+  collaborationMode?: CollaborationModeProps;
+}
 
 const defaultNodeData: Record<NodeType, Record<string, unknown>> = {
   "text-input": { label: "Input Text", inputValue: "" },
@@ -85,7 +91,7 @@ const defaultNodeData: Record<NodeType, Record<string, unknown>> = {
   "react-component": { label: "React Component", userPrompt: "", provider: "anthropic", model: "claude-sonnet-4-5", stylePreset: "simple" },
 };
 
-export function AgentFlow() {
+export function AgentFlow({ collaborationMode }: AgentFlowProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -215,12 +221,32 @@ export function AgentFlow() {
     shouldShowTemplatesModal,
     setTemplatesModalOpen,
   });
-  
+
+  // Collaboration mode hook
+  const {
+    isCollaborating,
+    liveId: collaborationLiveId,
+    flowName: collaborationFlowName,
+    isSaving: isCollaborationSaving,
+    lastSaveError: collaborationSaveError,
+    isRealtimeConnected,
+    collaborators,
+  } = useCollaboration({
+    collaborationMode,
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    reactFlowInstance,
+    setIdCounter,
+  });
+
   // Canvas width for responsive label hiding
   const [canvasWidth, setCanvasWidth] = useState<number>(0);
 
-  // Flow ID for future collaboration feature
+  // Flow ID for future collaboration feature (use live ID if collaborating)
   const [flowId] = useState(() => Math.floor(Math.random() * 900 + 100).toString());
+  const displayFlowId = isCollaborating ? collaborationLiveId : flowId;
 
   const statuses = getKeyStatuses();
   const hasAnyKey = statuses.some((s) => s.hasKey);
@@ -229,22 +255,27 @@ export function AgentFlow() {
   // Settings dialog state
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  // Share dialog state
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+
   // Auto-open settings dialog when no API keys are configured
   // Only show if NUX is complete (step 2 of NUX guides users to API keys)
+  // Skip in collaboration mode - collaborators may use owner's keys
   useEffect(() => {
-    if (isLoaded && !isDevMode && !hasAnyKey && isNuxComplete()) {
+    if (isLoaded && !isDevMode && !hasAnyKey && isNuxComplete() && !isCollaborating) {
       setSettingsOpen(true);
     }
-  }, [isLoaded, isDevMode, hasAnyKey]);
+  }, [isLoaded, isDevMode, hasAnyKey, isCollaborating]);
 
   const [pendingAutopilotMessage, setPendingAutopilotMessage] = useState<PendingAutopilotMessage | null>(null);
 
   // Auto-open templates modal on app load (after NUX is complete)
+  // Skip in collaboration mode - flow is already loaded
   useEffect(() => {
-    if (isLoaded && isNuxComplete() && shouldShowTemplatesModal()) {
+    if (isLoaded && isNuxComplete() && shouldShowTemplatesModal() && !isCollaborating) {
       setTemplatesModalOpen(true);
     }
-  }, [isLoaded, setTemplatesModalOpen]);
+  }, [isLoaded, setTemplatesModalOpen, isCollaborating]);
 
   // Dismiss templates modal when node palette opens (user clicks "Add Node")
   const prevNodesPaletteOpen = useRef(nodesPaletteOpen);
@@ -648,15 +679,32 @@ export function AgentFlow() {
                 <button
                   className={`flex items-center px-2.5 py-2 text-muted-foreground/60 hover:text-foreground transition-colors rounded-full border border-muted-foreground/20 hover:border-muted-foreground/40 bg-background/50 backdrop-blur-sm text-sm cursor-pointer ${
                     canvasWidth > 800 ? "gap-1.5" : ""
-                  }`}
+                  } ${isCollaborating ? "border-cyan-500/30" : ""}`}
                   title="Files"
                 >
-                  <Folder className="w-4 h-4 shrink-0" />
+                  {isCollaborating ? (
+                    <Globe className="w-4 h-4 shrink-0 text-cyan-400" />
+                  ) : (
+                    <Folder className="w-4 h-4 shrink-0" />
+                  )}
                   {canvasWidth > 800 && (
                     <>
-                      <span>Flow</span>
+                      <span>{isCollaborating ? "Live" : "Flow"}</span>
                       <span className="w-px h-4 bg-muted-foreground/30 mx-1 shrink-0" />
-                      <span className="font-mono">{flowId}</span>
+                      <span className="font-mono">{displayFlowId}</span>
+                      {isCollaborating && (
+                        <>
+                          {isCollaborationSaving && (
+                            <span className="ml-1 text-xs text-muted-foreground/50">Saving...</span>
+                          )}
+                          {isRealtimeConnected && collaborators.length > 0 && (
+                            <span className="ml-2 flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                              <span className="text-xs text-green-400">{collaborators.length + 1}</span>
+                            </span>
+                          )}
+                        </>
+                      )}
                     </>
                   )}
                 </button>
@@ -666,35 +714,62 @@ export function AgentFlow() {
                 sideOffset={8}
                 className="bg-neutral-900 border-neutral-700 text-white min-w-[160px]"
               >
-                <DropdownMenuItem
-                  onClick={handleNewFlow}
-                  className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
-                >
-                  <FilePlus className="h-4 w-4 mr-2" />
-                  New Flow
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-neutral-700" />
-                <DropdownMenuItem
-                  onClick={() => setMyFlowsDialogOpen(true)}
-                  className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
-                >
-                  <Cloud className="h-4 w-4 mr-2" />
-                  My Flows
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleOpenFlow}
-                  className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
-                >
-                  <FolderOpen className="h-4 w-4 mr-2" />
-                  Open from file...
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setSaveDialogOpen(true)}
-                  className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Save as...
-                </DropdownMenuItem>
+                {isCollaborating ? (
+                  <>
+                    {/* Collaboration mode: show flow name and limited actions */}
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                      {collaborationFlowName || "Live Flow"}
+                    </div>
+                    <DropdownMenuSeparator className="bg-neutral-700" />
+                    <DropdownMenuItem
+                      onClick={() => window.open("/", "_blank")}
+                      className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
+                    >
+                      <FilePlus className="h-4 w-4 mr-2" />
+                      New Flow (new tab)
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuItem
+                      onClick={handleNewFlow}
+                      className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
+                    >
+                      <FilePlus className="h-4 w-4 mr-2" />
+                      New Flow
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-neutral-700" />
+                    <DropdownMenuItem
+                      onClick={() => setMyFlowsDialogOpen(true)}
+                      className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
+                    >
+                      <Cloud className="h-4 w-4 mr-2" />
+                      My Flows
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={handleOpenFlow}
+                      className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
+                    >
+                      <FolderOpen className="h-4 w-4 mr-2" />
+                      Open from file...
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setSaveDialogOpen(true)}
+                      className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      Save as...
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-neutral-700" />
+                    <DropdownMenuItem
+                      onClick={() => setShareDialogOpen(true)}
+                      className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
+                    >
+                      <Globe className="h-4 w-4 mr-2" />
+                      Go Live...
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -783,6 +858,12 @@ export function AgentFlow() {
       <SettingsDialogControlled
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
+      />
+      <ShareDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        flowId={currentFlowId}
+        flowName={flowMetadata?.name || "Untitled Flow"}
       />
       <TemplatesModal
         open={templatesModalOpen}
