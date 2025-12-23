@@ -38,6 +38,8 @@ interface ShareDialogProps {
   initialShareToken?: string | null;
   initialUseOwnerKeys?: boolean;
   onPublish?: (liveId: string, shareToken: string, useOwnerKeys: boolean) => void;
+  onSaveFlow?: (name: string) => Promise<string | null>;
+  isSaving?: boolean;
 }
 
 export function ShareDialog({
@@ -49,6 +51,8 @@ export function ShareDialog({
   initialShareToken,
   initialUseOwnerKeys,
   onPublish,
+  onSaveFlow,
+  isSaving = false,
 }: ShareDialogProps) {
   const { user } = useAuth();
   const [isPublishing, setIsPublishing] = useState(false);
@@ -59,6 +63,11 @@ export function ShareDialog({
   );
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Save flow state (for when flow is not saved yet)
+  const [saveName, setSaveName] = useState(flowName || "My Flow");
+  // Track if we started from unsaved state (to prevent flicker when flowId updates mid-save)
+  const [startedUnsaved, setStartedUnsaved] = useState(!flowId);
 
   // Owner-funded execution state
   const [useOwnerKeys, setUseOwnerKeys] = useState(initialUseOwnerKeys || false);
@@ -72,9 +81,11 @@ export function ShareDialog({
       setLiveId(initialLiveId || null);
       setShareToken(initialShareToken || null);
       setUseOwnerKeys(initialUseOwnerKeys || false);
+      setSaveName(flowName || "My Flow");
+      setStartedUnsaved(!flowId);
       setError(null);
     }
-  }, [open, initialLiveId, initialShareToken, initialUseOwnerKeys]);
+  }, [open, initialLiveId, initialShareToken, initialUseOwnerKeys, flowName, flowId]);
 
   // Fetch owner key status when dialog opens with a published flow
   useEffect(() => {
@@ -203,8 +214,32 @@ export function ShareDialog({
     );
   }
 
-  // Flow not saved yet
-  if (!flowId) {
+  // Flow not saved yet - show save form
+  // Keep showing save form while saving/publishing to prevent flicker
+  if (!flowId || (startedUnsaved && (isSaving || isPublishing))) {
+    const handleSaveAndPublish = async () => {
+      if (!onSaveFlow || !saveName.trim()) return;
+
+      setError(null);
+      const savedFlowId = await onSaveFlow(saveName.trim());
+
+      if (savedFlowId) {
+        // Flow saved successfully, now publish it
+        setIsPublishing(true);
+        const result = await publishFlow(savedFlowId);
+
+        if (result.success && result.live_id && result.share_token) {
+          setLiveId(result.live_id);
+          setShareToken(result.share_token);
+          onPublish?.(result.live_id, result.share_token, result.use_owner_keys ?? true);
+          onOpenChange(false);
+        } else {
+          setError(result.error || "Failed to publish flow");
+        }
+        setIsPublishing(false);
+      }
+    };
+
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md bg-neutral-900 border-neutral-700 text-white">
@@ -214,14 +249,61 @@ export function ShareDialog({
               Go Live
             </DialogTitle>
             <DialogDescription className="text-neutral-400">
-              Save your flow first to share it with others.
+              Name your flow to save and publish it.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col items-center gap-4 py-6">
-            <AlertTriangle className="h-12 w-12 text-amber-500" />
-            <p className="text-center text-neutral-300">
-              Please save your flow before publishing.
+
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-md text-red-400 text-sm">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-neutral-300">Flow Name</Label>
+              <Input
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && saveName.trim() && !isSaving && !isPublishing) {
+                    handleSaveAndPublish();
+                  }
+                }}
+                placeholder="Enter a name for your flow..."
+                className="bg-neutral-800 border-neutral-600 text-white placeholder:text-neutral-500"
+                autoFocus
+                disabled={isSaving || isPublishing}
+              />
+            </div>
+
+            <p className="text-sm text-neutral-400">
+              Your flow will be saved to the cloud and published with a shareable link.
             </p>
+
+            <Button
+              onClick={handleSaveAndPublish}
+              disabled={!saveName.trim() || isSaving || isPublishing}
+              className="w-full"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : isPublishing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Publishing...
+                </>
+              ) : (
+                <>
+                  <Globe className="h-4 w-4 mr-2" />
+                  Save & Go Live
+                </>
+              )}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

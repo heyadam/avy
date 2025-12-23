@@ -36,6 +36,8 @@ interface LiveSettingsPopoverProps {
   onUnpublish: () => void;
   onOwnerKeysChange: (enabled: boolean) => void;
   children: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function LiveSettingsPopover({
@@ -48,6 +50,8 @@ export function LiveSettingsPopover({
   onUnpublish,
   onOwnerKeysChange,
   children,
+  open,
+  onOpenChange,
 }: LiveSettingsPopoverProps) {
   const [copied, setCopied] = useState(false);
   const [isUnpublishing, setIsUnpublishing] = useState(false);
@@ -133,7 +137,7 @@ export function LiveSettingsPopover({
   };
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         {children}
       </PopoverTrigger>

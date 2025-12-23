@@ -209,6 +209,7 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
     handleNewFlow,
     handleSelectTemplate,
     handleSaveFlow,
+    saveFlowToCloud,
     handleLoadCloudFlow,
     handleOpenFlow,
   } = useFlowOperations({
@@ -252,10 +253,8 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
   // Collaboration mode hook
   const {
     isCollaborating,
-    liveId: collaborationLiveId,
     flowName: collaborationFlowName,
     isSaving: isCollaborationSaving,
-    lastSaveError: collaborationSaveError,
     isRealtimeConnected,
     collaborators,
     broadcastCursor,
@@ -273,10 +272,6 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
   // Canvas width for responsive label hiding
   const [canvasWidth, setCanvasWidth] = useState<number>(0);
 
-  // Flow ID for future collaboration feature (use live ID if collaborating)
-  const [flowId] = useState(() => Math.floor(Math.random() * 900 + 100).toString());
-  const displayFlowId = isCollaborating ? collaborationLiveId : flowId;
-
   const statuses = getKeyStatuses();
   const hasAnyKey = statuses.some((s) => s.hasKey);
   const showSettingsWarning = !isDevMode && !hasAnyKey;
@@ -286,6 +281,9 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
 
   // Share dialog state
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+
+  // Live settings popover state
+  const [livePopoverOpen, setLivePopoverOpen] = useState(false);
 
   // Fetch published state when flow loads
   useEffect(() => {
@@ -817,8 +815,6 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
                   {canvasWidth > 800 && (
                     <>
                       <span>Flow</span>
-                      <span className="w-px h-4 bg-muted-foreground/30 mx-1 shrink-0" />
-                      <span className="font-mono">{displayFlowId}</span>
                       {isCollaborating && isCollaborationSaving && (
                         <span className="ml-1 text-xs text-muted-foreground/50">Saving...</span>
                       )}
@@ -877,20 +873,12 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
                       <Save className="h-4 w-4 mr-2" />
                       Save as...
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-neutral-700" />
-                    <DropdownMenuItem
-                      onClick={() => setShareDialogOpen(true)}
-                      className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
-                    >
-                      <Globe className="h-4 w-4 mr-2" />
-                      Go Live...
-                    </DropdownMenuItem>
                   </>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            {/* Live settings popover (when collaborating) */}
-            {isCollaborating && publishedFlowInfo && currentFlowId && (
+            {/* Live button - always shown */}
+            {publishedFlowInfo && currentFlowId ? (
               <LiveSettingsPopover
                 flowId={currentFlowId}
                 liveId={publishedFlowInfo.liveId}
@@ -900,6 +888,8 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
                 collaboratorCount={collaborators.length}
                 onUnpublish={() => setPublishedFlowInfo(null)}
                 onOwnerKeysChange={(enabled) => setPublishedFlowInfo(prev => prev ? { ...prev, useOwnerKeys: enabled } : null)}
+                open={livePopoverOpen}
+                onOpenChange={setLivePopoverOpen}
               >
                 <button
                   className="flex items-center gap-1.5 px-2.5 py-2 text-cyan-400 hover:text-cyan-300 transition-colors rounded-full border border-cyan-500/30 hover:border-cyan-400/50 bg-background/50 backdrop-blur-sm text-sm cursor-pointer"
@@ -919,6 +909,24 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
                   )}
                 </button>
               </LiveSettingsPopover>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setShareDialogOpen(true)}
+                    className={`flex items-center px-2.5 py-2 text-muted-foreground/60 hover:text-foreground transition-colors rounded-full border border-muted-foreground/20 hover:border-muted-foreground/40 bg-background/50 backdrop-blur-sm text-sm cursor-pointer ${
+                      canvasWidth > 800 ? "gap-1.5" : ""
+                    }`}
+                    title="Go Live"
+                  >
+                    <Globe className="w-4 h-4 shrink-0" />
+                    {canvasWidth > 800 && <span>Live</span>}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="bg-neutral-800 text-white border-neutral-700">
+                  Go Live
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
         </TooltipProvider>
@@ -1015,7 +1023,13 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
         initialLiveId={publishedFlowInfo?.liveId}
         initialShareToken={publishedFlowInfo?.shareToken}
         initialUseOwnerKeys={publishedFlowInfo?.useOwnerKeys}
-        onPublish={(liveId, shareToken, useOwnerKeys) => setPublishedFlowInfo({ liveId, shareToken, useOwnerKeys })}
+        onPublish={(liveId, shareToken, useOwnerKeys) => {
+          setPublishedFlowInfo({ liveId, shareToken, useOwnerKeys });
+          // Open the live settings popover after a brief delay to let the dialog close
+          setTimeout(() => setLivePopoverOpen(true), 100);
+        }}
+        onSaveFlow={saveFlowToCloud}
+        isSaving={isSaving}
       />
       <TemplatesModal
         open={templatesModalOpen}
