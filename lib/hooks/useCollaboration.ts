@@ -29,7 +29,8 @@ interface NodePayload {
   parentId?: string;
 }
 
-type PositionPayload = Pick<NodePayload, "id" | "position">;
+type PositionUpdate = Pick<NodePayload, "id" | "position">;
+type PositionPayload = PositionUpdate & { version: number };
 
 interface EdgePayload {
   id: string;
@@ -110,6 +111,8 @@ const getSupabaseClient = () => {
 };
 
 const BROADCAST_THROTTLE_MS = 50;
+const POSITION_INTERPOLATION = 0.35;
+const POSITION_SNAP_EPSILON = 0.5;
 
 /**
  * Hook for collaboration mode - handles live flow initialization, debounced saving, and realtime sync
@@ -145,8 +148,10 @@ export function useCollaboration({
   const lastBroadcastTimeRef = useRef<number>(0);
   const lastBroadcastNodesRef = useRef<Node[]>([]);
   const lastBroadcastEdgesRef = useRef<Edge[]>([]);
-  const pendingPositionUpdatesRef = useRef<Map<string, PositionPayload["position"]>>(new Map());
-  const pendingPositionRafRef = useRef<number | null>(null);
+  const targetPositionsRef = useRef<Map<string, PositionPayload["position"]>>(new Map());
+  const interpolationRafRef = useRef<number | null>(null);
+  const positionVersionRef = useRef<Map<string, number>>(new Map());
+  const lastAppliedPositionVersionRef = useRef<Map<string, number>>(new Map());
 
   // Debounce timer
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -154,12 +159,12 @@ export function useCollaboration({
   const getNodeChangeSummary = useCallback(
     (prevNodes: Node[], newNodes: Node[]):
     | { type: "none" }
-    | { type: "position"; positions: PositionPayload[] }
+    | { type: "position"; positions: PositionUpdate[] }
     | { type: "full" } => {
       if (prevNodes.length !== newNodes.length) return { type: "full" };
 
       const prevById = new Map(prevNodes.map((node) => [node.id, node]));
-      const positions: PositionPayload[] = [];
+      const positions: PositionUpdate[] = [];
 
       for (const current of newNodes) {
         const previous = prevById.get(current.id);
@@ -185,6 +190,15 @@ export function useCollaboration({
     },
     []
   );
+
+  const buildPositionPayloads = useCallback((positions: PositionUpdate[]): PositionPayload[] => {
+    return positions.map((position) => {
+      const currentVersion = positionVersionRef.current.get(position.id) ?? 0;
+      const nextVersion = currentVersion + 1;
+      positionVersionRef.current.set(position.id, nextVersion);
+      return { ...position, version: nextVersion };
+    });
+  }, []);
 
   const areEdgesEquivalent = useCallback((prevEdges: Edge[], nextEdges: Edge[]): boolean => {
     if (prevEdges.length !== nextEdges.length) return false;
@@ -343,8 +357,8 @@ export function useCollaboration({
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
-      if (pendingPositionRafRef.current !== null) {
-        cancelAnimationFrame(pendingPositionRafRef.current);
+      if (interpolationRafRef.current !== null) {
+        cancelAnimationFrame(interpolationRafRef.current);
       }
     };
   }, []);
@@ -423,40 +437,85 @@ export function useCollaboration({
   const applyRemotePositionUpdates = useCallback(
     (positions: PositionPayload[], senderId: string) => {
       if (senderId === sessionIdRef.current) return;
+      if (positions.length === 0) return;
 
       isApplyingRemoteRef.current = true;
       for (const update of positions) {
-        pendingPositionUpdatesRef.current.set(update.id, update.position);
+        const versionKey = `${senderId}:${update.id}`;
+        const lastVersion = lastAppliedPositionVersionRef.current.get(versionKey) ?? 0;
+        if (update.version <= lastVersion) {
+          continue;
+        }
+        lastAppliedPositionVersionRef.current.set(versionKey, update.version);
+        targetPositionsRef.current.set(update.id, update.position);
       }
 
-      if (pendingPositionRafRef.current !== null) return;
+      if (targetPositionsRef.current.size === 0) {
+        isApplyingRemoteRef.current = false;
+        return;
+      }
 
-      pendingPositionRafRef.current = requestAnimationFrame(() => {
-        pendingPositionRafRef.current = null;
-        const positionMap = pendingPositionUpdatesRef.current;
-        pendingPositionUpdatesRef.current = new Map();
+      if (interpolationRafRef.current !== null) return;
 
-        setNodes((currentNodes) => {
-          if (positionMap.size === 0) return currentNodes;
-
-          const result = currentNodes.map((node) => {
-            const position = positionMap.get(node.id);
-            if (!position) return node;
-            if (
-              node.position.x === position.x &&
-              node.position.y === position.y
-            ) {
-              return node;
+      const animate = () => {
+        interpolationRafRef.current = requestAnimationFrame(() => {
+          setNodes((currentNodes) => {
+            const targetMap = targetPositionsRef.current;
+            if (targetMap.size === 0) {
+              interpolationRafRef.current = null;
+              isApplyingRemoteRef.current = false;
+              return currentNodes;
             }
-            return { ...node, position };
-          });
 
-          prevNodesRef.current = result;
-          lastBroadcastNodesRef.current = result;
-          return result;
+            let hasActive = false;
+            const nodeIds = new Set(currentNodes.map((node) => node.id));
+            const result = currentNodes.map((node) => {
+              const target = targetMap.get(node.id);
+              if (!target) return node;
+
+              const dx = target.x - node.position.x;
+              const dy = target.y - node.position.y;
+              const distanceSq = dx * dx + dy * dy;
+
+              if (distanceSq <= POSITION_SNAP_EPSILON * POSITION_SNAP_EPSILON) {
+                targetMap.delete(node.id);
+                if (node.position.x === target.x && node.position.y === target.y) {
+                  return node;
+                }
+                return { ...node, position: target };
+              }
+
+              hasActive = true;
+              return {
+                ...node,
+                position: {
+                  x: node.position.x + dx * POSITION_INTERPOLATION,
+                  y: node.position.y + dy * POSITION_INTERPOLATION,
+                },
+              };
+            });
+
+            for (const targetId of targetMap.keys()) {
+              if (!nodeIds.has(targetId)) {
+                targetMap.delete(targetId);
+              }
+            }
+
+            if (!hasActive && targetMap.size === 0) {
+              interpolationRafRef.current = null;
+              isApplyingRemoteRef.current = false;
+            } else {
+              animate();
+            }
+
+            prevNodesRef.current = result;
+            lastBroadcastNodesRef.current = result;
+            return result;
+          });
         });
-        setTimeout(() => { isApplyingRemoteRef.current = false; }, 0);
-      });
+      };
+
+      animate();
     },
     [setNodes]
   );
@@ -696,6 +755,8 @@ export function useCollaboration({
       const pendingPositions = nodeChange.positions;
       const timeoutId = setTimeout(() => {
         if (!channelRef.current || pendingPositions.length === 0) return;
+        const positionPayloads = buildPositionPayloads(pendingPositions);
+        if (positionPayloads.length === 0) return;
 
         lastBroadcastTimeRef.current = Date.now();
         lastBroadcastNodesRef.current = nodes;
@@ -704,7 +765,7 @@ export function useCollaboration({
           event: "sync",
           payload: {
             type: "positions_updated",
-            positions: pendingPositions,
+            positions: positionPayloads,
             senderId: sessionIdRef.current,
           } as BroadcastMessage,
         });
@@ -745,12 +806,14 @@ export function useCollaboration({
     // Broadcast node updates (all nodes for simplicity)
     if (nodes.length > 0 && nodesChanged) {
       if (positionOnly && nodeChange.type === "position") {
+        const positionPayloads = buildPositionPayloads(nodeChange.positions);
+        if (positionPayloads.length === 0) return;
         channelRef.current.send({
           type: "broadcast",
           event: "sync",
           payload: {
             type: "positions_updated",
-            positions: nodeChange.positions,
+            positions: positionPayloads,
             senderId: sessionIdRef.current,
           } as BroadcastMessage,
         });
@@ -789,6 +852,7 @@ export function useCollaboration({
     edgeToPayload,
     getNodeChangeSummary,
     areEdgesEquivalent,
+    buildPositionPayloads,
   ]);
 
   // Clean up stale collaborators
