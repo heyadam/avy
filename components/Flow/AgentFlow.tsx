@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent } from "react";
 import {
   ReactFlow,
   Background,
@@ -69,6 +69,7 @@ import type { FlowMetadata } from "@/lib/flow-storage";
 import { useBackgroundSettings } from "@/lib/hooks/useBackgroundSettings";
 import { ProfileDropdown } from "./ProfileDropdown";
 import { ShareDialog } from "./ShareDialog";
+import { LiveSettingsPopover } from "./LiveSettingsPopover";
 import { useCollaboration, type CollaborationModeProps } from "@/lib/hooks/useCollaboration";
 import { loadFlow } from "@/lib/flows/api";
 
@@ -227,6 +228,27 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
     setTemplatesModalOpen,
   });
 
+  // Published flow info state (for owner collaboration mode and ShareDialog)
+  const [publishedFlowInfo, setPublishedFlowInfo] = useState<{
+    liveId: string;
+    shareToken: string;
+    useOwnerKeys: boolean;
+  } | null>(null);
+
+  // Build owner collaboration mode when flow is published and we're not already in collaborator mode
+  const ownerCollaborationMode = useMemo(() => {
+    if (collaborationMode || !publishedFlowInfo?.shareToken) return undefined;
+    return {
+      shareToken: publishedFlowInfo.shareToken,
+      liveId: publishedFlowInfo.liveId,
+      initialFlow: null, // Owner already has flow loaded
+      isOwner: true,
+    };
+  }, [collaborationMode, publishedFlowInfo]);
+
+  // Use prop-based collaboration mode (for /[code]/[token] route) or owner mode (for / route with published flow)
+  const effectiveCollaborationMode = collaborationMode ?? ownerCollaborationMode;
+
   // Collaboration mode hook
   const {
     isCollaborating,
@@ -237,8 +259,9 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
     isRealtimeConnected,
     collaborators,
     broadcastCursor,
+    isOwner,
   } = useCollaboration({
-    collaborationMode,
+    collaborationMode: effectiveCollaborationMode,
     nodes,
     edges,
     setNodes,
@@ -263,13 +286,6 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
 
   // Share dialog state
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-
-  // Published flow info state (for pre-populating ShareDialog)
-  const [publishedFlowInfo, setPublishedFlowInfo] = useState<{
-    liveId: string;
-    shareToken: string;
-    useOwnerKeys: boolean;
-  } | null>(null);
 
   // Fetch published state when flow loads
   useEffect(() => {
@@ -772,37 +788,54 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
                 Composer AI
               </TooltipContent>
             </Tooltip>
+            {/* Live settings popover (when collaborating) */}
+            {isCollaborating && publishedFlowInfo && currentFlowId && (
+              <LiveSettingsPopover
+                flowId={currentFlowId}
+                liveId={publishedFlowInfo.liveId}
+                shareToken={publishedFlowInfo.shareToken}
+                useOwnerKeys={publishedFlowInfo.useOwnerKeys}
+                isOwner={isOwner}
+                collaboratorCount={collaborators.length}
+                onUnpublish={() => setPublishedFlowInfo(null)}
+                onOwnerKeysChange={(enabled) => setPublishedFlowInfo(prev => prev ? { ...prev, useOwnerKeys: enabled } : null)}
+              >
+                <button
+                  className="flex items-center gap-1.5 px-2.5 py-2 text-cyan-400 hover:text-cyan-300 transition-colors rounded-full border border-cyan-500/30 hover:border-cyan-400/50 bg-background/50 backdrop-blur-sm text-sm cursor-pointer"
+                  title="Live settings"
+                >
+                  <Globe className="w-4 h-4 shrink-0" />
+                  {canvasWidth > 800 && (
+                    <>
+                      <span>Live</span>
+                      {isRealtimeConnected && (
+                        <span className="flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                          <span className="text-xs text-green-400">{collaborators.length + 1}</span>
+                        </span>
+                      )}
+                    </>
+                  )}
+                </button>
+              </LiveSettingsPopover>
+            )}
             {/* Flow dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   className={`flex items-center px-2.5 py-2 text-muted-foreground/60 hover:text-foreground transition-colors rounded-full border border-muted-foreground/20 hover:border-muted-foreground/40 bg-background/50 backdrop-blur-sm text-sm cursor-pointer ${
                     canvasWidth > 800 ? "gap-1.5" : ""
-                  } ${isCollaborating ? "border-cyan-500/30" : ""}`}
+                  }`}
                   title="Files"
                 >
-                  {isCollaborating ? (
-                    <Globe className="w-4 h-4 shrink-0 text-cyan-400" />
-                  ) : (
-                    <Folder className="w-4 h-4 shrink-0" />
-                  )}
+                  <Folder className="w-4 h-4 shrink-0" />
                   {canvasWidth > 800 && (
                     <>
-                      <span>{isCollaborating ? "Live" : "Flow"}</span>
+                      <span>Flow</span>
                       <span className="w-px h-4 bg-muted-foreground/30 mx-1 shrink-0" />
                       <span className="font-mono">{displayFlowId}</span>
-                      {isCollaborating && (
-                        <>
-                          {isCollaborationSaving && (
-                            <span className="ml-1 text-xs text-muted-foreground/50">Saving...</span>
-                          )}
-                          {isRealtimeConnected && collaborators.length > 0 && (
-                            <span className="ml-2 flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                              <span className="text-xs text-green-400">{collaborators.length + 1}</span>
-                            </span>
-                          )}
-                        </>
+                      {isCollaborating && isCollaborationSaving && (
+                        <span className="ml-1 text-xs text-muted-foreground/50">Saving...</span>
                       )}
                     </>
                   )}
@@ -966,6 +999,7 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
         initialLiveId={publishedFlowInfo?.liveId}
         initialShareToken={publishedFlowInfo?.shareToken}
         initialUseOwnerKeys={publishedFlowInfo?.useOwnerKeys}
+        onPublish={(liveId, shareToken) => setPublishedFlowInfo({ liveId, shareToken, useOwnerKeys: false })}
       />
       <TemplatesModal
         open={templatesModalOpen}

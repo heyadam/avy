@@ -16,7 +16,7 @@ type BroadcastMessage =
   | { type: "nodes_deleted"; nodeIds: string[]; senderId: string }
   | { type: "edges_deleted"; edgeIds: string[]; senderId: string }
   | { type: "cursor_moved"; userId: string; position: { x: number; y: number } }
-  | { type: "user_joined"; userId: string; name?: string }
+  | { type: "user_joined"; userId: string; name?: string; isOwner?: boolean }
   | { type: "user_left"; userId: string };
 
 interface NodePayload {
@@ -47,6 +47,7 @@ export interface Collaborator {
   name?: string;
   cursor?: { x: number; y: number };
   lastSeen: number;
+  isOwner?: boolean;
 }
 
 // Generate a unique session ID for this client
@@ -60,6 +61,8 @@ export interface CollaborationModeProps {
     nodes: FlowNodeRecord[];
     edges: FlowEdgeRecord[];
   } | null;
+  /** True when the current user is the owner of the flow (editing at /) */
+  isOwner?: boolean;
 }
 
 export interface UseCollaborationOptions {
@@ -88,6 +91,8 @@ export interface UseCollaborationReturn {
   collaborators: Collaborator[];
   // Broadcast cursor position for presence
   broadcastCursor: (position: { x: number; y: number }) => void;
+  // True if current user is the flow owner
+  isOwner: boolean;
 }
 
 // Update ID counter based on existing nodes
@@ -129,6 +134,7 @@ export function useCollaboration({
   const isCollaborating = !!collaborationMode;
   const shareToken = collaborationMode?.shareToken ?? null;
   const liveId = collaborationMode?.liveId ?? null;
+  const isOwner = collaborationMode?.isOwner ?? false;
 
   const [flowName, setFlowName] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -225,7 +231,21 @@ export function useCollaboration({
 
   // Initialize flow from collaboration data
   useEffect(() => {
-    if (!collaborationMode?.initialFlow || initialized) return;
+    if (!collaborationMode || initialized) return;
+
+    // Owner mode: initialFlow is null, owner already has the flow loaded
+    // We just need to initialize refs and mark as initialized
+    if (collaborationMode.isOwner && !collaborationMode.initialFlow) {
+      prevNodesRef.current = [...nodes];
+      prevEdgesRef.current = [...edges];
+      lastBroadcastNodesRef.current = [...nodes];
+      lastBroadcastEdgesRef.current = [...edges];
+      setInitialized(true);
+      return;
+    }
+
+    // Collaborator mode: load flow from initialFlow data
+    if (!collaborationMode.initialFlow) return;
 
     const { flow, nodes: nodeRecords, edges: edgeRecords } = collaborationMode.initialFlow;
 
@@ -250,7 +270,7 @@ export function useCollaboration({
     setTimeout(() => {
       reactFlowInstance.current?.fitView({ padding: 0.2 });
     }, 100);
-  }, [collaborationMode, initialized, setNodes, setEdges, setIdCounter, reactFlowInstance]);
+  }, [collaborationMode, initialized, nodes, edges, setNodes, setEdges, setIdCounter, reactFlowInstance]);
 
   // Save changes to live flow
   const performSave = useCallback(async () => {
@@ -613,16 +633,16 @@ export function useCollaboration({
   }, []);
 
   // Handle user joined
-  const handleUserJoined = useCallback((userId: string, name?: string) => {
+  const handleUserJoined = useCallback((userId: string, name?: string, userIsOwner?: boolean) => {
     if (userId === sessionIdRef.current) return;
 
     setCollaborators((current) => {
       if (current.find((c) => c.userId === userId)) {
         return current.map((c) =>
-          c.userId === userId ? { ...c, name, lastSeen: Date.now() } : c
+          c.userId === userId ? { ...c, name, isOwner: userIsOwner, lastSeen: Date.now() } : c
         );
       }
-      return [...current, { userId, name, lastSeen: Date.now() }];
+      return [...current, { userId, name, isOwner: userIsOwner, lastSeen: Date.now() }];
     });
   }, []);
 
@@ -670,7 +690,7 @@ export function useCollaboration({
           handleRemoteCursor(message.userId, message.position);
           break;
         case "user_joined":
-          handleUserJoined(message.userId, message.name);
+          handleUserJoined(message.userId, message.name, message.isOwner);
           break;
         case "user_left":
           handleUserLeft(message.userId);
@@ -681,11 +701,11 @@ export function useCollaboration({
     channel.subscribe((status) => {
       if (status === "SUBSCRIBED") {
         setIsRealtimeConnected(true);
-        // Announce presence
+        // Announce presence with owner status
         channel.send({
           type: "broadcast",
           event: "presence",
-          payload: { type: "user_joined", userId: sessionIdRef.current } as BroadcastMessage,
+          payload: { type: "user_joined", userId: sessionIdRef.current, isOwner } as BroadcastMessage,
         });
       } else if (status === "CLOSED" || status === "CHANNEL_ERROR") {
         setIsRealtimeConnected(false);
@@ -710,6 +730,7 @@ export function useCollaboration({
     shareToken,
     isCollaborating,
     initialized,
+    isOwner,
     applyRemoteNodeUpdates,
     applyRemotePositionUpdates,
     applyRemoteEdgeUpdates,
@@ -894,5 +915,6 @@ export function useCollaboration({
     isRealtimeConnected,
     collaborators,
     broadcastCursor,
+    isOwner,
   };
 }

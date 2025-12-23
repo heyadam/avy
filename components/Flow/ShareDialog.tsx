@@ -37,6 +37,7 @@ interface ShareDialogProps {
   initialLiveId?: string | null;
   initialShareToken?: string | null;
   initialUseOwnerKeys?: boolean;
+  onPublish?: (liveId: string, shareToken: string) => void;
 }
 
 export function ShareDialog({
@@ -47,6 +48,7 @@ export function ShareDialog({
   initialLiveId,
   initialShareToken,
   initialUseOwnerKeys,
+  onPublish,
 }: ShareDialogProps) {
   const { user } = useAuth();
   const [isPublishing, setIsPublishing] = useState(false);
@@ -111,6 +113,9 @@ export function ShareDialog({
     if (result.success && result.live_id && result.share_token) {
       setLiveId(result.live_id);
       setShareToken(result.share_token);
+      onPublish?.(result.live_id, result.share_token);
+      // Close dialog after successful publish since Live popover is now available
+      onOpenChange(false);
     } else {
       setError(result.error || "Failed to publish flow");
     }

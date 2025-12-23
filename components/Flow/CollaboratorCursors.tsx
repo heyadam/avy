@@ -1,6 +1,6 @@
 import { memo, useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { ViewportPortal, useViewport } from "@xyflow/react";
-import { MousePointer2 } from "lucide-react";
+import { Crown, MousePointer2 } from "lucide-react";
 
 import type { Collaborator } from "@/lib/hooks/useCollaboration";
 import { usePerfectCursor, type PerfectCursorPoint } from "@/lib/hooks/usePerfectCursor";
@@ -53,6 +53,9 @@ const CollaboratorCursor = memo(
         <div className="flex items-start gap-1">
           <MousePointer2 className="h-4 w-4 drop-shadow-sm" style={{ color }} />
           <div className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white shadow-sm">
+            {collaborator.isOwner && (
+              <Crown className="h-3 w-3 text-yellow-400" />
+            )}
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
             <span>{collaborator.name ?? "Guest"}</span>
           </div>
