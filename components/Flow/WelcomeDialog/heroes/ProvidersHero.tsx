@@ -41,21 +41,25 @@ interface DragOffset {
 
 /**
  * Dynamic curved line that updates its start point based on drag offset.
+ * Particles only visible in step 3, animated in.
  */
 function DynamicLine({
   dragOffsetRef,
   baseFrom,
   to,
   color,
+  step,
 }: {
   dragOffsetRef: React.RefObject<DragOffset>;
   baseFrom: THREE.Vector3;
   to: THREE.Vector3;
   color: string;
+  step: 2 | 3;
 }) {
   const tubeRef = useRef<Mesh>(null);
   const particleRef = useRef<Mesh>(null);
   const curveRef = useRef<QuadraticBezierCurve3 | null>(null);
+  const particleVisibilityRef = useRef(0);
 
   useFrame(({ clock }) => {
     if (!tubeRef.current) return;
@@ -75,19 +79,27 @@ function DynamicLine({
     tubeRef.current.geometry.dispose();
     tubeRef.current.geometry = newGeometry;
 
+    // Animate particle visibility based on step
+    const targetVisibility = step === 3 ? 1 : 0;
+    particleVisibilityRef.current += (targetVisibility - particleVisibilityRef.current) * 0.1;
+
     // Animate particle along the curve
     if (particleRef.current && curveRef.current) {
       const t = (clock.getElapsedTime() * 0.3) % 1;
       const point = curveRef.current.getPoint(t);
       particleRef.current.position.copy(point);
 
-      let scale = 1;
+      // Base scale from position on curve (fade at ends)
+      let baseScale = 1;
       if (t < 0.15) {
-        scale = t / 0.15;
+        baseScale = t / 0.15;
       } else if (t > 0.85) {
-        scale = (1 - t) / 0.15;
+        baseScale = (1 - t) / 0.15;
       }
-      particleRef.current.scale.setScalar(scale);
+
+      // Apply visibility animation
+      particleRef.current.scale.setScalar(baseScale * particleVisibilityRef.current);
+      particleRef.current.visible = particleVisibilityRef.current > 0.01;
     }
   });
 
@@ -214,17 +226,20 @@ function SceneContent({ step }: SceneContentProps) {
         baseFrom={openaiLineFrom}
         to={composerTop}
         color="#FFFFFF"
+        step={step}
       />
       <CurvedLine
         from={new THREE.Vector3(googlePos.x, googlePos.y - 0.85, 0)}
         to={new THREE.Vector3(composerPos.x, composerPos.y + 0.9, 0)}
         color="#4285F4"
+        step={step}
       />
       <DynamicLine
         dragOffsetRef={claudeDragRef}
         baseFrom={claudeLineFrom}
         to={composerTop}
         color="#F97316"
+        step={step}
       />
 
       {/* Provider tiles */}
@@ -251,11 +266,11 @@ function SceneContent({ step }: SceneContentProps) {
         <ComposerIcon />
       </RoundedTile>
 
-      {/* Mouse cursors (step 2 only) */}
+      {/* Mouse cursors (both steps) */}
       <Suspense fallback={null}>
         <AnimatedCursor
           position={[openaiPos.x + 0.6, openaiPos.y - 0.6, 1.5]}
-          active={step === 2}
+          active={true}
           onDragUpdate={handleOpenaiDragUpdate}
           timeOffset={1.5}
           cycleDuration={5}
@@ -265,7 +280,7 @@ function SceneContent({ step }: SceneContentProps) {
         />
         <AnimatedCursor
           position={[claudePos.x + 0.6, claudePos.y - 0.6, 1.5]}
-          active={step === 2}
+          active={true}
           onDragUpdate={handleClaudeDragUpdate}
           cycleDuration={3.5}
           pattern="circular"
