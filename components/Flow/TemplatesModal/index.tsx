@@ -117,8 +117,8 @@ export function TemplatesModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-      {/* Backdrop overlay - pointer-events-none allows clicks to pass through to canvas */}
-      <div className="absolute inset-0 bg-black/50 pointer-events-none animate-in fade-in-0 duration-200" />
+      {/* Backdrop overlay - starts below header so nav remains visible */}
+      <div className="absolute top-14 left-0 right-0 bottom-0 bg-black/50 pointer-events-none animate-in fade-in-0 duration-200" />
       <div
         ref={panelRef}
         className="relative z-10 pointer-events-auto bg-background border rounded-lg shadow-2xl shadow-black/40 p-6 w-full max-w-2xl animate-in fade-in-0 zoom-in-95 duration-200"
