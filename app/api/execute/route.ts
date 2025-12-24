@@ -1,3 +1,5 @@
+import "server-only"; // Prevent client bundling
+
 import { NextRequest, NextResponse } from "next/server";
 import { streamText, generateText, type LanguageModel } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
@@ -6,6 +8,11 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import OpenAI from "openai";
 import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import type { MagicEvalTestCase, MagicEvalResults } from "@/types/flow";
+import { createServiceRoleClient } from "@/lib/supabase/service";
+import { decryptKeys } from "@/lib/encryption";
+
+// Required for service role client and decryption
+export const runtime = "nodejs";
 
 interface ApiKeys {
   openai?: string;
@@ -39,7 +46,52 @@ function getModel(provider: string, model: string, apiKeys?: ApiKeys): LanguageM
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, apiKeys } = body;
+    let { apiKeys } = body;
+    const { type } = body;
+
+    // Owner-funded execution mode
+    if (body.shareToken) {
+      // Require runId for rate limiting when using owner-funded execution
+      if (!body.runId) {
+        return NextResponse.json(
+          { error: "runId required for owner-funded execution" },
+          { status: 400 }
+        );
+      }
+
+      const supabase = createServiceRoleClient();
+
+      // Rate limit using runId for deduplication (handles parallel node execution)
+      const { data: limitResult } = await supabase.rpc("check_and_log_run", {
+        p_share_token: body.shareToken,
+        p_run_id: body.runId,
+        p_minute_limit: 10,
+        p_daily_limit: 100,
+      });
+
+      if (limitResult && !limitResult.allowed) {
+        return NextResponse.json(
+          { error: limitResult.reason || "Rate limit exceeded" },
+          { status: limitResult.reason?.includes("quota") ? 403 : 429 }
+        );
+      }
+
+      // Fetch owner's keys - RPC already checks use_owner_keys flag
+      // Returns null if: flow not found, use_owner_keys=false, or no keys stored
+      const { data: encryptedKeys } = await supabase.rpc("get_owner_keys_for_execution", {
+        p_share_token: body.shareToken,
+      });
+
+      if (!encryptedKeys) {
+        return NextResponse.json(
+          { error: "Owner has not enabled shared keys for this flow" },
+          { status: 403 }
+        );
+      }
+
+      const decrypted = decryptKeys(encryptedKeys, process.env.ENCRYPTION_KEY!);
+      apiKeys = { openai: decrypted.openai, google: decrypted.google, anthropic: decrypted.anthropic };
+    }
 
     if (type === "text-generation") {
       // Support both old format (input, prompt) and new format (inputs.prompt, inputs.system)
