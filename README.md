@@ -32,6 +32,13 @@ A visual workflow builder for creating AI agent pipelines using drag-and-drop no
 - **Selection Feedback**: Selected nodes show animated yellow glow
 - **Cloud Storage**: Save and load flows to the cloud with Supabase (requires sign-in)
 - **My Flows Browser**: Browse, load, and delete saved cloud flows
+- **Real-time Collaboration**: Google Docs-style live editing with multiple users
+  - Publish flows with shareable links
+  - See collaborator cursors in real-time with smooth animations
+  - Avatar stack shows who's online
+  - Crown icon indicates flow owner
+  - Owner-funded execution lets collaborators run flows using owner's API keys
+  - Rate limiting (10 runs/min, 100 runs/day) for shared key usage
 - **AI Autopilot**: Natural language flow editing - describe changes and Claude builds them
   - Add, remove, connect, and insert nodes between existing ones
   - Collapsible JSON preview with syntax highlighting and auto-scroll during streaming
@@ -42,11 +49,11 @@ A visual workflow builder for creating AI agent pipelines using drag-and-drop no
   - Auto-apply with full undo support (restores removed nodes/edges)
   - Dynamic LLM-generated prompt suggestions based on current flow
   - Shimmer loading effects during AI operations
-- **Welcome Experience**: Two-step onboarding for new users
+- **Welcome Experience**: Three-step onboarding for new users
   - Interactive demo flow that auto-executes to show capabilities
   - 3D animated hero with provider icons flowing into Composer
   - Google sign-in or continue without account
-  - Guided API keys setup
+  - Guided API keys setup with skip options
 - **Templates Modal**: Quick-start dialog when creating new flows
   - AI prompt input with mode/model/thinking options
   - Three pre-built templates: Story & Image Gen, Basic Text Gen, Image to Image
@@ -137,6 +144,14 @@ Open [http://localhost:3000](http://localhost:3000) to use the workflow builder.
 3. Use Flow → My Flows to browse and load saved flows
 4. Flows are stored securely in your Supabase account
 
+### Real-time Collaboration
+1. Save your flow to the cloud first
+2. Click the Live button (globe icon) in the header
+3. Enable "Owner-Funded Execution" if you want collaborators to use your API keys
+4. Copy and share the link with collaborators
+5. Collaborators see your cursor and edits in real-time
+6. Click Unpublish to revoke access (auto-unpublishes when you leave)
+
 ## Tech Stack
 
 - [Next.js 16](https://nextjs.org/) - React framework
@@ -144,7 +159,8 @@ Open [http://localhost:3000](http://localhost:3000) to use the workflow builder.
 - [React Three Fiber](https://docs.pmnd.rs/react-three-fiber) - 3D WebGL rendering for logo
 - [Vercel AI SDK](https://sdk.vercel.ai/) - Streaming LLM responses
 - [OpenAI SDK](https://platform.openai.com/docs/libraries) - Image generation with streaming
-- [Supabase](https://supabase.com/) - Authentication and cloud storage
+- [Supabase](https://supabase.com/) - Authentication, cloud storage, and real-time collaboration
+- [perfect-cursors](https://github.com/steveruizok/perfect-cursors) - Smooth cursor animations for collaboration
 - [Tailwind CSS v4](https://tailwindcss.com/) - Styling
 - [shadcn/ui](https://ui.shadcn.com/) - UI components
 - [AI Elements](https://registry.ai-sdk.dev/) - AI SDK component registry

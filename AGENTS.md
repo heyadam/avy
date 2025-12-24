@@ -25,9 +25,14 @@ Required for local auth + providers:
 - `GOOGLE_GENERATIVE_AI_API_KEY`
 - `ANTHROPIC_API_KEY`
 
+Required for owner-funded execution:
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `ENCRYPTION_KEY` (32-byte hex string for AES-256-GCM)
+
 ## Supabase (MCP Required)
 - Use the Supabase MCP tools (`mcp__supabase__*`) for DB actions.
-- Core tables: `profiles` (RLS enabled).
+- Core tables: `profiles`, `flows`, `user_api_keys`, `flow_execution_log` (all RLS enabled).
+- Key RPCs: `get_owner_keys_for_execution`, `check_and_log_run` (rate limiting).
 - OAuth redirect URL: `/auth/callback` (see `app/auth/callback/route.ts`).
 
 ## Auth & Profile UI
@@ -36,10 +41,14 @@ Required for local auth + providers:
 - **Top Bar**: `components/Flow/AgentFlow.tsx` renders the profile control.
 - **Proxy**: `proxy.ts` uses `lib/supabase/proxy.ts` to refresh Supabase sessions.
 
-## Live Publishing
+## Live Publishing & Collaboration
 - **UI**: `components/Flow/ShareDialog.tsx` (publish) + `components/Flow/LiveSettingsPopover.tsx` (live controls).
 - **Publish callback**: `onPublish(flowId, liveId, shareToken, useOwnerKeys)` in `components/Flow/ShareDialog.tsx`.
 - **State guard**: `components/Flow/AgentFlow.tsx` ties published state to `flowId` to avoid stale load overrides.
+- **Collaborator entry**: `app/[code]/[token]/page.tsx` loads live flow for collaborators.
+- **Real-time sync**: Supabase Broadcast (node/edge changes) + Presence (collaborator tracking).
+- **Owner-funded execution**: Owner can share API keys with collaborators (rate-limited: 10/min, 100/day).
+- **Auto-unpublish**: Flow unpublishes when owner leaves (uses `navigator.sendBeacon`).
 
 ## Architecture Highlights
 - Node types live in `components/Flow/nodes/`.
@@ -49,17 +58,23 @@ Required for local auth + providers:
   - `useAutopilotIntegration.ts`: Autopilot apply/undo, highlight management
   - `useNodeParenting.ts`: Comment auto-parenting, deletion cascading
   - `useFlowOperations.ts`: Flow save/load/template operations
+  - `useCollaboration.ts`: Real-time sync, Supabase Presence, cursor tracking
+  - `useUndoRedo.ts`: Snapshot-based undo/redo with keyboard shortcuts
+- Collaboration: `CollaboratorCursors.tsx` + `usePerfectCursor.ts` for smooth cursor animations.
+- Encryption: `lib/encryption.ts` (AES-256-GCM for API key storage).
+- Service client: `lib/supabase/service.ts` (server-only, for owner key access).
 - Shared API helpers: `lib/api/providers.ts` (e.g., `getAnthropicClient`)
 - Model list: `docs/AI_MODELS.md` is the source of truth.
 - Design text standards: use `/content-design` skill.
-- Tests: `lib/hooks/__tests__/` using Vitest + React Testing Library (55 tests).
+- Tests: `lib/hooks/__tests__/` using Vitest + React Testing Library (65 tests).
 
 ## New User Experience (NUX)
-- **Welcome Dialog**: `components/Flow/WelcomeDialog/` — two-step onboarding.
-- **State**: Persisted to `avy-nux-step` in localStorage (values: `1`, `2`, `done`).
-- **Step 1**: Welcome + Google sign-in (or skip).
-- **Step 2**: API keys setup prompt.
-- **Heroes**: Interactive React Flow demo (step 1) and 3D provider icons (step 2).
+- **Welcome Dialog**: `components/Flow/WelcomeDialog/` — three-step onboarding.
+- **State**: Persisted to `avy-nux-step` in localStorage (values: `1`, `2`, `3`, `done`).
+- **Step 1**: Welcome + Google sign-in (or skip), interactive React Flow demo.
+- **Step 2**: API keys intro explaining benefits (skip option).
+- **Step 3**: API keys form with inputs + VIP code unlock (skip option).
+- **Heroes**: Interactive demo (step 1) and 3D provider icons (step 2).
 
 ## When Unsure
 - Check `CLAUDE.md` for deeper architecture and component notes.

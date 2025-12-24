@@ -252,24 +252,39 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 
 ### Real-time Collaboration
 
-**useCollaboration Hook** (`lib/hooks/useCollaboration.ts`): Core collaboration logic (974 lines):
+**useCollaboration Hook** (`lib/hooks/useCollaboration.ts`): Core collaboration logic:
 - Manages Supabase Realtime channel subscription for live sync
+- Uses Supabase Presence API for collaborator tracking (join/leave handled automatically)
+- Auth-aware identity: real names and avatars from user profile
+- Session-scoped sender IDs for multi-tab deduplication
 - Debounced auto-save (500ms) with `updateLiveFlow`
 - Broadcasts node/edge changes using Supabase Broadcast API
 - Smooth position interpolation using PerfectCursor library for each node
-- Presence tracking: cursor positions, user join/leave events
+- Cursor position broadcasts via Broadcast (low latency)
 - Avoids re-broadcasting received remote changes via `isApplyingRemoteRef` flag
 - Handles position version tracking to ignore stale updates
 - Drags-in-progress detection to ignore incoming position updates during drag
 - Throttled broadcasts (50ms) to avoid network spam
-- Automatic cleanup of stale collaborators (30s timeout)
+
+**Collaborator Interface**:
+- `userId`: Auth user ID or session fallback for anonymous users
+- `name`: Real name from profile or "Anonymous"
+- `avatar`: Profile picture URL
+- `cursor`: Current cursor position
+- `isOwner`: Crown indicator for flow owner
+- `isSelf`: True for current user (filtered from cursor display)
 
 **CollaboratorCursors** (`components/Flow/CollaboratorCursors.tsx`): Renders remote collaborator cursor positions:
-- Colored cursor + name label per collaborator
+- Colored cursor (hue from user ID hash) + name label per collaborator
+- Avatar display next to cursor name
 - Crown icon for flow owner
+- Filters out self cursor (`isSelf: true`)
 - Uses ViewportPortal for canvas integration
+- Scale-compensated for zoom level
 
 **usePerfectCursor Hook** (`lib/hooks/usePerfectCursor.ts`): Wrapper around `perfect-cursors` npm package for smooth cursor/position animations.
+
+**Avatar Stack**: Live button shows collaborator avatars in header when flow is published.
 
 **Live Page Route** (`app/[code]/[token]/page.tsx`): Collaborator entry point for shared flows:
 - Validates share token format (12 alphanumeric chars)
@@ -279,6 +294,31 @@ Use the **Context7 MCP tools** (`mcp__context7__resolve-library-id` and `mcp__co
 **Live API Routes**:
 - `app/api/live/[token]/route.ts`: Load live flow data for collaborators
 - `app/api/live/[token]/execute/route.ts`: Execute nodes in live flow (supports owner-funded execution)
+
+### Owner-Funded Execution
+
+When a flow is published with "Owner-Funded Execution" enabled, collaborators can run flows using the owner's API keys.
+
+**Security Model**:
+- Owner keys stored encrypted in `user_api_keys.keys_encrypted`
+- Decryption only happens server-side with `ENCRYPTION_KEY` env var
+- Server validates `use_owner_keys` flag in database (never trusts client claims)
+- Share token treated as secret (redacted in debug panels, never logged)
+
+**Rate Limiting**:
+- Per-minute: 10 unique runs per minute (per `share_token`)
+- Per-day: 100 runs per day (per flow)
+- Same `runId` = same run (handles parallel node execution deduplication)
+
+**Database RPCs** (in Supabase):
+- `get_owner_keys_for_execution(p_share_token)`: Returns encrypted keys if `use_owner_keys=true`
+- `check_and_log_run(p_share_token, p_run_id, ...)`: Atomic rate limit check + logging per run
+
+**Environment Variables** (required for owner-funded execution):
+- `SUPABASE_SERVICE_ROLE_KEY`: Service role key for accessing owner keys
+- `ENCRYPTION_KEY`: 32-byte hex string for AES-256-GCM encryption
+
+See `docs/OWNER_FUNDED_EXECUTION.md` for detailed architecture and troubleshooting.
 
 ### Testing
 
@@ -325,7 +365,9 @@ Run tests with `npm test` (65 tests) or `npm run test:watch` for watch mode.
 **Supabase Client** (`lib/supabase/`):
 - `client.ts`: Browser client with cookie-based session storage
 - `server.ts`: Server-side client for API routes
-- `proxy.ts`: Session refresh helper used by `proxy.ts`
+- `service.ts`: Service role client for server-only operations (owner key retrieval). Uses `import "server-only"` to prevent client bundling.
+- `proxy.ts`: Session refresh helper
+
 **Proxy** (`proxy.ts`): Next.js Proxy for session refresh
 
 ### API Key Management
@@ -339,6 +381,18 @@ Run tests with `npm test` (65 tests) or `npm run test:watch` for watch mode.
 
 **Shared Provider Helpers** (`lib/api/`):
 - `providers.ts`: Shared helper functions for creating AI provider clients (e.g., `getAnthropicClient(apiKeys)`) - used by autopilot and comment-suggest routes
+
+**Server-Side Key Storage** (`app/api/user/keys/route.ts`): Secure API key storage for owner-funded execution:
+- GET: Returns which providers have stored keys (not the keys themselves)
+- PUT: Encrypts and stores API keys server-side
+- DELETE: Removes stored keys
+- Keys encrypted with AES-256-GCM before storage in `user_api_keys` table
+
+**Encryption Utilities** (`lib/encryption.ts`): Cryptographic helpers:
+- `encrypt`/`decrypt`: AES-256-GCM encryption using `ENCRYPTION_KEY` env var
+- `encryptKeys`/`decryptKeys`: JSON wrapper for API key objects
+- `generateShareToken`: 12-character alphanumeric share tokens
+- `generateLiveId`: 4-digit live session IDs
 
 ### Flow Storage
 
