@@ -8,7 +8,8 @@ import {
   findDownstreamOutputNodes,
   collectNodeInputs,
 } from "./graph-utils";
-import { resolveImageInput } from "@/lib/vision";
+import { resolveImageInput, modelSupportsVision, getVisionCapableModel } from "@/lib/vision";
+import type { ProviderId } from "@/lib/providers";
 
 interface ExecuteNodeResult {
   output: string;
@@ -107,10 +108,23 @@ async function executeNode(
       const connectedImage = inputs["image"];
       const inlineImageInput = (node.data?.imageInput as string) || "";
       const imageData = resolveImageInput(connectedImage, inlineImageInput);
-      const imageInput = imageData ? JSON.stringify(imageData) : undefined;
 
       const provider = (node.data.provider as string) || "openai";
-      const model = (node.data.model as string) || "gpt-5.2";
+      let model = (node.data.model as string) || "gpt-5.2";
+
+      // Guard: If image is present but model doesn't support vision, auto-switch or error
+      let imageInput: string | undefined;
+      if (imageData) {
+        if (!modelSupportsVision(provider as ProviderId, model)) {
+          const visionModel = getVisionCapableModel(provider as ProviderId, model);
+          if (visionModel) {
+            model = visionModel;
+          } else {
+            throw new Error(`Model "${model}" does not support vision and no vision-capable model is available for ${provider}`);
+          }
+        }
+        imageInput = JSON.stringify(imageData);
+      }
 
       // Owner-funded: include shareToken + runId, omit apiKeys
       const requestBody = options?.shareToken
