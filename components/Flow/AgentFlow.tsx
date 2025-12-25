@@ -209,7 +209,12 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
   const handleApplyAutopilotChanges = useCallback(
     (changes: Parameters<typeof applyAutopilotChanges>[0]) => {
       takeSnapshot();
-      return applyAutopilotChanges(changes);
+      const result = applyAutopilotChanges(changes);
+      // Fit view after autopilot changes (with delay for DOM update)
+      setTimeout(() => {
+        reactFlowInstance.current?.fitView({ padding: 0.2 });
+      }, 50);
+      return result;
     },
     [applyAutopilotChanges, takeSnapshot]
   );
@@ -817,8 +822,6 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
               defaultEdgeOptions={{ type: "colored" }}
-              fitView
-              fitViewOptions={{ padding: 0.2 }}
               deleteKeyCode={["Backspace", "Delete"]}
               proOptions={{ hideAttribution: true }}
               // Pan by default, hold space to enable selection box
