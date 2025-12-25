@@ -170,7 +170,8 @@ export function LeftControls({
                       image: c.avatar ?? ''
                     }))}
                     maxAvatarsAmount={3}
-                    className="-space-x-1 [&_[data-slot=avatar]]:size-4 [&_[data-slot=avatar]]:ring-1 [&_[data-slot=avatar]]:ring-background [&_[data-slot=avatar-fallback]]:text-[9px]"
+                    avatarClassName="size-5 ring-1 ring-background [&_[data-slot=avatar-fallback]]:text-[10px]"
+                    className="-space-x-1.5"
                   />
                 </span>
               )}
