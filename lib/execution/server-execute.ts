@@ -5,13 +5,15 @@
  * Used by the live execute endpoint for headless execution.
  */
 
-import { streamText, generateText, type LanguageModel } from "ai";
+import { streamText, generateText, type LanguageModel, type CoreMessage } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import OpenAI from "openai";
 import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import type { Node, Edge } from "@xyflow/react";
+import { resolveImageInput, modelSupportsVision, getVisionCapableModel } from "@/lib/vision";
+import type { ProviderId } from "@/lib/providers";
 
 interface ApiKeys {
   openai?: string;
@@ -110,17 +112,63 @@ async function executeTextGeneration(
     ? inputs["system"]
     : inlineSystemPrompt;
 
-  const provider = (node.data.provider as string) || "openai";
-  const model = (node.data.model as string) || "gpt-5.2";
+  const connectedImage = inputs["image"];
+  const inlineImageInput =
+    typeof node.data?.imageInput === "string" ? node.data.imageInput : "";
+  const imageData = resolveImageInput(connectedImage, inlineImageInput);
 
-  const messages: { role: "system" | "user"; content: string }[] = [];
+  const provider = (node.data.provider as string) || "openai";
+  let model = (node.data.model as string) || "gpt-5.2";
+
+  const SUPPORTED_IMAGE_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+  ];
+  if (imageData && !SUPPORTED_IMAGE_TYPES.includes(imageData.mimeType)) {
+    throw new Error(
+      `Unsupported image type: ${imageData.mimeType}. Supported formats: JPEG, PNG, GIF, WebP`
+    );
+  }
+
+  if (imageData && !modelSupportsVision(provider as ProviderId, model)) {
+    const visionModel = getVisionCapableModel(provider as ProviderId, model);
+    if (visionModel) {
+      model = visionModel;
+    } else {
+      throw new Error(
+        `Model "${model}" does not support vision and no vision-capable model is available for ${provider}`
+      );
+    }
+  }
+
+  const messages: CoreMessage[] = [];
   if (
     typeof effectiveSystemPrompt === "string" &&
     effectiveSystemPrompt.trim().length > 0
   ) {
     messages.push({ role: "system", content: effectiveSystemPrompt.trim() });
   }
-  messages.push({ role: "user", content: String(promptInput) });
+  if (imageData) {
+    messages.push({
+      role: "user",
+      content: [
+        { type: "text", text: String(promptInput) },
+        {
+          type: "image",
+          image: Buffer.from(imageData.value, "base64"),
+          mediaType: imageData.mimeType as
+            | "image/jpeg"
+            | "image/png"
+            | "image/gif"
+            | "image/webp",
+        },
+      ],
+    });
+  } else {
+    messages.push({ role: "user", content: String(promptInput) });
+  }
 
   // Build provider options for OpenAI
   const openaiOptions: Record<string, string> = {};
