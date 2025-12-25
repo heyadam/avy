@@ -17,7 +17,7 @@ interface InputWithHandleProps {
   children?: ReactNode;
   className?: string;
   required?: boolean;
-  colorClass?: "cyan" | "purple" | "amber";
+  colorClass?: "cyan" | "purple" | "amber" | "emerald";
   handleOffset?: number; // Optional vertical offset for handle
   isConnected?: boolean; // Whether the handle is connected
 }
@@ -38,6 +38,7 @@ export function InputWithHandle({
     cyan: { dot: "!bg-cyan-400", hoverDot: "hover:!bg-cyan-400" },
     purple: { dot: "!bg-purple-400", hoverDot: "hover:!bg-purple-400" },
     amber: { dot: "!bg-amber-400", hoverDot: "hover:!bg-amber-400" },
+    emerald: { dot: "!bg-emerald-400", hoverDot: "hover:!bg-emerald-400" },
   };
 
   const highlight = isConnecting;

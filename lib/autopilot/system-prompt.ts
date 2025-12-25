@@ -140,22 +140,73 @@ Image upload entry point. Allows users to upload an image to use in the flow.
 }
 \`\`\`
 
+### 8. realtime-conversation (Realtime Conversation)
+Real-time voice conversation with OpenAI's Realtime API. Users can have speech-to-speech conversations with the AI model. The node is interactive and manages its own session lifecycle (not triggered by flow execution).
+**Default: voice="marin", vadMode="semantic_vad"**
+\`\`\`typescript
+{
+  type: "realtime-conversation",
+  data: {
+    label: string,              // Display name
+    instructions?: string,      // System prompt for the conversation
+    voice: "marin" | "cedar" | "alloy" | "ash" | "ballad" | "coral" | "echo" | "sage" | "shimmer" | "verse",
+    vadMode: "semantic_vad" | "server_vad" | "disabled"
+  }
+}
+\`\`\`
+
+**Input Handles:**
+- \`instructions\` - System prompt for the session (dataType: "string")
+- \`audio-in\` - External audio source, overrides microphone (dataType: "audio")
+
+**Output Handles:**
+- \`transcript\` - Full conversation transcript (dataType: "string")
+- \`audio-out\` - AI audio response stream (dataType: "audio")
+
+When connecting to this node, use \`targetHandle\` to specify the input:
+- To connect system prompt: \`targetHandle: "instructions"\`
+- To connect external audio: \`targetHandle: "audio-in"\`
+
+Example - creating a realtime conversation node:
+\`\`\`json
+{
+  "actions": [
+    {
+      "type": "addNode",
+      "node": {
+        "id": "autopilot-realtime-1234",
+        "type": "realtime-conversation",
+        "position": { "x": 400, "y": 200 },
+        "data": {
+          "label": "Voice Chat",
+          "instructions": "You are a helpful customer service agent.",
+          "voice": "marin",
+          "vadMode": "semantic_vad"
+        }
+      }
+    }
+  ],
+  "explanation": "Added realtime conversation node for voice interaction"
+}
+\`\`\`
+
 ## Edge Connections
 
 Edges connect nodes and carry data. Each edge has a \`dataType\`:
-- \`"string"\` - Text data (from Text Input, Text Generation, or AI Logic nodes)
+- \`"string"\` - Text data (from Text Input, Text Generation, AI Logic, or Realtime Conversation transcript)
 - \`"image"\` - Image data (from Image Generation or Image Input nodes)
 - \`"response"\` - Final output going to a Preview Output node (from React Component or other terminal nodes)
+- \`"audio"\` - Audio stream data (from Realtime Conversation audio-out)
 
 Edge format:
 \`\`\`typescript
 {
   id: string,
   source: string,        // Source node ID
-  sourceHandle?: string, // Optional: specific output handle (e.g., "output")
+  sourceHandle?: string, // Optional: specific output handle (e.g., "output", "transcript", "audio-out")
   target: string,        // Target node ID
-  targetHandle?: string, // Optional: specific input handle (e.g., "prompt", "system", "image")
-  data: { dataType: "string" | "image" | "response" }
+  targetHandle?: string, // Optional: specific input handle (e.g., "prompt", "system", "image", "instructions", "audio-in")
+  data: { dataType: "string" | "image" | "response" | "audio" }
 }
 \`\`\`
 
@@ -169,6 +220,7 @@ Edge format:
 - Image Generation nodes have both INPUT and OUTPUT connections
 - AI Logic nodes have both INPUT and OUTPUT connections (output is string)
 - React Component nodes have both INPUT and OUTPUT connections (output is response dataType)
+- Realtime Conversation nodes have both INPUT (instructions, audio-in) and OUTPUT (transcript, audio-out) connections
 - Data flows left to right: input → processing → output
 
 ## Current Flow State

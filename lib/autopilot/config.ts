@@ -29,12 +29,13 @@ export const VALID_NODE_TYPES = [
   "preview-output",
   "react-component",
   "comment",
+  "realtime-conversation",
 ] as const;
 
 export type ValidNodeType = (typeof VALID_NODE_TYPES)[number];
 
 // Valid data types for edge connections
-export const VALID_DATA_TYPES = ["string", "image", "response"] as const;
+export const VALID_DATA_TYPES = ["string", "image", "response", "audio"] as const;
 
 export type ValidDataType = (typeof VALID_DATA_TYPES)[number];
 
@@ -64,6 +65,7 @@ export const NODE_REQUIRED_FIELDS: Record<ValidNodeType, string[]> = {
   "preview-output": ["label"],
   "react-component": ["label"],
   comment: ["title"],
+  "realtime-conversation": ["label", "voice", "vadMode"],
 };
 
 /**

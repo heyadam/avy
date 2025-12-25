@@ -17,6 +17,7 @@ import {
   Sparkles,
   MessageSquarePlus,
   Code,
+  Mic,
   ChevronDown,
   CheckCircle2,
   AlertTriangle,
@@ -42,6 +43,7 @@ const iconMap: Record<NodeType, typeof Keyboard> = {
   "ai-logic": Sparkles,
   "comment": MessageSquarePlus,
   "react-component": Code,
+  "realtime-conversation": Mic,
 };
 
 const nodeTypeLabels: Record<NodeType, string> = {
@@ -53,6 +55,7 @@ const nodeTypeLabels: Record<NodeType, string> = {
   "ai-logic": "AI Logic",
   "comment": "Comment",
   "react-component": "React Component",
+  "realtime-conversation": "Realtime",
 };
 
 const dataTypeColors: Record<
@@ -70,6 +73,10 @@ const dataTypeColors: Record<
   response: {
     bg: "bg-amber-500/10",
     text: "text-amber-600 dark:text-amber-400",
+  },
+  audio: {
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-600 dark:text-emerald-400",
   },
 };
 

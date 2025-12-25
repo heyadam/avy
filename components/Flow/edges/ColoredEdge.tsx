@@ -7,6 +7,7 @@ const edgeColors = {
   string: "#d1d5db", // gray-300
   image: "#d1d5db",  // gray-300
   response: "#d1d5db", // gray-300
+  audio: "#34d399",  // emerald-400
   default: "#d1d5db", // gray-300
 };
 

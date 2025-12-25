@@ -663,6 +663,24 @@ async function executeNode(
       return { output: reactOutput, debugInfo };
     }
 
+    case "realtime-conversation": {
+      // Realtime node is interactive - execution passes through current transcript
+      const transcriptEntries = (node.data.transcript as Array<{ role: string; text: string }>) || [];
+
+      const fullTranscript = transcriptEntries
+        .map((e) => `${e.role === "user" ? "User" : "AI"}: ${e.text}`)
+        .join("\n");
+
+      return {
+        output: fullTranscript || "(No conversation yet)",
+        debugInfo: {
+          startTime: Date.now(),
+          endTime: Date.now(),
+          request: { type: "realtime-conversation" },
+        },
+      };
+    }
+
     default:
       return { output: inputs["prompt"] || inputs["input"] || Object.values(inputs)[0] || "" };
   }
