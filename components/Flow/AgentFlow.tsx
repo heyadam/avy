@@ -334,11 +334,9 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
     flowMetadata,
   });
 
-  // Canvas width for responsive label hiding
+  // Canvas width for responsive sizing (labels, logo)
   const [canvasWidth, setCanvasWidth] = useState<number>(0);
-  // Effective width accounts for sidebar overlay
-  const effectiveWidth = canvasWidth - (autopilotOpen ? autopilotWidth : 0);
-  const showLabels = effectiveWidth > 800;
+  const showLabels = canvasWidth > 800;
 
   const statuses = getKeyStatuses();
   const hasAnyKey = statuses.some((s) => s.hasKey);
@@ -856,7 +854,7 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
           animate={{ left: autopilotOpen ? autopilotWidth : 0 }}
           transition={springs.smooth}
         >
-          <AvyLogo isPanning={isPanning} canvasWidth={effectiveWidth} />
+          <AvyLogo isPanning={isPanning} canvasWidth={canvasWidth} />
         </motion.div>
         {/* Autopilot and Flow (top left) */}
         <TooltipProvider delayDuration={200}>

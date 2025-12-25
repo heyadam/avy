@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import {
   KeyRound,
   Link,
-  Sparkles,
+  Users,
   Wand2,
   X,
   ArrowRight,
@@ -152,8 +152,8 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
       <Dialog open={true}>
         <DialogShell
           step={isStep3 ? 3 : 2}
-          title={isStep3 ? <span className="text-lg sm:text-xl">Add Your API Keys</span> : "Bring Your Own API Keys"}
-          description={isStep3 ? <span className="text-xs">Enter your keys or unlock with password</span> : "Connect your providers to start building"}
+          title={isStep3 ? <span className="text-lg sm:text-xl">Add Your API Keys</span> : <span className="text-xl sm:text-2xl">Build Together in Real Time</span>}
+          description={isStep3 ? <span className="text-xs">Enter your keys or unlock with password</span> : null}
           onBack={isStep3 ? handleBackToStep2 : (!user ? handleBackToSignIn : undefined)}
           hero={<ProvidersHero step={isStep3 ? 3 : 2} />}
           preventOutsideClose
@@ -315,29 +315,29 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
               </Button>
             </div>
           ) : (
-            // Step 2: API Keys intro
+            // Step 2: Collaboration + BYOK intro
             <div className="grid gap-5">
               <div className="grid gap-3">
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-lg border bg-foreground/5">
-                    <KeyRound className="h-4 w-4" />
+                    <Users className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-medium">You stay in control</div>
+                    <div className="text-sm font-medium">Live collaboration</div>
                     <div className="mt-1 text-sm text-muted-foreground">
-                      Your keys, your costs, your privacy
+                      Invite anyone with a link — see cursors, edits, and runs in real time
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-lg border bg-foreground/5">
-                    <Sparkles className="h-4 w-4" />
+                    <KeyRound className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-medium">Mix and match providers</div>
+                    <div className="text-sm font-medium">Bring your own keys</div>
                     <div className="mt-1 text-sm text-muted-foreground">
-                      Use OpenAI, Anthropic, and Google together
+                      Connect OpenAI, Anthropic, or Google — your keys, your control
                     </div>
                   </div>
                 </div>

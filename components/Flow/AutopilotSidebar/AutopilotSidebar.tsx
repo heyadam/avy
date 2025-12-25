@@ -35,11 +35,6 @@ export function AutopilotSidebar({
 }: AutopilotSidebarProps) {
   const { width, isResizing, sidebarRef, startResizing } = useResizableSidebar(SIDEBAR_CONFIG);
 
-  // Report width changes to parent for layout adjustments
-  useEffect(() => {
-    onWidthChange?.(width);
-  }, [width, onWidthChange]);
-
   const {
     messages,
     isLoading,
@@ -87,6 +82,11 @@ export function AutopilotSidebar({
   }, [clearHistoryTrigger, clearHistory]);
 
   const w = isOpen ? width : 0;
+
+  // Report width changes to parent for layout adjustments
+  useEffect(() => {
+    onWidthChange?.(width);
+  }, [width, onWidthChange]);
 
   return (
     <motion.div
