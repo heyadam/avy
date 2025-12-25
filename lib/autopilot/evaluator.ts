@@ -22,6 +22,7 @@ const NODE_INPUT_HANDLES: Record<string, Record<string, string[]>> = {
   "text-generation": {
     prompt: ["string"],
     system: ["string"],
+    image: ["image"], // Vision/multimodal input
   },
   "image-generation": {
     prompt: ["string"],
@@ -196,11 +197,16 @@ function validateEdges(
       continue;
     }
 
-    // Special check: image data can only go to image handles or preview-output
+    // Special check: image data can only go to "image" handles on supported nodes or preview-output
+    const supportsImageHandle = ["text-generation", "image-generation"];
     if (dataType === "image" && targetType !== "preview-output") {
       if (targetHandle !== "image") {
         issues.push(
           `Edge to "${getNodeLabel(targetId)}": Image data must connect to "image" handle, not "${targetHandle || "default"}"`
+        );
+      } else if (!supportsImageHandle.includes(targetType)) {
+        issues.push(
+          `Edge to "${getNodeLabel(targetId)}": Node type "${targetType}" does not accept image input`
         );
       }
     }
@@ -419,8 +425,8 @@ ${JSON.stringify(failedChanges, null, 2)}
 Please fix these specific issues and regenerate the FlowChanges JSON.
 
 ### Quick Reference:
+- text-generation accepts: \`targetHandle: "prompt"\` (string), \`targetHandle: "system"\` (string), OR \`targetHandle: "image"\` (image for vision)
 - image-generation accepts: \`targetHandle: "prompt"\` (string) OR \`targetHandle: "image"\` (image-to-image)
-- text-generation accepts: \`targetHandle: "prompt"\` (string) OR \`targetHandle: "system"\` (string)
-- Image data can ONLY connect to \`targetHandle: "image"\` or preview-output
+- Image data can connect to \`targetHandle: "image"\` on text-generation, image-generation, or preview-output
 - All new nodes must be connected via edges (unless adding a single standalone node)`;
 }

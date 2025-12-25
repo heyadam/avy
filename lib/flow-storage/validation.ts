@@ -184,7 +184,7 @@ export function validateFlow(data: unknown): FlowValidationResult {
 }
 
 /**
- * Sanitizes loaded nodes by removing execution state
+ * Sanitizes loaded nodes by removing execution state and runtime-only data
  */
 export function sanitizeNodes(nodes: Node[]): Node[] {
   return nodes.map((node) => ({
@@ -194,6 +194,8 @@ export function sanitizeNodes(nodes: Node[]): Node[] {
       executionStatus: undefined,
       executionOutput: undefined,
       executionError: undefined,
+      uploadedImage: undefined,  // ImageInputNode runtime state
+      imageInput: undefined,     // PromptNode vision input runtime state
     },
     // Remove autopilot highlighting
     className: undefined,

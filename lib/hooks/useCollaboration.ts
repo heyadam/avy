@@ -414,15 +414,19 @@ export function useCollaboration({
   }, [nodes, edges, isCollaborating, initialized, triggerSave]);
 
   // Convert React Flow Node to broadcast payload
-  const nodeToPayload = useCallback((node: Node): NodePayload => ({
-    id: node.id,
-    type: node.type || "default",
-    position: node.position,
-    width: node.measured?.width ?? (node.width as number | undefined),
-    height: node.measured?.height ?? (node.height as number | undefined),
-    data: node.data as Record<string, unknown>,
-    parentId: node.parentId,
-  }), []);
+  // Strip runtime image data to avoid syncing large base64
+  const nodeToPayload = useCallback((node: Node): NodePayload => {
+    const { uploadedImage: _uploadedImage, imageInput: _imageInput, ...cleanData } = node.data as Record<string, unknown>;
+    return {
+      id: node.id,
+      type: node.type || "default",
+      position: node.position,
+      width: node.measured?.width ?? (node.width as number | undefined),
+      height: node.measured?.height ?? (node.height as number | undefined),
+      data: cleanData,
+      parentId: node.parentId,
+    };
+  }, []);
 
   // Convert React Flow Edge to broadcast payload
   const edgeToPayload = useCallback((edge: Edge): EdgePayload => ({
