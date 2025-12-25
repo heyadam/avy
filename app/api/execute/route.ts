@@ -141,6 +141,15 @@ export async function POST(request: NextRequest) {
       // Parse image if provided
       const imageData = imageInput ? parseImageOutput(imageInput) : null;
 
+      // Validate image MIME type if present
+      const SUPPORTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+      if (imageData && !SUPPORTED_IMAGE_TYPES.includes(imageData.mimeType)) {
+        return NextResponse.json(
+          { error: `Unsupported image type: ${imageData.mimeType}. Supported formats: JPEG, PNG, GIF, WebP` },
+          { status: 400 }
+        );
+      }
+
       // Build messages array - using CoreMessage type for multimodal support
       const messages: CoreMessage[] = [];
       if (typeof systemPrompt === "string" && systemPrompt.trim().length > 0) {
