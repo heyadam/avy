@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useReactFlow, useEdges, type NodeProps, type Node, type Edge } from "@xyflow/react";
 import type { RealtimeNodeData, AudioEdgeData } from "@/types/flow";
 import { Mic, Square, Loader2 } from "lucide-react";
@@ -34,6 +35,7 @@ function getConnectedAudioStreamId(edges: Edge[], nodeId: string): string | unde
 export function RealtimeNode({ id, data }: NodeProps<RealtimeNodeType>) {
   const { updateNodeData } = useReactFlow();
   const edges = useEdges();
+  const [isPttHeld, setIsPttHeld] = useState(false);
 
   // Check connection states
   const isInstructionsConnected = edges.some(
@@ -203,16 +205,23 @@ export function RealtimeNode({ id, data }: NodeProps<RealtimeNodeType>) {
             variant="outline"
             className="w-full nodrag"
             onMouseDown={() => {
+              setIsPttHeld(true);
               sendEvent({ type: "input_audio_buffer.clear" });
             }}
             onMouseUp={() => {
-              sendEvent({ type: "input_audio_buffer.commit" });
-              sendEvent({ type: "response.create" });
+              if (isPttHeld) {
+                setIsPttHeld(false);
+                sendEvent({ type: "input_audio_buffer.commit" });
+                sendEvent({ type: "response.create" });
+              }
             }}
             onMouseLeave={() => {
-              // Safety: commit if mouse leaves while held
-              sendEvent({ type: "input_audio_buffer.commit" });
-              sendEvent({ type: "response.create" });
+              // Only commit if mouse leaves while button is held down
+              if (isPttHeld) {
+                setIsPttHeld(false);
+                sendEvent({ type: "input_audio_buffer.commit" });
+                sendEvent({ type: "response.create" });
+              }
             }}
           >
             <Mic className="w-4 h-4 mr-2" />

@@ -120,6 +120,12 @@ export function useRealtimeSession(options: UseRealtimeSessionOptions) {
       micStreamRef.current = null;
     }
 
+    // Clean up audio element
+    if (audioRef.current) {
+      audioRef.current.srcObject = null;
+      audioRef.current = null;
+    }
+
     pcRef.current?.close();
     pcRef.current = null;
     dcRef.current = null;
@@ -166,6 +172,26 @@ export function useRealtimeSession(options: UseRealtimeSessionOptions) {
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
 
+      // Monitor WebRTC connection state for errors
+      pc.onconnectionstatechange = () => {
+        console.log("WebRTC connection state:", pc.connectionState);
+        if (pc.connectionState === "failed") {
+          setErrorMessage("WebRTC connection failed");
+          setStatus("error");
+        } else if (pc.connectionState === "disconnected") {
+          // May recover, but log for debugging
+          console.warn("WebRTC connection disconnected, may reconnect...");
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        console.log("ICE connection state:", pc.iceConnectionState);
+        if (pc.iceConnectionState === "failed") {
+          setErrorMessage("ICE connection failed - check network connectivity");
+          setStatus("error");
+        }
+      };
+
       // 3. Set up remote audio playback and register output stream
       const audioEl = document.createElement("audio");
       audioEl.autoplay = true;
@@ -193,7 +219,11 @@ export function useRealtimeSession(options: UseRealtimeSessionOptions) {
         audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         micStreamRef.current = audioStream;  // Track for cleanup
       }
-      pc.addTrack(audioStream.getTracks()[0]);
+      const audioTrack = audioStream.getTracks()[0];
+      if (!audioTrack) {
+        throw new Error("No audio track available from audio source");
+      }
+      pc.addTrack(audioTrack);
 
       // 5. Create data channel for events
       const dc = pc.createDataChannel("oai-events");

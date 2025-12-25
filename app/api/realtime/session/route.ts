@@ -6,9 +6,28 @@ import { decryptKeys } from "@/lib/encryption";
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;  // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 10;      // 10 sessions per minute per IP/token
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;  // Cleanup every 5 minutes
+let lastCleanup = Date.now();
+
+function cleanupRateLimitMap(): void {
+  const now = Date.now();
+  // Only cleanup if enough time has passed
+  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
+
+  lastCleanup = now;
+  for (const [key, entry] of rateLimitMap.entries()) {
+    if (now > entry.resetAt) {
+      rateLimitMap.delete(key);
+    }
+  }
+}
 
 function checkRateLimit(key: string): boolean {
   const now = Date.now();
+
+  // Periodic cleanup to prevent memory leak
+  cleanupRateLimitMap();
+
   const entry = rateLimitMap.get(key);
 
   if (!entry || now > entry.resetAt) {
@@ -121,6 +140,9 @@ export async function POST(request: NextRequest) {
     } else {
       // User-provided API key path
       openaiKey = apiKeys?.openai;
+      if (openaiKey) {
+        console.log("Realtime session: using user-provided API key");
+      }
     }
 
     if (!openaiKey) {
