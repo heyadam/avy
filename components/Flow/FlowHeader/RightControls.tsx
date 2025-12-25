@@ -1,0 +1,68 @@
+"use client";
+
+import { Settings, PanelRight } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ProfileDropdown } from "../ProfileDropdown";
+import { AnimatedLabel } from "./AnimatedLabel";
+import type { RightControlsProps } from "./types";
+
+export function RightControls({
+  responsesOpen,
+  onResponsesToggle,
+  showLabels,
+  showSettingsWarning,
+  onSettingsOpen,
+}: RightControlsProps) {
+  return (
+    <div className="flex items-center gap-2">
+      {/* Settings */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={onSettingsOpen}
+            className={`p-2 transition-colors rounded-full border bg-background/50 backdrop-blur-sm relative cursor-pointer ${
+              showSettingsWarning
+                ? "text-amber-400 hover:text-amber-300 border-amber-500/50 hover:border-amber-400/50"
+                : "text-muted-foreground/60 hover:text-foreground border-muted-foreground/20 hover:border-muted-foreground/40"
+            }`}
+          >
+            <Settings className="w-5 h-5" />
+            {showSettingsWarning && (
+              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-amber-500" />
+            )}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="bg-neutral-800 text-white border-neutral-700">
+          {showSettingsWarning ? "Configure API Keys" : "Settings"}
+        </TooltipContent>
+      </Tooltip>
+
+      {/* Profile */}
+      <ProfileDropdown />
+
+      {/* Preview Sidebar */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={onResponsesToggle}
+            className={`flex items-center gap-1.5 px-2.5 py-2 transition-colors rounded-full border bg-background/50 backdrop-blur-sm text-sm cursor-pointer ${
+              responsesOpen
+                ? "text-foreground border-muted-foreground/40"
+                : "text-muted-foreground/60 hover:text-foreground border-muted-foreground/20 hover:border-muted-foreground/40"
+            }`}
+          >
+            <AnimatedLabel show={showLabels}>Preview</AnimatedLabel>
+            <PanelRight className="w-4 h-4 shrink-0" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="bg-neutral-800 text-white border-neutral-700">
+          Preview
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  );
+}

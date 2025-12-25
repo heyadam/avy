@@ -24,13 +24,12 @@ import { ConnectionContext } from "./ConnectionContext";
 import { NodeToolbar } from "./NodeToolbar";
 import { AutopilotSidebar } from "./AutopilotSidebar";
 import { ActionBar } from "./ActionBar";
-import { AvyLogo } from "./AvyLogo";
+import { FlowHeader } from "./FlowHeader";
 import { SaveFlowDialog, type SaveMode } from "./SaveFlowDialog";
 import { MyFlowsDialog } from "./MyFlowsDialog";
 import { FlowContextMenu } from "./FlowContextMenu";
 import { CommentEditContext } from "./CommentEditContext";
 import { CollaboratorCursors } from "./CollaboratorCursors";
-import { AvatarStack } from "@/components/avatar-stack";
 // Removed: import { initialNodes, initialEdges, defaultFlow } from "@/lib/example-flow";
 // Canvas now starts empty, templates modal offers starter flows
 import { useCommentSuggestions } from "@/lib/hooks/useCommentSuggestions";
@@ -42,54 +41,17 @@ import { useNodeParenting } from "@/lib/hooks/useNodeParenting";
 import { useFlowOperations } from "@/lib/hooks/useFlowOperations";
 import { useUndoRedo } from "@/lib/hooks/useUndoRedo";
 import type { NodeType, CommentColor } from "@/types/flow";
-import { Settings, Folder, FilePlus, FolderOpen, Save, PanelLeft, PanelRight, Cloud, Globe } from "lucide-react";
 import { SettingsDialogControlled } from "./SettingsDialogControlled";
 import { WelcomeDialog, isNuxComplete } from "./WelcomeDialog";
 import { TemplatesModal } from "./TemplatesModal";
 import { useTemplatesModal } from "./TemplatesModal/hooks";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 // executeFlow and NodeExecutionState now used in useFlowExecution hook
 import type { FlowChanges, AddNodeAction, AddEdgeAction, RemoveEdgeAction, RemoveNodeAction, AppliedChangesInfo, RemovedNodeInfo, RemovedEdgeInfo, PendingAutopilotMessage, AutopilotMode, AutopilotModel } from "@/lib/autopilot/types";
 import { ResponsesSidebar, type PreviewEntry, type DebugEntry } from "./ResponsesSidebar";
 import { useApiKeys, type ProviderId } from "@/lib/api-keys";
 import type { FlowMetadata } from "@/lib/flow-storage";
 import { useBackgroundSettings } from "@/lib/hooks/useBackgroundSettings";
-import { motion, AnimatePresence } from "motion/react";
-import { springs } from "@/lib/motion/presets";
-
-// Animated label that slides in/out with spring animation
-function AnimatedLabel({ show, children }: { show: boolean; children: React.ReactNode }) {
-  return (
-    <AnimatePresence initial={false}>
-      {show && (
-        <motion.span
-          className="overflow-hidden whitespace-nowrap"
-          initial={{ width: 0, opacity: 0 }}
-          animate={{ width: "auto", opacity: 1 }}
-          exit={{ width: 0, opacity: 0 }}
-          transition={springs.smooth}
-        >
-          {children}
-        </motion.span>
-      )}
-    </AnimatePresence>
-  );
-}
-import { ProfileDropdown } from "./ProfileDropdown";
 import { ShareDialog } from "./ShareDialog";
-import { LiveSettingsPopover } from "./LiveSettingsPopover";
 import { useCollaboration, type CollaborationModeProps } from "@/lib/hooks/useCollaboration";
 import { loadFlow } from "@/lib/flows/api";
 
@@ -148,6 +110,9 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
     useOwnerKeys: collaborationMode?.useOwnerKeys,
   });
 
+  // Canvas width for responsive sizing (labels, logo)
+  const [canvasWidth, setCanvasWidth] = useState<number>(0);
+
   // Track canvas width for responsive label hiding
   useEffect(() => {
     if (!reactFlowWrapper.current) return;
@@ -180,6 +145,32 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
     }
     return 380;
   });
+  // Responses sidebar width (initialize from localStorage like autopilot)
+  const [responsesWidth, setResponsesWidth] = useState(() => {
+    if (typeof window === "undefined") return 340;
+    const saved = localStorage.getItem("responses-sidebar-width");
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed >= 240 && parsed <= 800) return parsed;
+    }
+    return 340;
+  });
+  // Track resize state from both sidebars for synchronized header animations
+  const [leftResizing, setLeftResizing] = useState(false);
+  const [rightResizing, setRightResizing] = useState(false);
+  const isAnyResizing = leftResizing || rightResizing;
+
+  // Width change handlers for sidebars
+  const handleAutopilotWidthChange = useCallback((width: number, isResizing: boolean) => {
+    setAutopilotWidth(width);
+    setLeftResizing(isResizing);
+  }, []);
+
+  const handleResponsesWidthChange = useCallback((width: number, isResizing: boolean) => {
+    setResponsesWidth(width);
+    setRightResizing(isResizing);
+  }, []);
+
   const [nodesPaletteOpen, setNodesPaletteOpen] = useState(false);
   const [autopilotClearTrigger, setAutopilotClearTrigger] = useState(0);
 
@@ -334,9 +325,15 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
     flowMetadata,
   });
 
-  // Canvas width for responsive sizing (labels, logo)
-  const [canvasWidth, setCanvasWidth] = useState<number>(0);
-  const showLabels = canvasWidth > 800;
+  // Calculate available space between sidebars for responsive labels
+  // Only subtract autopilot width (overlay) - responses sidebar is a flex sibling,
+  // so canvasWidth already reflects its presence via ResizeObserver
+  const availableWidth = useMemo(() => {
+    const leftOffset = autopilotOpen ? autopilotWidth : 0;
+    return canvasWidth - leftOffset;
+  }, [canvasWidth, autopilotOpen, autopilotWidth]);
+
+  const showLabels = availableWidth > 600;
 
   const statuses = getKeyStatuses();
   const hasAnyKey = statuses.some((s) => s.hasKey);
@@ -787,7 +784,7 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
         pendingMessage={pendingAutopilotMessage ?? undefined}
         onPendingMessageConsumed={() => setPendingAutopilotMessage(null)}
         clearHistoryTrigger={autopilotClearTrigger}
-        onWidthChange={setAutopilotWidth}
+        onWidthChange={handleAutopilotWidthChange}
       />
       <div
         ref={reactFlowWrapper}
@@ -847,222 +844,39 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
             </FlowContextMenu>
           </ConnectionContext.Provider>
         </CommentEditContext.Provider>
-        {/* Top center branding */}
-        <motion.div
-          className="absolute top-0 right-0 z-10 flex justify-center pt-4 pb-8 bg-gradient-to-b from-black/90 to-transparent"
-          initial={false}
-          animate={{ left: autopilotOpen ? autopilotWidth : 0 }}
-          transition={springs.smooth}
-        >
-          <AvyLogo isPanning={isPanning} canvasWidth={canvasWidth} />
-        </motion.div>
-        {/* Autopilot and Flow (top left) */}
-        <TooltipProvider delayDuration={200}>
-          <motion.div
-            className="absolute top-4 z-10 flex items-center gap-2"
-            initial={false}
-            animate={{ left: autopilotOpen ? autopilotWidth + 16 : 16 }}
-            transition={springs.smooth}
-          >
-            {/* Autopilot */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setAutopilotOpen(!autopilotOpen)}
-                  className={`flex items-center gap-1.5 px-2.5 py-2 transition-colors rounded-full border bg-background/50 backdrop-blur-sm text-sm cursor-pointer ${
-                    autopilotOpen
-                      ? "text-foreground border-muted-foreground/40"
-                      : "text-muted-foreground/60 hover:text-foreground border-muted-foreground/20 hover:border-muted-foreground/40"
-                  }`}
-                >
-                  <PanelLeft className="w-4 h-4 shrink-0" />
-                  <AnimatedLabel show={showLabels}>AI</AnimatedLabel>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="bg-neutral-800 text-white border-neutral-700">
-                Composer AI
-              </TooltipContent>
-            </Tooltip>
-            {/* Flow dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className="flex items-center gap-1.5 px-2.5 py-2 text-muted-foreground/60 hover:text-foreground transition-colors rounded-full border border-muted-foreground/20 hover:border-muted-foreground/40 bg-background/50 backdrop-blur-sm text-sm cursor-pointer"
-                  title="Files"
-                >
-                  <Folder className="w-4 h-4 shrink-0" />
-                  <AnimatedLabel show={showLabels}>
-                    Flow
-                    {isCollaborating && isCollaborationSaving && (
-                      <span className="ml-1 text-xs text-muted-foreground/50">Saving...</span>
-                    )}
-                  </AnimatedLabel>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                sideOffset={8}
-                className="bg-neutral-900 border-neutral-700 text-white min-w-[160px]"
-              >
-                {isCollaborating ? (
-                  <>
-                    {/* Collaboration mode: show flow name and limited actions */}
-                    <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                      {collaborationFlowName || "Live Flow"}
-                    </div>
-                    <DropdownMenuSeparator className="bg-neutral-700" />
-                    <DropdownMenuItem
-                      onClick={() => window.open("/", "_blank")}
-                      className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
-                    >
-                      <FilePlus className="h-4 w-4 mr-2" />
-                      New Flow (new tab)
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        handleNewFlow();
-                        openTemplatesModal();
-                      }}
-                      className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
-                    >
-                      <FilePlus className="h-4 w-4 mr-2" />
-                      New Flow
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-neutral-700" />
-                    <DropdownMenuItem
-                      onClick={() => setMyFlowsDialogOpen(true)}
-                      className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
-                    >
-                      <Cloud className="h-4 w-4 mr-2" />
-                      My Flows
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={handleOpenFlow}
-                      className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
-                    >
-                      <FolderOpen className="h-4 w-4 mr-2" />
-                      Open from file...
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setSaveDialogOpen(true)}
-                      className="cursor-pointer hover:bg-neutral-800 focus:bg-neutral-800"
-                    >
-                      <Save className="h-4 w-4 mr-2" />
-                      Save as...
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            {/* Live button - always shown */}
-            {liveSession ? (
-              <LiveSettingsPopover
-                flowId={liveSession.flowId}
-                liveId={liveSession.liveId}
-                shareToken={liveSession.shareToken}
-                useOwnerKeys={liveSession.useOwnerKeys}
-                isOwner={isOwner}
-                collaboratorCount={collaborators.length}
-                onUnpublish={isOwner ? () => setPublishedFlowInfo(null) : undefined}
-                onOwnerKeysChange={isOwner
-                  ? (enabled) => setPublishedFlowInfo(prev => prev ? { ...prev, useOwnerKeys: enabled } : null)
-                  : undefined}
-                onDisconnect={!isOwner && isCollaborating ? handleDisconnect : undefined}
-                open={livePopoverOpen}
-                onOpenChange={setLivePopoverOpen}
-              >
-                <button
-                  className="flex items-center gap-1.5 px-2.5 py-2 text-cyan-400 hover:text-cyan-300 transition-colors rounded-full border border-cyan-500/30 hover:border-cyan-400/50 bg-background/50 backdrop-blur-sm text-sm cursor-pointer"
-                  title="Live settings"
-                >
-                  <Globe className="w-4 h-4 shrink-0" />
-                  <AnimatedLabel show={showLabels}>
-                    Share
-                    {isRealtimeConnected && (
-                      <span className="flex items-center gap-1.5 ml-1">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        <AvatarStack
-                          avatars={collaborators.map(c => ({
-                            name: c.name ?? 'Guest',
-                            image: c.avatar ?? ''
-                          }))}
-                          maxAvatarsAmount={3}
-                          className="-space-x-2 [&_[data-slot=avatar]]:size-6 [&_[data-slot=avatar]]:ring-2 [&_[data-slot=avatar]]:ring-background [&_[data-slot=avatar-fallback]]:text-xs"
-                        />
-                      </span>
-                    )}
-                  </AnimatedLabel>
-                </button>
-              </LiveSettingsPopover>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => setShareDialogOpen(true)}
-                    className="flex items-center gap-1.5 px-2.5 py-2 text-muted-foreground/60 hover:text-foreground transition-colors rounded-full border border-muted-foreground/20 hover:border-muted-foreground/40 bg-background/50 backdrop-blur-sm text-sm cursor-pointer"
-                    title="Go Live"
-                  >
-                    <Globe className="w-4 h-4 shrink-0" />
-                    <AnimatedLabel show={showLabels}>Share</AnimatedLabel>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="bg-neutral-800 text-white border-neutral-700">
-                  Go Live
-                </TooltipContent>
-              </Tooltip>
-            )}
-          </motion.div>
-        </TooltipProvider>
-        {/* Settings, Profile, and Preview icons (top right, left of responses sidebar) */}
-        <TooltipProvider delayDuration={200}>
-          <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-            {/* Settings */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setSettingsOpen(true)}
-                  className={`p-2 transition-colors rounded-full border bg-background/50 backdrop-blur-sm relative cursor-pointer ${
-                    showSettingsWarning
-                      ? "text-amber-400 hover:text-amber-300 border-amber-500/50 hover:border-amber-400/50"
-                      : "text-muted-foreground/60 hover:text-foreground border-muted-foreground/20 hover:border-muted-foreground/40"
-                  }`}
-                >
-                  <Settings className="w-5 h-5" />
-                  {showSettingsWarning && (
-                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-amber-500" />
-                  )}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="bg-neutral-800 text-white border-neutral-700">
-                {showSettingsWarning ? "Configure API Keys" : "Settings"}
-              </TooltipContent>
-            </Tooltip>
-            {/* Profile */}
-            <ProfileDropdown />
-            {/* Preview Sidebar */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setResponsesOpen(!responsesOpen)}
-                  className={`flex items-center gap-1.5 px-2.5 py-2 transition-colors rounded-full border bg-background/50 backdrop-blur-sm text-sm cursor-pointer ${
-                    responsesOpen
-                      ? "text-foreground border-muted-foreground/40"
-                      : "text-muted-foreground/60 hover:text-foreground border-muted-foreground/20 hover:border-muted-foreground/40"
-                  }`}
-                >
-                  <AnimatedLabel show={showLabels}>Preview</AnimatedLabel>
-                  <PanelRight className="w-4 h-4 shrink-0" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="bg-neutral-800 text-white border-neutral-700">
-                Preview
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </TooltipProvider>
+        <FlowHeader
+          autopilotOpen={autopilotOpen}
+          autopilotWidth={autopilotWidth}
+          responsesOpen={responsesOpen}
+          responsesWidth={responsesWidth}
+          isResizing={isAnyResizing}
+          onAutopilotToggle={() => setAutopilotOpen(!autopilotOpen)}
+          onResponsesToggle={() => setResponsesOpen(!responsesOpen)}
+          onSettingsOpen={() => setSettingsOpen(true)}
+          liveSession={liveSession}
+          isCollaborating={isCollaborating}
+          isOwner={isOwner}
+          collaborators={collaborators}
+          isRealtimeConnected={isRealtimeConnected}
+          collaborationFlowName={collaborationFlowName}
+          isCollaborationSaving={isCollaborationSaving}
+          showLabels={showLabels}
+          showSettingsWarning={showSettingsWarning}
+          livePopoverOpen={livePopoverOpen}
+          onLivePopoverChange={setLivePopoverOpen}
+          shareDialogOpen={shareDialogOpen}
+          onShareDialogChange={setShareDialogOpen}
+          onNewFlow={handleNewFlow}
+          onOpenTemplates={openTemplatesModal}
+          onOpenMyFlows={() => setMyFlowsDialogOpen(true)}
+          onOpenFlow={handleOpenFlow}
+          onSaveFlow={() => setSaveDialogOpen(true)}
+          onDisconnect={handleDisconnect}
+          onUnpublish={() => setPublishedFlowInfo(null)}
+          onOwnerKeysChange={(enabled) => setPublishedFlowInfo(prev => prev ? { ...prev, useOwnerKeys: enabled } : null)}
+          isPanning={isPanning}
+          canvasWidth={canvasWidth}
+        />
         <ActionBar
           onToggleNodes={() => setNodesPaletteOpen(!nodesPaletteOpen)}
           onCommentAround={handleCommentAround}
@@ -1081,6 +895,7 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
         onTabChange={setActiveResponseTab}
         keyError={keyError}
         isOpen={responsesOpen}
+        onWidthChange={handleResponsesWidthChange}
       />
       <SaveFlowDialog
         open={saveDialogOpen}

@@ -22,6 +22,6 @@ export interface AutopilotSidebarProps {
   onPendingMessageConsumed?: () => void;
   /** Increment to trigger clearing the chat history */
   clearHistoryTrigger?: number;
-  /** Called when sidebar width changes (for parent layout adjustments) */
-  onWidthChange?: (width: number) => void;
+  /** Called when sidebar width or resize state changes (for parent layout adjustments) */
+  onWidthChange?: (width: number, isResizing: boolean) => void;
 }

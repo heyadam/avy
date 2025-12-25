@@ -83,10 +83,10 @@ export function AutopilotSidebar({
 
   const w = isOpen ? width : 0;
 
-  // Report width changes to parent for layout adjustments
+  // Report width and resize state changes to parent for layout adjustments
   useEffect(() => {
-    onWidthChange?.(width);
-  }, [width, onWidthChange]);
+    onWidthChange?.(width, isResizing);
+  }, [width, isResizing, onWidthChange]);
 
   return (
     <motion.div

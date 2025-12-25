@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { motion } from "motion/react";
 import { ResponsesHeader } from "./ResponsesHeader";
 import { ResponsesContent } from "./ResponsesContent";
@@ -23,6 +24,8 @@ interface ResponsesSidebarProps {
   onTabChange: (tab: "responses" | "debug") => void;
   keyError?: string | null;
   isOpen: boolean;
+  /** Called when sidebar width or resize state changes (for parent layout adjustments) */
+  onWidthChange?: (width: number, isResizing: boolean) => void;
 }
 
 export function ResponsesSidebar({
@@ -32,8 +35,14 @@ export function ResponsesSidebar({
   onTabChange,
   keyError,
   isOpen,
+  onWidthChange,
 }: ResponsesSidebarProps) {
   const { width, isResizing, sidebarRef, startResizing } = useResizableSidebar(SIDEBAR_CONFIG);
+
+  // Report width and resize state changes to parent for layout adjustments
+  useEffect(() => {
+    onWidthChange?.(width, isResizing);
+  }, [width, isResizing, onWidthChange]);
 
   const w = isOpen ? width : 0;
 

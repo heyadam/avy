@@ -152,7 +152,7 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
       <Dialog open={true}>
         <DialogShell
           step={isStep3 ? 3 : 2}
-          title={isStep3 ? <span className="text-lg sm:text-xl">Add Your API Keys</span> : <span className="text-xl sm:text-2xl">Build Together in Real Time</span>}
+          title={isStep3 ? <span className="text-lg sm:text-xl">Add Your API Keys</span> : <span className="text-lg sm:text-xl">Complete Setup to Unlock</span>}
           description={isStep3 ? <span className="text-xs">Enter your keys or unlock with password</span> : null}
           onBack={isStep3 ? handleBackToStep2 : (!user ? handleBackToSignIn : undefined)}
           hero={<ProvidersHero step={isStep3 ? 3 : 2} />}
@@ -341,6 +341,18 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
                     </div>
                   </div>
                 </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-lg border bg-foreground/5">
+                    <Wand2 className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium">Build with Composer AI</div>
+                    <div className="mt-1 text-sm text-muted-foreground">
+                      An AI agent that edits your flow as you describe changes
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="grid gap-2">
@@ -367,7 +379,7 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
     <Dialog open={true}>
       <DialogShell
         step={1}
-        title="Welcome to Composer"
+        title={<span className="text-xl sm:text-2xl">Welcome to Composer</span>}
         description="A canvas for chaining AI models into creative workflows"
         hero={<DemoHero />}
         preventOutsideClose
@@ -375,26 +387,26 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
       >
         <div className="grid gap-6">
           <div className="grid gap-3">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-lg border bg-foreground/5">
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border bg-foreground/5">
                 <Link className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-sm font-medium">Chain any AI model</div>
+                <div className="text-sm font-medium">Save flows and collaborate in real time</div>
                 <div className="mt-1 text-sm text-muted-foreground">
-                  Chain multiple AI models from different providers
+                  Sign in to unlock cloud saves and live collaboration
                 </div>
               </div>
             </div>
 
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-lg border bg-foreground/5">
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border bg-foreground/5">
                 <Wand2 className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-sm font-medium">Composer AI builds with you</div>
+                <div className="text-sm font-medium">Chain models from any provider</div>
                 <div className="mt-1 text-sm text-muted-foreground">
-                  An AI agent that edits your flow as you describe changes
+                  Mix and match OpenAI, Anthropic, and Google in a single flow
                 </div>
               </div>
             </div>
