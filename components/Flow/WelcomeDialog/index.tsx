@@ -152,8 +152,8 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
       <Dialog open={true}>
         <DialogShell
           step={isStep3 ? 3 : 2}
-          title={isStep3 ? <span className="text-lg sm:text-xl">Add Your API Keys</span> : <span className="text-lg sm:text-xl">Complete Setup to Unlock</span>}
-          description={isStep3 ? <span className="text-xs">Enter your keys or unlock with password</span> : null}
+          title={isStep3 ? <span className="text-base sm:text-lg">Finish setup by adding your API keys</span> : <span className="text-base sm:text-lg">Unlock real-time collaboration & AI assistant</span>}
+          description={null}
           onBack={isStep3 ? handleBackToStep2 : (!user ? handleBackToSignIn : undefined)}
           hero={<ProvidersHero step={isStep3 ? 3 : 2} />}
           preventOutsideClose
