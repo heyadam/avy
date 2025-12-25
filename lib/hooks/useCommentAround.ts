@@ -2,6 +2,11 @@ import { useCallback, useMemo } from "react";
 import type { Node } from "@xyflow/react";
 import type { CommentColor } from "@/types/flow";
 
+const COMMENT_PADDING = 40;
+const COMMENT_HEADER_HEIGHT = 60;
+const DEFAULT_NODE_WIDTH = 280;
+const DEFAULT_NODE_HEIGHT = 200;
+
 interface UseCommentAroundOptions {
   nodes: Node[];
   setNodes: React.Dispatch<React.SetStateAction<Node[]>>;
@@ -27,42 +32,36 @@ export function useCommentAround({
   getId,
   onBeforeChange,
 }: UseCommentAroundOptions): UseCommentAroundResult {
-  // Get currently selected nodes (excluding comments when wrapping)
-  const getSelectedNodes = useCallback(() => {
-    return nodes.filter((n) => n.selected && n.type !== "comment");
-  }, [nodes]);
+  // Get selected nodes (excluding comments) - computed once per nodes change
+  const selectedNodes = useMemo(
+    () => nodes.filter((n) => n.selected && n.type !== "comment"),
+    [nodes]
+  );
 
-  // Check if any non-comment nodes are selected
-  const hasSelection = useMemo(() => {
-    return nodes.some((n) => n.selected && n.type !== "comment");
-  }, [nodes]);
+  const hasSelection = selectedNodes.length > 0;
 
   // Handler to create comment around selected nodes
   const handleCommentAround = useCallback(() => {
-    const selectedNodes = getSelectedNodes();
     if (selectedNodes.length === 0) return;
 
     // Snapshot for undo support
     onBeforeChange?.();
 
     // Calculate bounding box of selected nodes
-    const padding = 40;
-    const headerHeight = 60; // Space for the comment header
-
     const bounds = selectedNodes.reduce(
       (acc, node) => ({
         minX: Math.min(acc.minX, node.position.x),
         minY: Math.min(acc.minY, node.position.y),
-        maxX: Math.max(acc.maxX, node.position.x + (node.measured?.width || 280)),
-        maxY: Math.max(acc.maxY, node.position.y + (node.measured?.height || 200)),
+        maxX: Math.max(acc.maxX, node.position.x + (node.measured?.width || DEFAULT_NODE_WIDTH)),
+        maxY: Math.max(acc.maxY, node.position.y + (node.measured?.height || DEFAULT_NODE_HEIGHT)),
       }),
       { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
     );
 
     const commentId = getId();
     const commentPosition = {
-      x: bounds.minX - padding,
-      y: bounds.minY - padding - headerHeight,
+      x: bounds.minX - COMMENT_PADDING,
+      y: bounds.minY - COMMENT_PADDING - COMMENT_HEADER_HEIGHT,
     };
 
     // Create comment node with default values
@@ -71,8 +70,8 @@ export function useCommentAround({
       type: "comment",
       position: commentPosition,
       style: {
-        width: bounds.maxX - bounds.minX + padding * 2,
-        height: bounds.maxY - bounds.minY + padding * 2 + headerHeight,
+        width: bounds.maxX - bounds.minX + COMMENT_PADDING * 2,
+        height: bounds.maxY - bounds.minY + COMMENT_PADDING * 2 + COMMENT_HEADER_HEIGHT,
         zIndex: -1, // Render behind other nodes
       },
       data: {
@@ -82,11 +81,14 @@ export function useCommentAround({
       },
     };
 
+    // Capture selected node IDs for stable reference in setNodes callback
+    const selectedIds = new Set(selectedNodes.map((n) => n.id));
+
     // Update selected nodes to be children of comment
     setNodes((nds) => [
       commentNode,
       ...nds.map((node) =>
-        selectedNodes.some((sn) => sn.id === node.id)
+        selectedIds.has(node.id)
           ? {
               ...node,
               parentId: commentId,
@@ -102,7 +104,7 @@ export function useCommentAround({
 
     // Trigger AI generation for the new comment's title/description
     triggerGeneration(commentId);
-  }, [getSelectedNodes, setNodes, triggerGeneration, getId, onBeforeChange]);
+  }, [selectedNodes, setNodes, triggerGeneration, getId, onBeforeChange]);
 
   return {
     hasSelection,
