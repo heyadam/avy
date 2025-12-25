@@ -304,12 +304,12 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
                 disabled={!keys.anthropic && !isDevMode}
                 className="h-9 w-full cursor-pointer mt-4"
               >
-                Done
+                Save keys and finish setup
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 onClick={completeNux}
-                className="mt-2 h-10 w-full cursor-pointer"
+                className="mt-2 h-10 w-full cursor-pointer text-muted-foreground hover:text-foreground"
               >
                 Skip for now
               </Button>
@@ -360,9 +360,9 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
                   Set up API Keys
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={completeNux}
-                  className="mt-2 h-10 w-full cursor-pointer"
+                  className="mt-2 h-10 w-full cursor-pointer text-muted-foreground hover:text-foreground"
                 >
                   Skip for now
                 </Button>
@@ -417,15 +417,12 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
               Continue with Google
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={handleSkipSignIn}
-              className="mt-2 h-10 w-full cursor-pointer"
+              className="mt-2 h-10 w-full cursor-pointer text-muted-foreground hover:text-foreground"
             >
-              Continue Without an Account
+              Continue without an account
             </Button>
-            <p className="text-center text-xs text-muted-foreground">
-              You can sign in later from the profile menu
-            </p>
           </div>
         </div>
       </DialogShell>
