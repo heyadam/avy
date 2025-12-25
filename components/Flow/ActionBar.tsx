@@ -7,6 +7,7 @@ import {
   Square,
   MessageSquarePlus,
 } from "lucide-react";
+import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -14,6 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { getTransition } from "@/lib/motion/presets";
 
 interface ActionBarProps {
   onToggleNodes: () => void;
@@ -24,6 +26,12 @@ interface ActionBarProps {
   nodesPaletteOpen: boolean;
   isRunning: boolean;
   hasSelection: boolean;
+  /** Width of left sidebar when open */
+  autopilotWidth?: number;
+  /** Whether left sidebar is open */
+  autopilotOpen?: boolean;
+  /** Whether a sidebar is being resized */
+  isResizing?: boolean;
 }
 
 export function ActionBar({
@@ -35,10 +43,23 @@ export function ActionBar({
   nodesPaletteOpen,
   isRunning,
   hasSelection,
+  autopilotWidth = 0,
+  autopilotOpen = false,
+  isResizing = false,
 }: ActionBarProps) {
+  // Calculate offset to keep centered in visible area when sidebars open
+  // Left sidebar overlays canvas, so we need to offset by half its width
+  // Right sidebar shrinks the canvas (flex sibling), so ActionBar naturally centers - no offset needed
+  const centerOffset = autopilotOpen ? autopilotWidth / 2 : 0;
+
   return (
     <TooltipProvider delayDuration={200}>
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
+        <motion.div
+          className="absolute bottom-6 left-1/2 z-20"
+          initial={false}
+          animate={{ x: `calc(-50% + ${centerOffset}px)` }}
+          transition={getTransition(isResizing)}
+        >
           <div className="flex items-center gap-1 p-1.5 rounded-xl bg-neutral-900/95 backdrop-blur border border-neutral-700 shadow-lg">
             {/* Section 1: Add Node & Comment */}
             <Tooltip>
@@ -118,7 +139,7 @@ export function ActionBar({
               </Button>
             )}
           </div>
-        </div>
+        </motion.div>
     </TooltipProvider>
   );
 }

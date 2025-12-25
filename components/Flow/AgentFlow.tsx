@@ -889,6 +889,9 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
           nodesPaletteOpen={nodesPaletteOpen}
           isRunning={isRunning}
           hasSelection={hasSelection}
+          autopilotWidth={autopilotWidth}
+          autopilotOpen={autopilotOpen}
+          isResizing={isAnyResizing}
         />
       </div>
       <ResponsesSidebar
