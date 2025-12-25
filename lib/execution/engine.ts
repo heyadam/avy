@@ -8,6 +8,7 @@ import {
   findDownstreamOutputNodes,
   collectNodeInputs,
 } from "./graph-utils";
+import { resolveImageInput } from "@/lib/vision";
 
 interface ExecuteNodeResult {
   output: string;
@@ -102,6 +103,12 @@ async function executeNode(
       const inlineSystemPrompt = typeof node.data?.systemPrompt === "string" ? node.data.systemPrompt : "";
       const effectiveSystemPrompt = hasSystemEdge ? inputs["system"] : inlineSystemPrompt;
 
+      // Get image input - from connection or inline upload (connection wins if non-empty)
+      const connectedImage = inputs["image"];
+      const inlineImageInput = (node.data?.imageInput as string) || "";
+      const imageData = resolveImageInput(connectedImage, inlineImageInput);
+      const imageInput = imageData ? JSON.stringify(imageData) : undefined;
+
       const provider = (node.data.provider as string) || "openai";
       const model = (node.data.model as string) || "gpt-5.2";
 
@@ -117,6 +124,7 @@ async function executeNode(
             googleThinkingConfig: node.data.googleThinkingConfig,
             googleSafetyPreset: node.data.googleSafetyPreset,
             googleStructuredOutputs: node.data.googleStructuredOutputs,
+            imageInput,
             shareToken: options.shareToken,
             runId: options.runId,
           }
@@ -130,6 +138,7 @@ async function executeNode(
             googleThinkingConfig: node.data.googleThinkingConfig,
             googleSafetyPreset: node.data.googleSafetyPreset,
             googleStructuredOutputs: node.data.googleStructuredOutputs,
+            imageInput,
             apiKeys,
           };
 
@@ -141,6 +150,7 @@ async function executeNode(
           model,
           userPrompt: promptInput,
           systemPrompt: effectiveSystemPrompt,
+          hasImage: !!imageInput,
           verbosity: node.data.verbosity as string | undefined,
           thinking: node.data.thinking as boolean | undefined,
           googleThinkingConfig: node.data.googleThinkingConfig as Record<string, unknown> | undefined,
@@ -152,6 +162,7 @@ async function executeNode(
           ...requestBody,
           apiKeys: "apiKeys" in requestBody ? "[REDACTED]" : undefined,
           shareToken: "shareToken" in requestBody ? "[REDACTED]" : undefined,
+          imageInput: imageInput ? "[BASE64_IMAGE]" : undefined,
         }, null, 2),
       };
 

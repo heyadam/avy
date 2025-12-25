@@ -2,24 +2,24 @@ export const PROVIDERS = {
   openai: {
     label: "OpenAI",
     models: [
-      { value: "gpt-5.2", label: "GPT-5.2", supportsVerbosity: true, supportsThinking: true },
-      { value: "gpt-5-mini", label: "GPT-5 Mini", supportsVerbosity: true, supportsThinking: true },
-      { value: "gpt-5-nano", label: "GPT-5 Nano", supportsVerbosity: true, supportsThinking: false },
+      { value: "gpt-5.2", label: "GPT-5.2", supportsVerbosity: true, supportsThinking: true, supportsVision: true },
+      { value: "gpt-5-mini", label: "GPT-5 Mini", supportsVerbosity: true, supportsThinking: true, supportsVision: true },
+      { value: "gpt-5-nano", label: "GPT-5 Nano", supportsVerbosity: true, supportsThinking: false, supportsVision: false },
     ],
   },
   google: {
     label: "Google",
     models: [
-      { value: "gemini-3-flash-preview", label: "Gemini 3 Flash", supportsVerbosity: false, supportsThinking: false, supportsThinkingBudget: false, supportsThinkingLevel: true },
-      { value: "gemini-3-pro-preview", label: "Gemini 3 Pro", supportsVerbosity: false, supportsThinking: false, supportsThinkingBudget: false, supportsThinkingLevel: true },
+      { value: "gemini-3-flash-preview", label: "Gemini 3 Flash", supportsVerbosity: false, supportsThinking: false, supportsThinkingBudget: false, supportsThinkingLevel: true, supportsVision: true },
+      { value: "gemini-3-pro-preview", label: "Gemini 3 Pro", supportsVerbosity: false, supportsThinking: false, supportsThinkingBudget: false, supportsThinkingLevel: true, supportsVision: true },
     ],
   },
   anthropic: {
     label: "Anthropic",
     models: [
-      { value: "claude-sonnet-4-5", label: "Claude Sonnet 4.5", supportsVerbosity: false, supportsThinking: false },
-      { value: "claude-opus-4-5", label: "Claude Opus 4.5", supportsVerbosity: false, supportsThinking: false },
-      { value: "claude-haiku-4-5", label: "Claude Haiku 4.5", supportsVerbosity: false, supportsThinking: false },
+      { value: "claude-sonnet-4-5", label: "Claude Sonnet 4.5", supportsVerbosity: false, supportsThinking: false, supportsVision: true },
+      { value: "claude-opus-4-5", label: "Claude Opus 4.5", supportsVerbosity: false, supportsThinking: false, supportsVision: true },
+      { value: "claude-haiku-4-5", label: "Claude Haiku 4.5", supportsVerbosity: false, supportsThinking: false, supportsVision: true },
     ],
   },
 } as const;
@@ -27,6 +27,13 @@ export const PROVIDERS = {
 export type ProviderId = keyof typeof PROVIDERS;
 export const DEFAULT_PROVIDER: ProviderId = "google";
 export const DEFAULT_MODEL = "gemini-3-flash-preview";
+
+// Default vision-capable model per provider (for auto-switch when image added)
+export const DEFAULT_VISION_MODELS: Record<ProviderId, string> = {
+  openai: "gpt-5.2",
+  google: "gemini-3-flash-preview",
+  anthropic: "claude-sonnet-4-5",
+};
 
 // React component node defaults
 export const DEFAULT_REACT_PROVIDER: ProviderId = "anthropic";

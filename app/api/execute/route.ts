@@ -1,7 +1,7 @@
 import "server-only"; // Prevent client bundling
 
 import { NextRequest, NextResponse } from "next/server";
-import { streamText, generateText, type LanguageModel } from "ai";
+import { streamText, generateText, type LanguageModel, type CoreMessage } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createAnthropic } from "@ai-sdk/anthropic";
@@ -10,6 +10,7 @@ import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import type { MagicEvalTestCase, MagicEvalResults } from "@/types/flow";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { decryptKeys } from "@/lib/encryption";
+import { parseImageOutput } from "@/lib/image-utils";
 
 // Required for service role client and decryption
 export const runtime = "nodejs";
@@ -129,17 +130,40 @@ export async function POST(request: NextRequest) {
         googleThinkingConfig,
         googleSafetyPreset,
         googleStructuredOutputs,
+        // Image input for multimodal
+        imageInput,
       } = body;
 
       // Get prompt (user message) and system prompt from either format
       const promptInput = inputs?.prompt ?? legacyInput ?? "";
       const systemPrompt = inputs?.system ?? legacyPrompt ?? "";
 
-      const messages: { role: "system" | "user"; content: string }[] = [];
+      // Parse image if provided
+      const imageData = imageInput ? parseImageOutput(imageInput) : null;
+
+      // Build messages array - using CoreMessage type for multimodal support
+      const messages: CoreMessage[] = [];
       if (typeof systemPrompt === "string" && systemPrompt.trim().length > 0) {
         messages.push({ role: "system", content: systemPrompt.trim() });
       }
-      messages.push({ role: "user", content: String(promptInput) });
+
+      if (imageData) {
+        // Multimodal message with image
+        messages.push({
+          role: "user",
+          content: [
+            { type: "text", text: String(promptInput) },
+            {
+              type: "image",
+              image: Buffer.from(imageData.value, "base64"),
+              mediaType: imageData.mimeType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+            },
+          ],
+        });
+      } else {
+        // Text-only message
+        messages.push({ role: "user", content: String(promptInput) });
+      }
 
       // Build provider options for OpenAI
       const openaiOptions: Record<string, string> = {};

@@ -29,9 +29,10 @@ Entry point for user input. There should typically be only one input node.
 \`\`\`
 
 ### 2. text-generation (Text Generation)
-LLM text generation node. Has two text inputs that can be connected or set inline:
+LLM text generation node. Has two text inputs and one image input that can be connected or set inline:
 - **prompt** input: The user message/content to process
 - **system** input: System instructions for the LLM
+- **image** input: Optional image for multimodal/vision prompts
 
 \`\`\`typescript
 {
@@ -49,10 +50,12 @@ LLM text generation node. Has two text inputs that can be connected or set inlin
 **Input Handles:**
 - \`prompt\` - User message/content to process (dataType: "string")
 - \`system\` - System instructions for the LLM (dataType: "string")
+- \`image\` - Optional image for vision/multimodal prompts (dataType: "image")
 
 When connecting to this node, use \`targetHandle\` to specify which input:
 - To connect to the user prompt: \`targetHandle: "prompt"\`
 - To connect to the system instructions: \`targetHandle: "system"\`
+- To connect an image for vision prompts: \`targetHandle: "image"\`
 
 **Available Text Generation Models (ONLY use these exact IDs):**
 ${formatModelList(VALID_TEXT_MODELS)}

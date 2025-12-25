@@ -10,6 +10,7 @@ const EXCLUDED_DATA_FIELDS = [
   "isGenerating",       // MagicNode runtime state
   "generationError",    // MagicNode runtime state
   "uploadedImage",      // ImageInputNode runtime state
+  "imageInput",         // PromptNode runtime state (vision input)
 ] as const;
 
 /**

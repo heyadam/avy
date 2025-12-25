@@ -65,6 +65,7 @@ export interface PromptNodeData extends Record<string, unknown>, ExecutionData {
   label: string;
   userPrompt?: string;    // User message (when not connected)
   systemPrompt?: string;  // System instructions (when not connected)
+  imageInput?: string;    // Stringified ImageData JSON (runtime only, not persisted)
   provider?: string;
   model?: string;
   // OpenAI-specific options
@@ -260,6 +261,7 @@ export const NODE_PORT_SCHEMAS: Record<NodeType, NodePortSchema> = {
     inputs: [
       { id: "prompt", label: "prompt", dataType: "string", required: true },
       { id: "system", label: "system", dataType: "string", required: false },
+      { id: "image", label: "image", dataType: "image", required: false },
     ],
     outputs: [{ id: "output", label: "string", dataType: "string" }],
   },
