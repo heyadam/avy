@@ -22,6 +22,7 @@ export interface AvatarStackProps
     VariantProps<typeof avatarStackVariants> {
   avatars: { name: string; image: string }[]
   maxAvatarsAmount?: number
+  avatarClassName?: string
 }
 
 const AvatarStack = ({
@@ -29,6 +30,7 @@ const AvatarStack = ({
   orientation,
   avatars,
   maxAvatarsAmount = 3,
+  avatarClassName,
   ...props
 }: AvatarStackProps) => {
   const shownAvatars = avatars.slice(0, maxAvatarsAmount)
@@ -46,7 +48,7 @@ const AvatarStack = ({
       {shownAvatars.map(({ name, image }, index) => (
         <Tooltip key={`${name}-${image}-${index}`}>
           <TooltipTrigger asChild>
-            <Avatar className="hover:z-10">
+            <Avatar className={cn("hover:z-10", avatarClassName)}>
               {image && <AvatarImage src={image} />}
               <AvatarFallback className={!image ? 'bg-neutral-700' : undefined}>
                 {image ? (
@@ -70,7 +72,7 @@ const AvatarStack = ({
       {hiddenAvatars.length ? (
         <Tooltip key="hidden-avatars">
           <TooltipTrigger asChild>
-            <Avatar>
+            <Avatar className={avatarClassName}>
               <AvatarFallback>+{avatars.length - shownAvatars.length}</AvatarFallback>
             </Avatar>
           </TooltipTrigger>

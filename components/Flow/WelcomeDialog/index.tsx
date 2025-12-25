@@ -3,11 +3,21 @@
 import { useEffect, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import {
   KeyRound,
   Link,
-  Sparkles,
+  Users,
   Wand2,
   X,
   ArrowRight,
@@ -44,6 +54,8 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
   const [password, setPassword] = useState(() => loadVipCode() || "");
   const [passwordError, setPasswordError] = useState("");
   const [vipSuccess, setVipSuccess] = useState(false);
+  const [showSkipAlert, setShowSkipAlert] = useState(false);
+  const [showSkipKeysAlert, setShowSkipKeysAlert] = useState(false);
 
   const statuses = getKeyStatuses();
   const hasAnyKey = statuses.some((s) => s.hasKey);
@@ -72,7 +84,21 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
   }, [step]);
 
   const handleSkipSignIn = () => {
+    setShowSkipAlert(true);
+  };
+
+  const handleConfirmSkipSignIn = () => {
+    setShowSkipAlert(false);
     advanceToStep2();
+  };
+
+  const handleSkipKeys = () => {
+    setShowSkipKeysAlert(true);
+  };
+
+  const handleConfirmSkipKeys = () => {
+    setShowSkipKeysAlert(false);
+    completeNux();
   };
 
   const handleSetupApiKeys = () => {
@@ -149,13 +175,14 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
     const isStep3 = step === "3";
 
     return (
+    <>
       <Dialog open={true}>
         <DialogShell
           step={isStep3 ? 3 : 2}
-          title={isStep3 ? <span className="text-lg sm:text-xl">Add Your API Keys</span> : "Bring Your Own API Keys"}
-          description={isStep3 ? <span className="text-xs">Enter your keys or unlock with password</span> : "Connect your providers to start building"}
+          title={isStep3 ? <span className="text-base sm:text-lg">Finish setup by adding your API keys</span> : <span className="text-base sm:text-lg">Unlock creating flows & AI assistant</span>}
+          description={null}
           onBack={isStep3 ? handleBackToStep2 : (!user ? handleBackToSignIn : undefined)}
-          hero={<ProvidersHero />}
+          hero={<ProvidersHero step={isStep3 ? 3 : 2} />}
           preventOutsideClose
           onClose={completeNux}
         >
@@ -304,40 +331,52 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
                 disabled={!keys.anthropic && !isDevMode}
                 className="h-9 w-full cursor-pointer mt-4"
               >
-                Done
+                Save keys and finish setup
               </Button>
               <Button
-                variant="outline"
-                onClick={completeNux}
-                className="mt-2 h-10 w-full cursor-pointer"
+                variant="ghost"
+                onClick={handleSkipKeys}
+                className="mt-2 h-10 w-full cursor-pointer text-muted-foreground hover:text-foreground"
               >
                 Skip for now
               </Button>
             </div>
           ) : (
-            // Step 2: API Keys intro
+            // Step 2: Collaboration + BYOK intro
             <div className="grid gap-5">
               <div className="grid gap-3">
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-lg border bg-foreground/5">
-                    <KeyRound className="h-4 w-4" />
+                    <Users className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-medium">You stay in control</div>
+                    <div className="text-sm font-medium">Live collaboration with your keys</div>
                     <div className="mt-1 text-sm text-muted-foreground">
-                      Your keys, your costs, your privacy
+                      Invite anyone with a link — see cursors, edits, and runs in real time
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-lg border bg-foreground/5">
-                    <Sparkles className="h-4 w-4" />
+                    <KeyRound className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-medium">Mix and match providers</div>
+                    <div className="text-sm font-medium">Multimodal creation across multiple providers</div>
                     <div className="mt-1 text-sm text-muted-foreground">
-                      Use OpenAI, Anthropic, and Google together
+                      Connect OpenAI, Anthropic, or Google — your keys, your control
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-lg border bg-foreground/5">
+                    <Wand2 className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium">Build with Composer AI</div>
+                    <div className="mt-1 text-sm text-muted-foreground">
+                      Collaborate with an AI agent that creates and edits your flow
                     </div>
                   </div>
                 </div>
@@ -348,9 +387,9 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
                   Set up API Keys
                 </Button>
                 <Button
-                  variant="outline"
-                  onClick={completeNux}
-                  className="mt-2 h-10 w-full cursor-pointer"
+                  variant="ghost"
+                  onClick={handleSkipKeys}
+                  className="mt-2 h-10 w-full cursor-pointer text-muted-foreground hover:text-foreground"
                 >
                   Skip for now
                 </Button>
@@ -359,15 +398,34 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
           )}
         </DialogShell>
       </Dialog>
+
+      <AlertDialog open={showSkipKeysAlert} onOpenChange={setShowSkipKeysAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Skip API key setup?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Without API keys, your flows won&apos;t be able to run. You can add them later in settings.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go back</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSkipKeys}>
+              Continue anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
     );
   }
 
   // Step 1: Sign in (only shown if not signed in)
   return (
+    <>
     <Dialog open={true}>
       <DialogShell
         step={1}
-        title="Welcome to Composer"
+        title={<span className="text-xl sm:text-2xl">Welcome to Composer</span>}
         description="A canvas for chaining AI models into creative workflows"
         hero={<DemoHero />}
         preventOutsideClose
@@ -375,26 +433,26 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
       >
         <div className="grid gap-6">
           <div className="grid gap-3">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-lg border bg-foreground/5">
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border bg-foreground/5">
                 <Link className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-sm font-medium">Chain any AI model</div>
+                <div className="text-sm font-medium">Save flows and collaborate in real time</div>
                 <div className="mt-1 text-sm text-muted-foreground">
-                  Chain multiple AI models from different providers
+                  Sign in to unlock cloud saves and live collaboration
                 </div>
               </div>
             </div>
 
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-lg border bg-foreground/5">
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border bg-foreground/5">
                 <Wand2 className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-sm font-medium">Composer AI builds with you</div>
+                <div className="text-sm font-medium">Chain models from any provider</div>
                 <div className="mt-1 text-sm text-muted-foreground">
-                  An AI agent that edits your flow as you describe changes
+                  Mix and match OpenAI, Anthropic, and Google in a single flow
                 </div>
               </div>
             </div>
@@ -405,18 +463,33 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
               Continue with Google
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={handleSkipSignIn}
-              className="mt-2 h-10 w-full cursor-pointer"
+              className="mt-2 h-10 w-full cursor-pointer text-muted-foreground hover:text-foreground"
             >
-              Continue Without an Account
+              Continue without an account
             </Button>
-            <p className="text-center text-xs text-muted-foreground">
-              You can sign in later from the profile menu
-            </p>
           </div>
         </div>
       </DialogShell>
     </Dialog>
+
+    <AlertDialog open={showSkipAlert} onOpenChange={setShowSkipAlert}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Continue without an account?</AlertDialogTitle>
+          <AlertDialogDescription>
+            You need an account to save flows and collaborate in real time with others.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Go back</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirmSkipSignIn}>
+            Continue anyway
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

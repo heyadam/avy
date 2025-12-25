@@ -58,7 +58,7 @@ export function DialogShell({
     >
       {/* Show close button if onClose is provided (for skip) OR if not preventing outside close */}
       {onClose ? closeButton : (!preventOutsideClose && <DialogClose asChild>{closeButton}</DialogClose>)}
-      <div className="flex h-full flex-col overflow-y-auto sm:grid sm:overflow-hidden md:min-h-[560px] md:grid-cols-[1fr_1.15fr]">
+      <div className="flex h-full flex-col overflow-y-auto sm:grid sm:overflow-hidden md:min-h-[580px] md:grid-cols-[1fr_1.15fr]">
         {/* Left: content */}
         <div className="relative flex shrink-0 flex-col justify-between p-6 sm:p-8">
           <div className="flex h-8 items-center justify-between gap-3 pr-12 md:pr-0">
@@ -90,17 +90,17 @@ export function DialogShell({
             <StepIndicator currentStep={step} />
           </div>
 
-          <div className="mt-6 sm:mt-10">
+          <div className={step === 3 ? "mt-2 sm:mt-3" : "mt-6 sm:mt-10"}>
             <DialogHeader className="text-left">
               <DialogTitle className="text-2xl font-semibold tracking-tight sm:text-4xl">
                 {title}
               </DialogTitle>
-              <DialogDescription className="mt-2 text-sm sm:mt-3 sm:text-[15px]">
+              <DialogDescription className={step === 3 ? "mt-0 text-sm sm:text-[15px]" : "mt-2 text-sm sm:mt-3 sm:text-[15px]"}>
                 {description}
               </DialogDescription>
             </DialogHeader>
 
-            <div className="mt-5 sm:mt-7">{children}</div>
+            <div className={step === 1 ? "mt-5 sm:mt-7" : "mt-2 sm:mt-3"}>{children}</div>
           </div>
 
           <div className="mt-6 sm:mt-10" />
