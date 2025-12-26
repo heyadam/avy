@@ -240,21 +240,22 @@ export function RealtimeNode({ id, data }: NodeProps<RealtimeNodeType>) {
             </Button>
           )}
 
-          {/* Status indicator */}
-          <div className="flex items-center gap-2">
-            <div className={cn(
-              "w-2 h-2 rounded-full",
-              status === "connected" && "bg-green-500 animate-pulse",
-              status === "connecting" && "bg-yellow-500 animate-pulse",
-              status === "error" && "bg-red-500",
-              status === "disconnected" && "bg-gray-500"
-            )} />
-            {status === "connected" && (
-              <span className="text-xs text-muted-foreground">
-                {Math.floor(elapsedSeconds / 60)}:{String(elapsedSeconds % 60).padStart(2, "0")}
-              </span>
-            )}
-          </div>
+          {/* Status indicator - only show when active */}
+          {status !== "disconnected" && (
+            <div className="flex items-center gap-2">
+              <div className={cn(
+                "w-2 h-2 rounded-full",
+                status === "connected" && "bg-green-500 animate-pulse",
+                status === "connecting" && "bg-yellow-500 animate-pulse",
+                status === "error" && "bg-red-500"
+              )} />
+              {status === "connected" && (
+                <span className="text-xs text-muted-foreground">
+                  {Math.floor(elapsedSeconds / 60)}:{String(elapsedSeconds % 60).padStart(2, "0")}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Push-to-Talk button (when VAD is disabled) */}
