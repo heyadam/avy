@@ -75,7 +75,7 @@ const defaultNodeData: Record<NodeType, Record<string, unknown>> = {
   "ai-logic": { label: "AI Logic", transformPrompt: "", codeExpanded: false },
   "comment": { label: "Comment", description: "", color: "gray" },
   "react-component": { label: "React Component", userPrompt: "", provider: "anthropic", model: "claude-sonnet-4-5", stylePreset: "simple" },
-  "realtime-conversation": { label: "Realtime", voice: "marin", vadMode: "semantic_vad" },
+  "realtime-conversation": { label: "Realtime", voice: "marin", vadMode: "semantic_vad", instructions: "You are a helpful assistant. Always respond in English." },
 };
 
 export function AgentFlow({ collaborationMode }: AgentFlowProps) {
@@ -709,6 +709,24 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
   // Check if any nodes are selected
   const hasSelection = nodes.some((n) => n.selected && n.type !== "comment");
 
+  // Check if any output nodes are connected (required to run flow)
+  const hasConnectedOutput = useMemo(() => {
+    const outputNodes = nodes.filter((n) => n.type === "preview-output");
+    if (outputNodes.length === 0) return false;
+    // Check if any output node has an incoming edge
+    return outputNodes.some((outputNode) =>
+      edges.some((edge) => edge.target === outputNode.id)
+    );
+  }, [nodes, edges]);
+
+  // Determine if run should be disabled and why
+  const runDisabledReason = useMemo(() => {
+    if (!hasConnectedOutput) {
+      return "Wire up an output node to run flow";
+    }
+    return undefined;
+  }, [hasConnectedOutput]);
+
   // Handler to create comment around selected nodes
   const handleCommentAround = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -893,6 +911,7 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
           autopilotWidth={autopilotWidth}
           autopilotOpen={autopilotOpen}
           isResizing={isAnyResizing}
+          runDisabledReason={runDisabledReason}
         />
       </div>
       <ResponsesSidebar

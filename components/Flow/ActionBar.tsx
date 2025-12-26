@@ -32,6 +32,8 @@ interface ActionBarProps {
   autopilotOpen?: boolean;
   /** Whether a sidebar is being resized */
   isResizing?: boolean;
+  /** Reason why run is disabled (if any) - shown in tooltip */
+  runDisabledReason?: string;
 }
 
 export function ActionBar({
@@ -46,6 +48,7 @@ export function ActionBar({
   autopilotWidth = 0,
   autopilotOpen = false,
   isResizing = false,
+  runDisabledReason,
 }: ActionBarProps) {
   // Calculate offset to keep centered in visible area when sidebars open
   // Left sidebar overlays canvas, so we need to offset by half its width
@@ -130,13 +133,25 @@ export function ActionBar({
                 Cancel
               </Button>
             ) : (
-              <Button
-                onClick={onRun}
-                className="h-10 px-4 rounded-lg gap-2 bg-green-600 text-white hover:bg-green-500"
-              >
-                <Play className="h-4 w-4" />
-                Run
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <Button
+                      onClick={onRun}
+                      disabled={!!runDisabledReason}
+                      className="h-10 px-4 rounded-lg gap-2 bg-green-600 text-white hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-600"
+                    >
+                      <Play className="h-4 w-4" />
+                      Run
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {runDisabledReason && (
+                  <TooltipContent side="top" className="bg-neutral-800 text-white border-neutral-700">
+                    {runDisabledReason}
+                  </TooltipContent>
+                )}
+              </Tooltip>
             )}
           </div>
         </motion.div>

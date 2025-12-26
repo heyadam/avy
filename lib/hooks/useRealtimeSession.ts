@@ -32,6 +32,18 @@ export function useRealtimeSession(options: UseRealtimeSessionOptions) {
   } = options;
   const { keys: apiKeys } = useApiKeys();
 
+  // Use refs for callbacks to avoid infinite loops when callbacks trigger re-renders
+  const onTranscriptUpdateRef = useRef(onTranscriptUpdate);
+  const onStatusChangeRef = useRef(onStatusChange);
+  const onAudioOutStreamRef = useRef(onAudioOutStream);
+
+  // Keep refs updated with latest callbacks
+  useEffect(() => {
+    onTranscriptUpdateRef.current = onTranscriptUpdate;
+    onStatusChangeRef.current = onStatusChange;
+    onAudioOutStreamRef.current = onAudioOutStream;
+  });
+
   const [status, setStatus] = useState<RealtimeSessionStatus>("disconnected");
   const [transcript, setTranscript] = useState<RealtimeTranscriptEntry[]>([]);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -46,13 +58,13 @@ export function useRealtimeSession(options: UseRealtimeSessionOptions) {
 
   // Update parent when status changes
   useEffect(() => {
-    onStatusChange(status);
-  }, [status, onStatusChange]);
+    onStatusChangeRef.current(status);
+  }, [status]);
 
   // Update parent when transcript changes
   useEffect(() => {
-    onTranscriptUpdate(transcript);
-  }, [transcript, onTranscriptUpdate]);
+    onTranscriptUpdateRef.current(transcript);
+  }, [transcript]);
 
   // Memoized server event handler
   const handleServerEvent = useCallback((event: { type: string; [key: string]: unknown }) => {
@@ -199,9 +211,9 @@ export function useRealtimeSession(options: UseRealtimeSessionOptions) {
       pc.ontrack = (e) => {
         audioEl.srcObject = e.streams[0];
         // Register the output stream for downstream nodes
-        if (onAudioOutStream && e.streams[0]) {
+        if (onAudioOutStreamRef.current && e.streams[0]) {
           const streamId = audioRegistry.register(e.streams[0]);
-          onAudioOutStream(streamId);
+          onAudioOutStreamRef.current(streamId);
         }
       };
 
@@ -289,7 +301,7 @@ export function useRealtimeSession(options: UseRealtimeSessionOptions) {
       setErrorMessage(msg);
       setStatus("error");
     }
-  }, [apiKeys, audioInStreamId, handleServerEvent, onAudioOutStream, shareToken, runId, disconnect]);
+  }, [apiKeys, audioInStreamId, handleServerEvent, shareToken, runId, disconnect]);
 
   const sendEvent = useCallback((event: object) => {
     dcRef.current?.send(JSON.stringify(event));

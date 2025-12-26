@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useReactFlow, useEdges, type NodeProps, type Node, type Edge } from "@xyflow/react";
-import type { RealtimeNodeData, AudioEdgeData } from "@/types/flow";
+import type { RealtimeNodeData, AudioEdgeData, RealtimeTranscriptEntry } from "@/types/flow";
 import { Mic, Square, Loader2 } from "lucide-react";
 import { NodeFrame } from "./NodeFrame";
 import { PortRow } from "./PortLabel";
@@ -32,8 +32,16 @@ function getConnectedAudioStreamId(edges: Edge[], nodeId: string): string | unde
   return (audioEdge.data as AudioEdgeData | undefined)?.streamId;
 }
 
+// Helper to format transcript entries as text
+function formatTranscript(entries: RealtimeTranscriptEntry[]): string {
+  if (!entries || entries.length === 0) return "";
+  return entries
+    .map((e) => `${e.role === "user" ? "User" : "AI"}: ${e.text}`)
+    .join("\n\n");
+}
+
 export function RealtimeNode({ id, data }: NodeProps<RealtimeNodeType>) {
-  const { updateNodeData } = useReactFlow();
+  const { updateNodeData, getEdges } = useReactFlow();
   const edges = useEdges();
   const [isPttHeld, setIsPttHeld] = useState(false);
 
@@ -51,6 +59,27 @@ export function RealtimeNode({ id, data }: NodeProps<RealtimeNodeType>) {
     (edge) => edge.source === id && edge.sourceHandle === "audio-out"
   );
 
+  // Check if any output is connected (for auto-start behavior)
+  const hasOutputConnection = isTranscriptConnected || isAudioOutConnected;
+
+  // Push transcript to connected nodes in real-time
+  const pushTranscriptToConnectedNodes = useCallback((entries: RealtimeTranscriptEntry[]) => {
+    const currentEdges = getEdges();
+    const transcriptEdges = currentEdges.filter(
+      (edge) => edge.source === id && edge.sourceHandle === "transcript"
+    );
+
+    const formattedTranscript = formatTranscript(entries);
+
+    // Update each connected node's executionOutput
+    transcriptEdges.forEach((edge) => {
+      updateNodeData(edge.target, {
+        executionOutput: formattedTranscript || "(No conversation yet)",
+        executionStatus: entries.length > 0 ? "success" : undefined,
+      });
+    });
+  }, [id, getEdges, updateNodeData]);
+
   // Realtime session hook
   const {
     status,
@@ -63,10 +92,40 @@ export function RealtimeNode({ id, data }: NodeProps<RealtimeNodeType>) {
   } = useRealtimeSession({
     nodeId: id,
     audioInStreamId: isAudioInConnected ? getConnectedAudioStreamId(edges, id) : undefined,
-    onTranscriptUpdate: (entries) => updateNodeData(id, { transcript: entries }),
+    onTranscriptUpdate: (entries) => {
+      updateNodeData(id, { transcript: entries });
+      // Push to connected nodes in real-time
+      pushTranscriptToConnectedNodes(entries);
+    },
     onStatusChange: (newStatus) => updateNodeData(id, { sessionStatus: newStatus }),
     onAudioOutStream: (streamId) => updateNodeData(id, { audioOutStreamId: streamId }),
   });
+
+  // Also push when edges change (in case user connects during active session)
+  useEffect(() => {
+    if (transcript && transcript.length > 0) {
+      pushTranscriptToConnectedNodes(transcript);
+    }
+  }, [edges, transcript, pushTranscriptToConnectedNodes]);
+
+  // Auto-start session when flow execution begins (if connected to output)
+  useEffect(() => {
+    // Only auto-start if:
+    // 1. Execution just started (status is "running")
+    // 2. Session is not already active
+    // 3. Node has an output connection
+    if (
+      data.executionStatus === "running" &&
+      status === "disconnected" &&
+      hasOutputConnection
+    ) {
+      connect({
+        instructions: data.instructions,
+        voice: data.voice,
+        vadMode: data.vadMode,
+      });
+    }
+  }, [data.executionStatus, status, hasOutputConnection, data.instructions, data.voice, data.vadMode, connect]);
 
   // Handler to start session with current config
   const handleStartSession = () => {
@@ -90,7 +149,6 @@ export function RealtimeNode({ id, data }: NodeProps<RealtimeNodeType>) {
         <>
           <PortRow
             nodeId={id}
-            input={{ id: "instructions", label: "Instructions", colorClass: "cyan", isConnected: isInstructionsConnected }}
             output={{ id: "transcript", label: "Transcript", colorClass: "cyan", isConnected: isTranscriptConnected }}
           />
           <PortRow
@@ -109,7 +167,7 @@ export function RealtimeNode({ id, data }: NodeProps<RealtimeNodeType>) {
       }
     >
       <div className="space-y-4">
-        {/* Instructions input (can be connected or inline) */}
+        {/* System instructions (can be connected or inline) */}
         <InputWithHandle
           id="instructions"
           label="System Instructions"
