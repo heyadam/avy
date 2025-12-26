@@ -205,6 +205,19 @@ export function AudioPreview({ output, compact = false, className }: AudioPrevie
     return null;
   }
 
+  // Stream type: show live audio indicator (can't be played back as a file)
+  if (audioData.type === "stream") {
+    return (
+      <div className={cn("flex items-center gap-2 text-sm", className)}>
+        <div className="relative flex items-center justify-center w-8 h-8">
+          <span className="absolute inline-flex h-4 w-4 rounded-full bg-emerald-400 opacity-75 animate-ping"></span>
+          <Volume2 className="relative h-5 w-5 text-emerald-500" />
+        </div>
+        <span className="text-muted-foreground">Live audio stream</span>
+      </div>
+    );
+  }
+
   // Compact mode: just show icon + duration
   if (compact) {
     return (
