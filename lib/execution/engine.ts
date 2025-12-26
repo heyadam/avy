@@ -107,6 +107,9 @@ async function executeNode(
           // Wait for user to complete recording
           const audioData = await pendingInputRegistry.waitForInput<AudioInputData>(node.id);
 
+          // Clear awaiting state immediately after input is received
+          onNodeStateChange(node.id, { status: "running", awaitingInput: false });
+
           // Check for cancellation
           if (!audioData) {
             throw new Error("Recording was cancelled.");
@@ -884,6 +887,7 @@ export async function executeFlow(
         debugInfo: result.debugInfo,
         generatedCode: result.generatedCode,
         codeExplanation: result.codeExplanation,
+        awaitingInput: false, // Ensure awaiting state is cleared on success
       });
 
       // If this is an output node, capture the output

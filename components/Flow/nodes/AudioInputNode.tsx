@@ -88,20 +88,25 @@ export function AudioInputNode({ id, data }: NodeProps<AudioInputNodeType>) {
         // Calculate final duration
         const finalDuration = Math.floor((Date.now() - startTimeRef.current) / 1000);
 
-        // Update node data with recorded audio
+        // Signal to execution engine that recording is complete FIRST
+        // This allows the engine to set executionStatus before we update other data
+        pendingInputRegistry.resolveInput(id, {
+          buffer: base64,
+          mimeType,
+          duration: finalDuration,
+        });
+
+        // Small delay to let engine process the input and set success status
+        // before we update node data (avoids race condition with React state batching)
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        // Update node data with recorded audio for persistence
+        // Note: Don't set execution state here - the engine handles that
         updateNodeData(id, {
           audioBuffer: base64,
           audioMimeType: mimeType,
           recordingDuration: finalDuration,
           isRecording: false,
-          awaitingInput: false, // Clear the awaiting flag
-        });
-
-        // Signal to execution engine that recording is complete
-        pendingInputRegistry.resolveInput(id, {
-          buffer: base64,
-          mimeType,
-          duration: finalDuration,
         });
 
         setDuration(finalDuration);
