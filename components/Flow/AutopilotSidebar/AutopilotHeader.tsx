@@ -30,7 +30,7 @@ export function AutopilotHeader({
   };
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
+    <div className="flex items-center justify-between px-4 py-3 border-b glass-divider bg-transparent">
       <div className="flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-purple-500" />
         <span className="font-medium text-sm">Composer AI</span>
@@ -41,7 +41,7 @@ export function AutopilotHeader({
             className={`h-5 px-1.5 text-[10px] gap-1 ${
               testModeEnabled
                 ? "text-orange-600 hover:text-orange-700 bg-orange-100 dark:bg-orange-950/30"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-white/10"
             }`}
             onClick={() => onTestModeChange(!testModeEnabled)}
             title={testModeEnabled ? "Disable test mode (bad JSON)" : "Enable test mode (bad JSON)"}
@@ -58,7 +58,7 @@ export function AutopilotHeader({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7"
+              className="h-7 w-7 hover:bg-white/10"
               onClick={handleCopy}
               title="Copy transcript"
             >
@@ -71,7 +71,7 @@ export function AutopilotHeader({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7"
+              className="h-7 w-7 hover:bg-white/10"
               onClick={onClear}
               title="Clear"
             >
@@ -82,7 +82,7 @@ export function AutopilotHeader({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7"
+          className="h-7 w-7 hover:bg-white/10"
           onClick={onClose}
           title="Close"
         >

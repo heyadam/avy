@@ -72,7 +72,7 @@ export function ResponsesContent({ entries }: ResponsesContentProps) {
           </div>
           <MessageContent
             className={cn(
-              "w-full rounded-lg border p-3",
+              "w-full rounded-lg border border-white/10 p-3",
               entry.status === "running" && "bg-primary/5 border-primary/20",
               entry.status === "success" && "bg-emerald-500/5 border-emerald-500/20",
               entry.status === "error" && "bg-destructive/5 border-destructive/20"

@@ -121,7 +121,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="absolute top-1.5 right-1.5 p-1 rounded bg-muted/80 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted"
+      className="absolute top-1.5 right-1.5 p-1 rounded bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
     >
       {copied ? (
         <Check className="h-3 w-3 text-green-500" />
@@ -170,7 +170,7 @@ export function CollapsibleJson({ json, isStreaming }: CollapsibleJsonProps) {
     <div className="my-2">
       <button
         onClick={handleToggle}
-        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors"
       >
         <ChevronDown
           className={cn(
@@ -192,7 +192,7 @@ export function CollapsibleJson({ json, isStreaming }: CollapsibleJsonProps) {
         <div className="group relative mt-1">
           <pre
             ref={preRef}
-            className="rounded-lg border bg-background p-1.5 text-[8px] leading-[1.2] font-mono max-h-[200px] overflow-auto text-foreground"
+            className="rounded-lg border border-white/10 bg-white/5 p-1.5 text-[8px] leading-[1.2] font-mono max-h-[200px] overflow-auto text-foreground"
             dangerouslySetInnerHTML={{ __html: highlightJson(json) }}
           />
           <CopyButton text={json} />

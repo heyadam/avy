@@ -135,14 +135,14 @@ export function TemplatesModal({
       <div className={`absolute top-14 left-0 right-0 bottom-0 bg-black/50 pointer-events-none transition-opacity duration-150 ${isClosing ? "opacity-0" : "animate-in fade-in-0 duration-200"}`} />
       <div
         ref={panelRef}
-        className={`relative z-10 pointer-events-auto bg-background border rounded-lg shadow-2xl shadow-black/40 p-6 w-full max-w-2xl transition-all duration-150 ${isClosing ? "opacity-0 scale-95" : "animate-in fade-in-0 zoom-in-95 duration-200"}`}
+        className={`relative z-10 pointer-events-auto bg-zinc-950/80 border border-white/10 rounded-xl shadow-2xl shadow-black/50 p-6 w-full max-w-2xl transition-all duration-150 ${isClosing ? "opacity-0 scale-95" : "animate-in fade-in-0 zoom-in-95 duration-200"}`}
       >
         {/* Close button */}
         <Button
           variant="ghost"
           size="icon-sm"
           onClick={handleClose}
-          className="absolute right-4 top-4 z-30 cursor-pointer rounded-full border bg-background/70 backdrop-blur-sm hover:bg-background/80"
+          className="absolute right-4 top-4 z-30 cursor-pointer rounded-full border border-white/10 bg-white/5 hover:bg-white/10"
           aria-label="Close"
         >
           <X className="h-4 w-4" />
@@ -182,7 +182,7 @@ export function TemplatesModal({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1 bg-muted"
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-white gap-1 bg-white/5 hover:bg-white/10"
                     >
                       {(() => {
                         const CurrentIcon = MODES.find((m) => m.id === mode)?.icon ?? Zap;
@@ -218,7 +218,7 @@ export function TemplatesModal({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-white gap-1 hover:bg-white/10"
                     >
                       <span>{currentModel.name}</span>
                       <ChevronDown className="h-3 w-3" />
@@ -243,10 +243,10 @@ export function TemplatesModal({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className={`h-7 px-2 text-xs gap-1 ${
+                  className={`h-7 px-2 text-xs gap-1 hover:bg-white/10 ${
                     thinkingEnabled
-                      ? "text-purple-600 hover:text-purple-700"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "text-purple-600 hover:text-purple-500"
+                      : "text-muted-foreground hover:text-white"
                   }`}
                   onClick={() => setThinkingEnabled(!thinkingEnabled)}
                   title={thinkingEnabled ? "Disable extended thinking" : "Enable extended thinking"}
@@ -274,7 +274,7 @@ export function TemplatesModal({
                 key={template.id}
                 type="button"
                 onClick={() => handleSelect(template)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border bg-background text-sm font-medium transition-all hover:border-primary hover:bg-muted cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-sm font-medium transition-all hover:border-white/20 hover:bg-white/10 hover:text-white cursor-pointer"
               >
                 <Icon className="h-4 w-4" />
                 {template.title}
@@ -284,20 +284,22 @@ export function TemplatesModal({
         </div>
 
         {/* Footer with checkbox and dismiss button */}
-        <div className="flex items-center justify-between pt-4 border-t">
+        <div className="flex items-center justify-between pt-4 border-t border-white/10">
           <label className="flex items-center gap-2 cursor-pointer">
             <Checkbox
               id="dont-show-again"
               checked={dontShowAgain}
               onCheckedChange={(checked) => setDontShowAgain(checked === true)}
+              className="border-white/20 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
             />
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground hover:text-white transition-colors">
               Don&apos;t show this again
             </span>
           </label>
           <Button
-            variant="secondary"
+            variant="ghost"
             onClick={handleClose}
+            className="hover:bg-white/10 hover:text-white"
           >
             Start blank
           </Button>

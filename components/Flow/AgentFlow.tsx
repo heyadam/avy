@@ -332,12 +332,12 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
   });
 
   // Calculate available space between sidebars for responsive labels
-  // Only subtract autopilot width (overlay) - responses sidebar is a flex sibling,
-  // so canvasWidth already reflects its presence via ResizeObserver
+  // Both sidebars are overlays now, so we subtract their widths from canvasWidth
   const availableWidth = useMemo(() => {
     const leftOffset = autopilotOpen ? autopilotWidth : 0;
-    return canvasWidth - leftOffset;
-  }, [canvasWidth, autopilotOpen, autopilotWidth]);
+    const rightOffset = responsesOpen ? responsesWidth : 0;
+    return canvasWidth - leftOffset - rightOffset;
+  }, [canvasWidth, autopilotOpen, autopilotWidth, responsesOpen, responsesWidth]);
 
   const showLabels = availableWidth > 600;
 
@@ -920,6 +920,8 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
           hasSelection={hasSelection}
           autopilotWidth={autopilotWidth}
           autopilotOpen={autopilotOpen}
+          responsesWidth={responsesWidth}
+          responsesOpen={responsesOpen}
           isResizing={isAnyResizing}
           runDisabledReason={runDisabledReason}
         />

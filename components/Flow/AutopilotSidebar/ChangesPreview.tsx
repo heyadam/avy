@@ -132,12 +132,12 @@ export function ChangesPreview({
   const count = changes.actions.length;
 
   return (
-    <div className="rounded-lg border border-border/50 bg-muted/30 overflow-hidden">
+    <div className="rounded-lg border border-white/10 bg-white/5 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
+      <div className="flex items-center justify-between px-3 py-2 border-b glass-divider">
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors"
         >
           <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
           <span>{count} Change{count !== 1 ? "s" : ""}</span>
@@ -146,7 +146,7 @@ export function ChangesPreview({
           {applied && onUndo && (
             <button
               onClick={onUndo}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="text-muted-foreground hover:text-white transition-colors"
             >
               Undo
             </button>
@@ -222,7 +222,7 @@ export function ChangesPreview({
                   +
                 </span>
                 <Icon className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                <span className="text-foreground font-medium truncate">
+                <span className="text-white font-medium truncate">
                   {label}
                 </span>
                 <span className="text-muted-foreground">({typeLabel})</span>
@@ -245,9 +245,9 @@ export function ChangesPreview({
                 <span className="text-green-600 dark:text-green-400 font-medium">
                   +
                 </span>
-                <span className="text-foreground">{sourceLabel}</span>
+                <span className="text-white">{sourceLabel}</span>
                 <span className="text-muted-foreground">→</span>
-                <span className="text-foreground">{targetLabel}</span>
+                <span className="text-white">{targetLabel}</span>
                 <span
                   className={`px-1.5 py-0.5 rounded text-[10px] ${colors.bg} ${colors.text}`}
                 >
@@ -260,7 +260,7 @@ export function ChangesPreview({
       )}
 
       {/* Footer status */}
-      <div className="flex items-center gap-2 px-3 py-1.5 border-t border-border/50 bg-muted/20">
+      <div className="flex items-center gap-2 px-3 py-1.5 border-t glass-divider bg-white/5">
         {evaluationState === "evaluating" && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <Loader className="h-3 w-3" />

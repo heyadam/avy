@@ -166,9 +166,9 @@ export function AutopilotChat({
               {suggestionsLoading ? (
                 <>
                   {[1, 2, 3, 4].map((i) => (
-                    <div
+                  <div
                       key={i}
-                      className="h-8 rounded-lg border border-border/50 bg-muted/30 animate-pulse"
+                      className="h-8 rounded-lg border border-white/10 bg-white/5 animate-pulse"
                     />
                   ))}
                 </>
@@ -180,7 +180,7 @@ export function AutopilotChat({
                       key={suggestion.text}
                       onClick={() => onSendMessage(suggestion.text, selectedModel)}
                       disabled={isLoading}
-                      className="flex items-center gap-2 text-left text-xs px-3 py-2 rounded-lg border border-border/50 hover:border-purple-500/50 hover:bg-purple-500/5 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                      className="flex items-center gap-2 text-left text-xs px-3 py-2 rounded-lg border border-white/10 hover:border-purple-500/50 hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                     >
                       <Icon className="h-3.5 w-3.5 shrink-0" />
                       <span>{suggestion.text}</span>
@@ -243,7 +243,7 @@ export function AutopilotChat({
 
                       {/* Plan approved */}
                       {message.pendingPlan && message.planApproved && (
-                        <div className="mt-3 pt-3 border-t">
+                        <div className="mt-3 pt-3 border-t glass-divider">
                           <span className="flex items-center gap-1 text-xs text-blue-600">
                             <Check className="h-3 w-3" />
                             Plan Approved
@@ -347,7 +347,7 @@ export function AutopilotChat({
         </div>
       )}
 
-      <div className="p-3 border-t">
+      <div className="p-3 border-t glass-divider">
         <PromptInput
           onSubmit={({ text }) => {
             if (text.trim() && !isLoading) {
@@ -370,7 +370,7 @@ export function AutopilotChat({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 px-2 text-[11px] text-muted-foreground hover:text-foreground gap-1 bg-muted"
+                    className="h-6 px-2 text-[11px] text-muted-foreground hover:text-foreground gap-1 bg-white/5 hover:bg-white/10"
                   >
                     {(() => {
                       const CurrentIcon = MODES.find((m) => m.id === mode)?.icon ?? Zap;
@@ -467,8 +467,8 @@ interface PlanCardProps {
 
 function PlanCard({ plan, onApprove, isLoading }: PlanCardProps) {
   return (
-    <div className="mt-3 pt-3 border-t">
-      <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+    <div className="mt-3 pt-3 border-t glass-divider">
+      <div className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div>
             <h4 className="text-sm font-medium">{plan.summary}</h4>

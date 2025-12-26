@@ -119,7 +119,7 @@ function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) 
         "flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors",
         copied
           ? "bg-emerald-500/20 text-emerald-500"
-          : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+          : "bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-foreground"
       )}
     >
       {copied ? (
@@ -166,7 +166,7 @@ function DebugEntryCard({ entry }: { entry: DebugEntry }) {
         ? "border-emerald-500/30"
         : entry.status === "error"
           ? "border-destructive/30"
-          : "border-border";
+          : "border-white/10";
 
   return (
     <div className={cn("rounded-lg border p-3 space-y-2", borderColor)}>
@@ -201,7 +201,7 @@ function DebugEntryCard({ entry }: { entry: DebugEntry }) {
           Request Info
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-2">
-          <div className="text-xs space-y-1 pl-4 border-l border-muted">
+          <div className="text-xs space-y-1 pl-4 border-l border-white/10">
             <div className="flex gap-2">
               <span className="text-muted-foreground w-16">Provider:</span>
               <span className="font-mono">{entry.request.provider}</span>
@@ -264,21 +264,21 @@ function DebugEntryCard({ entry }: { entry: DebugEntry }) {
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-2 space-y-2">
             {entry.request.systemPrompt !== undefined && (
-              <div className="pl-4 border-l border-muted">
+              <div className="pl-4 border-l border-white/10">
                 <span className="text-xs text-muted-foreground block mb-1">
                   System Prompt:
                 </span>
-                <pre className="text-xs font-mono bg-muted/50 rounded p-2 whitespace-pre-wrap break-words max-h-32 overflow-auto">
+                <pre className="text-xs font-mono bg-white/5 rounded p-2 whitespace-pre-wrap break-words max-h-32 overflow-auto">
                   {entry.request.systemPrompt || "(empty)"}
                 </pre>
               </div>
             )}
             {entry.request.userPrompt !== undefined && (
-              <div className="pl-4 border-l border-muted">
+              <div className="pl-4 border-l border-white/10">
                 <span className="text-xs text-muted-foreground block mb-1">
                   User Prompt:
                 </span>
-                <pre className="text-xs font-mono bg-muted/50 rounded p-2 whitespace-pre-wrap break-words max-h-32 overflow-auto">
+                <pre className="text-xs font-mono bg-white/5 rounded p-2 whitespace-pre-wrap break-words max-h-32 overflow-auto">
                   {entry.request.userPrompt || "(empty)"}
                 </pre>
               </div>
@@ -300,8 +300,8 @@ function DebugEntryCard({ entry }: { entry: DebugEntry }) {
             Image Prompt
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-2">
-            <div className="pl-4 border-l border-muted">
-              <pre className="text-xs font-mono bg-muted/50 rounded p-2 whitespace-pre-wrap break-words max-h-32 overflow-auto">
+            <div className="pl-4 border-l border-white/10">
+              <pre className="text-xs font-mono bg-white/5 rounded p-2 whitespace-pre-wrap break-words max-h-32 overflow-auto">
                 {entry.request.imagePrompt}
               </pre>
             </div>
@@ -330,8 +330,8 @@ function DebugEntryCard({ entry }: { entry: DebugEntry }) {
             )}
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-2">
-            <div className="pl-4 border-l border-muted">
-              <pre className="text-xs font-mono bg-muted/50 rounded p-2 whitespace-pre-wrap break-words max-h-48 overflow-auto">
+            <div className="pl-4 border-l border-white/10">
+              <pre className="text-xs font-mono bg-white/5 rounded p-2 whitespace-pre-wrap break-words max-h-48 overflow-auto">
                 {entry.response.output.length > 2000
                   ? entry.response.output.substring(0, 2000) + "...(truncated)"
                   : entry.response.output}
@@ -366,8 +366,8 @@ function DebugEntryCard({ entry }: { entry: DebugEntry }) {
             Raw Request Body
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-2">
-            <div className="pl-4 border-l border-muted">
-              <pre className="text-xs font-mono bg-muted/50 rounded p-2 whitespace-pre-wrap break-words max-h-48 overflow-auto">
+            <div className="pl-4 border-l border-white/10">
+              <pre className="text-xs font-mono bg-white/5 rounded p-2 whitespace-pre-wrap break-words max-h-48 overflow-auto">
                 {entry.rawRequestBody}
               </pre>
             </div>
@@ -388,8 +388,8 @@ function DebugEntryCard({ entry }: { entry: DebugEntry }) {
             Raw Response Body
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-2">
-            <div className="pl-4 border-l border-muted">
-              <pre className="text-xs font-mono bg-muted/50 rounded p-2 whitespace-pre-wrap break-words max-h-48 overflow-auto">
+            <div className="pl-4 border-l border-white/10">
+              <pre className="text-xs font-mono bg-white/5 rounded p-2 whitespace-pre-wrap break-words max-h-48 overflow-auto">
                 {entry.rawResponseBody}
               </pre>
             </div>
@@ -438,7 +438,7 @@ export function DebugContent({ entries }: DebugContentProps) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Copy All button */}
-      <div className="flex justify-end px-4 py-2 border-b shrink-0">
+      <div className="flex justify-end px-4 py-2 border-b glass-divider shrink-0">
         <CopyButton text={formatAllEntries(entries)} label="Copy All" />
       </div>
 

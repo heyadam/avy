@@ -114,7 +114,7 @@ export function AutopilotSidebar({
     >
       <div
         ref={sidebarRef}
-        className="flex flex-col h-full border-r bg-background relative overflow-hidden"
+        className="glass-panel !rounded-none border-y-0 border-l-0 flex flex-col h-full relative overflow-hidden"
         style={{ width, minWidth: width }}
       >
         <AutopilotHeader
