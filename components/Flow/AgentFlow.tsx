@@ -54,6 +54,7 @@ import { useBackgroundSettings, getBackgroundStyle } from "@/lib/hooks/useBackgr
 import { ShareDialog } from "./ShareDialog";
 import { useCollaboration, type CollaborationModeProps } from "@/lib/hooks/useCollaboration";
 import { loadFlow } from "@/lib/flows/api";
+import { AnimatePresence, motion } from "motion/react";
 
 let id = 0;
 const getId = () => `node_${id++}`;
@@ -870,6 +871,35 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
                 size={bgSettings.size}
                 style={{ background: getBackgroundStyle(bgSettings) }}
               />
+              <AnimatePresence mode="wait">
+                {isRunning && (
+                  <motion.div
+                    key="execution-shimmer"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    exit={{ opacity: 0, transition: { duration: 0.3 } }}
+                    transition={{
+                      opacity: {
+                        duration: 2,
+                        ease: "easeInOut",
+                        repeat: Infinity,
+                      },
+                    }}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      pointerEvents: "none",
+                      zIndex: 4,
+                      background: `radial-gradient(
+                        ellipse at 50% 50%,
+                        rgba(139, 92, 246, 0.06) 0%,
+                        rgba(139, 92, 246, 0.03) 50%,
+                        transparent 70%
+                      )`,
+                    }}
+                  />
+                )}
+              </AnimatePresence>
               <Controls />
               <CollaboratorCursors collaborators={collaborators} />
             </ReactFlow>
