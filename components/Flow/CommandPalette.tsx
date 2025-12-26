@@ -217,7 +217,7 @@ export function CommandPalette({
         <>
           {/* Backdrop */}
           <motion.div
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-40 glass-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -238,10 +238,7 @@ export function CommandPalette({
           >
             <div
               className={cn(
-                "overflow-hidden rounded-xl",
-                "bg-zinc-950/80 backdrop-blur-xl",
-                "border border-white/10",
-                "shadow-2xl shadow-black/50",
+                "glass-panel",
                 // AI mode gradient border
                 mode === "ai" && "ring-1 ring-purple-500/30"
               )}
@@ -249,7 +246,7 @@ export function CommandPalette({
               {/* Search Input */}
               <div
                 className={cn(
-                  "relative flex items-center gap-3 border-b border-white/10 px-4",
+                  "relative flex items-center gap-3 border-b glass-divider px-4",
                   mode === "ai" &&
                     "bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-purple-500/5"
                 )}
@@ -510,7 +507,7 @@ export function CommandPalette({
               )}
 
               {/* Footer */}
-              <div className="flex items-center justify-between border-t border-white/10 px-4 py-2.5 text-xs text-zinc-500">
+              <div className="flex items-center justify-between border-t glass-divider px-4 py-2.5 text-xs text-zinc-500">
                 <div className="flex items-center gap-4">
                   <span className="flex items-center gap-1">
                     <kbd className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium">
