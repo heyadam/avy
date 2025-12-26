@@ -42,6 +42,10 @@ const NODE_INPUT_HANDLES: Record<string, Record<string, string[]>> = {
   "comment": {
     // No inputs
   },
+  "realtime-conversation": {
+    instructions: ["string"],
+    "audio-in": ["audio"],
+  },
 };
 
 /**
@@ -54,6 +58,7 @@ const OUTPUT_DATA_TYPES: Record<string, string> = {
   "image-generation": "image",
   "ai-logic": "string",
   "react-component": "response",
+  "realtime-conversation": "string", // Primary output is transcript (string)
 };
 
 /**

@@ -2,7 +2,18 @@ import type { Node, Edge } from "@xyflow/react";
 import type { ExecutionStatus } from "@/lib/execution/types";
 
 // Port data types (for coloring and validation)
-export type PortDataType = "string" | "image" | "response";
+export type PortDataType = "string" | "image" | "response" | "audio";
+
+// Audio edge data structure for audio streaming between nodes
+export interface AudioEdgeData {
+  type: "stream" | "buffer";
+  // For stream type: reference ID to MediaStream in global registry
+  streamId?: string;
+  // For buffer type: base64-encoded audio
+  buffer?: string;
+  mimeType?: string;  // e.g., "audio/pcm", "audio/webm"
+  sampleRate?: number; // e.g., 24000 for OpenAI Realtime
+}
 
 // Single port definition
 export interface PortDefinition {
@@ -153,6 +164,45 @@ export interface CommentNodeData extends Record<string, unknown> {
   userEdited?: boolean;    // User has manually edited, skip auto-generation
 }
 
+// Voice options for realtime sessions
+export type RealtimeVoice =
+  | "alloy" | "ash" | "ballad" | "coral" | "echo"
+  | "sage" | "shimmer" | "verse" | "marin" | "cedar";
+
+// VAD (Voice Activity Detection) modes
+export type RealtimeVADMode = "semantic_vad" | "server_vad" | "disabled";
+
+// Session connection status
+export type RealtimeSessionStatus =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "error";
+
+// Transcript entry for conversation history
+export interface RealtimeTranscriptEntry {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  timestamp: number;
+}
+
+// Realtime conversation node data
+export interface RealtimeNodeData extends Record<string, unknown>, ExecutionData {
+  label: string;
+
+  // Configuration (persisted)
+  instructions?: string;          // System prompt for the session
+  voice: RealtimeVoice;           // Voice for audio output
+  vadMode: RealtimeVADMode;       // Voice activity detection mode
+
+  // Runtime state (not persisted, managed by component)
+  sessionStatus?: RealtimeSessionStatus;
+  transcript?: RealtimeTranscriptEntry[];
+  elapsedSeconds?: number;
+  audioOutStreamId?: string;      // Registry ID for output audio stream
+}
+
 // Union type for all node data
 export type AgentNodeData =
   | InputNodeData
@@ -162,10 +212,11 @@ export type AgentNodeData =
   | ImageInputNodeData
   | MagicNodeData
   | CommentNodeData
-  | ReactNodeData;
+  | ReactNodeData
+  | RealtimeNodeData;
 
 // Custom node types
-export type NodeType = "text-input" | "preview-output" | "text-generation" | "image-generation" | "image-input" | "ai-logic" | "comment" | "react-component";
+export type NodeType = "text-input" | "preview-output" | "text-generation" | "image-generation" | "image-input" | "ai-logic" | "comment" | "react-component" | "realtime-conversation";
 
 // Typed nodes
 export type InputNode = Node<InputNodeData, "text-input">;
@@ -176,6 +227,7 @@ export type ImageInputNode = Node<ImageInputNodeData, "image-input">;
 export type MagicNode = Node<MagicNodeData, "ai-logic">;
 export type CommentNode = Node<CommentNodeData, "comment">;
 export type ReactNode = Node<ReactNodeData, "react-component">;
+export type RealtimeNode = Node<RealtimeNodeData, "realtime-conversation">;
 
 export type AgentNode =
   | InputNode
@@ -185,7 +237,8 @@ export type AgentNode =
   | ImageInputNode
   | MagicNode
   | CommentNode
-  | ReactNode;
+  | ReactNode
+  | RealtimeNode;
 
 // Edge type
 export type AgentEdge = Edge;
@@ -241,6 +294,12 @@ export const nodeDefinitions: NodeDefinition[] = [
     description: "Flow output",
     color: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
   },
+  {
+    type: "realtime-conversation",
+    label: "Realtime",
+    description: "Real-time voice conversation",
+    color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  },
 ];
 
 // Port schemas for each node type
@@ -290,5 +349,15 @@ export const NODE_PORT_SCHEMAS: Record<NodeType, NodePortSchema> = {
       { id: "system", label: "system", dataType: "string", required: false },
     ],
     outputs: [{ id: "output", label: "react", dataType: "response" }],
+  },
+  "realtime-conversation": {
+    inputs: [
+      { id: "instructions", label: "instructions", dataType: "string", required: false },
+      { id: "audio-in", label: "audio", dataType: "audio", required: false },
+    ],
+    outputs: [
+      { id: "transcript", label: "transcript", dataType: "string" },
+      { id: "audio-out", label: "audio", dataType: "audio" },
+    ],
   },
 };

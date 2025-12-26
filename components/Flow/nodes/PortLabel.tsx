@@ -9,14 +9,14 @@ interface PortRowProps {
   input?: {
     id?: string;        // Handle ID for React Flow
     label: string;
-    colorClass: "cyan" | "purple" | "amber";
+    colorClass: "cyan" | "purple" | "amber" | "emerald";
     required?: boolean; // Defaults to true
     isConnected?: boolean; // Whether the input handle is connected
   };
   output?: {
     id?: string;        // Handle ID for React Flow
     label: string;
-    colorClass: "cyan" | "purple" | "amber";
+    colorClass: "cyan" | "purple" | "amber" | "emerald";
     isConnected?: boolean; // Whether the output handle is connected
   };
 }
@@ -29,6 +29,7 @@ export function PortRow({ nodeId, input, output }: PortRowProps) {
     cyan: { dot: "!bg-cyan-400", hoverDot: "hover:!bg-cyan-400" },
     purple: { dot: "!bg-purple-400", hoverDot: "hover:!bg-purple-400" },
     amber: { dot: "!bg-amber-400", hoverDot: "hover:!bg-amber-400" },
+    emerald: { dot: "!bg-emerald-400", hoverDot: "hover:!bg-emerald-400" },
   };
 
   const inputHighlight = isConnecting;
@@ -103,7 +104,7 @@ export function PortRow({ nodeId, input, output }: PortRowProps) {
 interface PortConfig {
   id: string;
   label: string;
-  colorClass: "cyan" | "purple" | "amber";
+  colorClass: "cyan" | "purple" | "amber" | "emerald";
   required?: boolean;
   isConnected?: boolean;
 }
