@@ -262,3 +262,36 @@ html, body {
 .react-flow__nodesselection-rect {
   display: none !important;
 }
+
+/* ============================================
+   Glass Panel Design System
+   ============================================
+   Reusable glassmorphism patterns for overlays and panels.
+   Use with cn() for conditional styling.
+*/
+
+/* Backdrop overlay - use behind modals/dialogs */
+.glass-backdrop {
+  @apply bg-black/40 backdrop-blur-sm;
+}
+
+/* Main glass panel container */
+.glass-panel {
+  @apply overflow-hidden rounded-xl;
+  @apply bg-zinc-950/80 backdrop-blur-xl;
+  @apply border border-white/10;
+  @apply shadow-2xl shadow-black/50;
+}
+
+/* Subtle variant - lighter background, less blur */
+.glass-panel-subtle {
+  @apply overflow-hidden rounded-lg;
+  @apply bg-zinc-900/60 backdrop-blur-md;
+  @apply border border-white/5;
+  @apply shadow-xl shadow-black/30;
+}
+
+/* Inner dividers for glass panels */
+.glass-divider {
+  @apply border-white/10;
+}

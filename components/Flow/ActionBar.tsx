@@ -30,6 +30,10 @@ interface ActionBarProps {
   autopilotWidth?: number;
   /** Whether left sidebar is open */
   autopilotOpen?: boolean;
+  /** Width of right sidebar when open */
+  responsesWidth?: number;
+  /** Whether right sidebar is open */
+  responsesOpen?: boolean;
   /** Whether a sidebar is being resized */
   isResizing?: boolean;
   /** Reason why run is disabled (if any) - shown in tooltip */
@@ -47,13 +51,17 @@ export function ActionBar({
   hasSelection,
   autopilotWidth = 0,
   autopilotOpen = false,
+  responsesWidth = 0,
+  responsesOpen = false,
   isResizing = false,
   runDisabledReason,
 }: ActionBarProps) {
   // Calculate offset to keep centered in visible area when sidebars open
   // Left sidebar overlays canvas, so we need to offset by half its width
-  // Right sidebar shrinks the canvas (flex sibling), so ActionBar naturally centers - no offset needed
-  const centerOffset = autopilotOpen ? autopilotWidth / 2 : 0;
+  // Right sidebar also overlays canvas now, so we offset by negative half its width
+  const leftOffset = autopilotOpen ? autopilotWidth / 2 : 0;
+  const rightOffset = responsesOpen ? responsesWidth / 2 : 0;
+  const centerOffset = leftOffset - rightOffset;
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -63,7 +71,7 @@ export function ActionBar({
           animate={{ x: `calc(-50% + ${centerOffset}px)` }}
           transition={getTransition(isResizing)}
         >
-          <div className="flex items-center gap-1 p-1.5 rounded-xl bg-neutral-900/95 backdrop-blur border border-neutral-700 shadow-lg">
+          <div className="glass-panel flex items-center gap-1 p-1.5">
             {/* Section 1: Add Node & Comment */}
             <Tooltip>
               <TooltipTrigger asChild>
@@ -74,8 +82,8 @@ export function ActionBar({
                   data-node-toolbar-toggle
                   className={`h-10 w-10 rounded-lg transition-colors ${
                     nodesPaletteOpen
-                      ? "bg-neutral-700 text-white"
-                      : "text-neutral-400 hover:text-white hover:bg-neutral-800"
+                      ? "bg-white/20 text-white"
+                      : "text-neutral-400 hover:text-white hover:bg-white/10"
                   }`}
                 >
                   <Plus className="h-5 w-5" />
@@ -93,7 +101,7 @@ export function ActionBar({
                   size="icon"
                   onClick={onCommentAround}
                   disabled={!hasSelection}
-                  className="h-10 w-10 rounded-lg transition-colors text-neutral-400 hover:text-white hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="h-10 w-10 rounded-lg transition-colors text-neutral-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <MessageSquarePlus className="h-5 w-5" />
                 </Button>
@@ -104,7 +112,7 @@ export function ActionBar({
             </Tooltip>
 
             {/* Divider */}
-            <div className="w-px h-6 bg-neutral-700 mx-1" />
+            <div className="w-px h-6 bg-white/10 mx-1" />
 
             {/* Section 3: Reset & Run */}
             <Tooltip>
@@ -114,7 +122,7 @@ export function ActionBar({
                   size="icon"
                   onClick={onReset}
                   disabled={isRunning}
-                  className="h-10 w-10 rounded-lg transition-colors text-neutral-400 hover:text-white hover:bg-neutral-800 disabled:opacity-50"
+                  className="h-10 w-10 rounded-lg transition-colors text-neutral-400 hover:text-white hover:bg-white/10 disabled:opacity-50"
                 >
                   <RotateCcw className="h-5 w-5" />
                 </Button>

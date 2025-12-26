@@ -48,7 +48,7 @@ export function ResponsesSidebar({
 
   return (
     <motion.div
-      className="h-full z-20 shadow-[-8px_0_24px_rgba(0,0,0,0.4)]"
+      className="absolute right-0 top-0 h-full z-20 shadow-[-8px_0_24px_rgba(0,0,0,0.4)]"
       initial={false}
       animate={{ width: w, minWidth: w }}
       style={{ willChange: isResizing ? "width" : "auto" }}
@@ -56,7 +56,7 @@ export function ResponsesSidebar({
     >
       <div
         ref={sidebarRef}
-        className="flex flex-col h-full border-l bg-background relative overflow-hidden"
+        className="glass-panel !rounded-none border-y-0 border-r-0 flex flex-col h-full relative overflow-hidden"
         style={{ width, minWidth: width }}
       >
         {/* Resize handle */}

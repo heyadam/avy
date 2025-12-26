@@ -21,7 +21,7 @@ import "@xyflow/react/dist/style.css";
 import { nodeTypes } from "./nodes";
 import { edgeTypes } from "./edges/ColoredEdge";
 import { ConnectionContext } from "./ConnectionContext";
-import { NodeToolbar } from "./NodeToolbar";
+import { CommandPalette } from "./CommandPalette";
 import { AutopilotSidebar } from "./AutopilotSidebar";
 import { ActionBar } from "./ActionBar";
 import { FlowHeader } from "./FlowHeader";
@@ -332,12 +332,12 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
   });
 
   // Calculate available space between sidebars for responsive labels
-  // Only subtract autopilot width (overlay) - responses sidebar is a flex sibling,
-  // so canvasWidth already reflects its presence via ResizeObserver
+  // Both sidebars are overlays now, so we subtract their widths from canvasWidth
   const availableWidth = useMemo(() => {
     const leftOffset = autopilotOpen ? autopilotWidth : 0;
-    return canvasWidth - leftOffset;
-  }, [canvasWidth, autopilotOpen, autopilotWidth]);
+    const rightOffset = responsesOpen ? responsesWidth : 0;
+    return canvasWidth - leftOffset - rightOffset;
+  }, [canvasWidth, autopilotOpen, autopilotWidth, responsesOpen, responsesWidth]);
 
   const showLabels = availableWidth > 600;
 
@@ -815,10 +815,20 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
         className="flex-1 h-full bg-muted/10 relative"
         onMouseMove={handlePaneMouseMove}
       >
-        <NodeToolbar
-          isOpen={nodesPaletteOpen}
-          onClose={() => setNodesPaletteOpen(false)}
+        <CommandPalette
+          open={nodesPaletteOpen}
+          onOpenChange={setNodesPaletteOpen}
           onAddNode={handleAddNodeAtCenter}
+          onAIGenerate={(prompt) => {
+            // Forward AI prompt to autopilot
+            setPendingAutopilotMessage({
+              prompt,
+              mode: "execute" as AutopilotMode,
+              model: "claude-sonnet-4-5" as AutopilotModel,
+              thinkingEnabled: false,
+            });
+            setAutopilotOpen(true);
+          }}
         />
         <CommentEditContext.Provider value={{ markUserEdited }}>
           <ConnectionContext.Provider value={{ isConnecting, connectingFromNodeId }}>
@@ -910,6 +920,8 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
           hasSelection={hasSelection}
           autopilotWidth={autopilotWidth}
           autopilotOpen={autopilotOpen}
+          responsesWidth={responsesWidth}
+          responsesOpen={responsesOpen}
           isResizing={isAnyResizing}
           runDisabledReason={runDisabledReason}
         />

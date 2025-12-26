@@ -58,11 +58,14 @@ export function FlowHeader({
 
   return (
     <>
-      {/* Top center branding - gradient extends full width, left edge animates with autopilot (overlay), right edge stays at 0 (flex sibling shrinks canvas) */}
+      {/* Top center branding - gradient extends full width, left edge animates with autopilot (overlay), right edge animates with responses (overlay) */}
       <motion.div
-        className="absolute top-0 right-0 z-10 flex justify-center pt-4 pb-8 bg-gradient-to-b from-black/90 to-transparent"
+        className="absolute top-0 z-10 flex justify-center pt-4 pb-8 bg-gradient-to-b from-black/90 to-transparent"
         initial={false}
-        animate={{ left: autopilotOpen ? autopilotWidth : 0 }}
+        animate={{
+          left: autopilotOpen ? autopilotWidth : 0,
+          right: responsesOpen ? responsesWidth : 0
+        }}
         transition={transition}
       >
         <AvyLogo isPanning={isPanning} canvasWidth={canvasWidth} />
@@ -103,9 +106,14 @@ export function FlowHeader({
         </motion.div>
       </TooltipProvider>
 
-      {/* Right controls (Settings, Profile, Preview) - anchors to right edge of canvas (flex sibling shrinks canvas, so no animation needed) */}
+      {/* Right controls (Settings, Profile, Preview) - anchors to right edge of available space */}
       <TooltipProvider delayDuration={200}>
-        <div className="absolute top-4 right-4 z-10">
+        <motion.div
+          className="absolute top-4 z-10"
+          initial={false}
+          animate={{ right: responsesOpen ? responsesWidth + 16 : 16 }}
+          transition={transition}
+        >
           <RightControls
             responsesOpen={responsesOpen}
             onResponsesToggle={onResponsesToggle}
@@ -113,7 +121,7 @@ export function FlowHeader({
             showSettingsWarning={showSettingsWarning}
             onSettingsOpen={onSettingsOpen}
           />
-        </div>
+        </motion.div>
       </TooltipProvider>
     </>
   );
