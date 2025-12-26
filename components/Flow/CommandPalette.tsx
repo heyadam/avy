@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Command as CommandPrimitive } from "cmdk";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Search,

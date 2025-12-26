@@ -818,17 +818,14 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
         <CommandPalette
           open={nodesPaletteOpen}
           onOpenChange={setNodesPaletteOpen}
-          onAddNode={(nodeType) => {
-            handleAddNodeAtCenter(nodeType);
-            setNodesPaletteOpen(false);
-          }}
+          onAddNode={handleAddNodeAtCenter}
           onAIGenerate={(prompt) => {
             // Forward AI prompt to autopilot
             setPendingAutopilotMessage({
               prompt,
               mode: "create" as AutopilotMode,
               model: "claude-sonnet-4-5" as AutopilotModel,
-              thinkingEnabled: false
+              thinkingEnabled: false,
             });
             setAutopilotOpen(true);
           }}
