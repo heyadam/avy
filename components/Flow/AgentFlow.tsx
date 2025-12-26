@@ -823,7 +823,7 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
             // Forward AI prompt to autopilot
             setPendingAutopilotMessage({
               prompt,
-              mode: "create" as AutopilotMode,
+              mode: "execute" as AutopilotMode,
               model: "claude-sonnet-4-5" as AutopilotModel,
               thinkingEnabled: false,
             });

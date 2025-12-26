@@ -93,6 +93,15 @@ export function CommandPalette({
     );
   }, [search]);
 
+  // Memoize color class extraction for performance
+  const getColorClasses = useCallback((colorString: string) => {
+    const classes = colorString.split(" ");
+    return {
+      icon: classes.filter((c) => c.startsWith("text-")).join(" "),
+      bg: classes.filter((c) => c.startsWith("bg-")).join(" "),
+    };
+  }, []);
+
   // Reset state when opening
   useEffect(() => {
     if (open) {
@@ -164,10 +173,10 @@ export function CommandPalette({
       }
     };
 
-    // Delay to prevent immediate close
+    // Delay to prevent immediate close during animation
     const timeoutId = setTimeout(() => {
       document.addEventListener("mousedown", handleClickOutside);
-    }, 0);
+    }, 100);
 
     return () => {
       clearTimeout(timeoutId);
@@ -180,8 +189,16 @@ export function CommandPalette({
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       // Cmd/Ctrl + K to toggle
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        onOpenChange(!open);
+        // Don't trigger if user is typing in an input/textarea
+        const target = e.target as HTMLElement;
+        const isInputField = target.tagName === "INPUT" ||
+                            target.tagName === "TEXTAREA" ||
+                            target.isContentEditable;
+
+        if (!isInputField) {
+          e.preventDefault();
+          onOpenChange(!open);
+        }
       }
     };
 
@@ -205,6 +222,9 @@ export function CommandPalette({
           {/* Palette Container */}
           <motion.div
             data-command-palette
+            role="dialog"
+            aria-label="Command palette"
+            aria-modal="true"
             className="fixed left-1/2 top-[20%] z-50 w-full max-w-[560px] -translate-x-1/2"
             initial={{ opacity: 0, scale: 0.95, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -248,6 +268,15 @@ export function CommandPalette({
                 <input
                   ref={inputRef}
                   type="text"
+                  role="combobox"
+                  aria-label={mode === "search" ? "Search nodes" : "AI generation prompt"}
+                  aria-expanded={mode === "search" && filteredNodes.length > 0}
+                  aria-controls={mode === "search" ? "command-palette-list" : undefined}
+                  aria-activedescendant={
+                    mode === "search" && filteredNodes[selectedIndex]
+                      ? `node-${filteredNodes[selectedIndex].type}`
+                      : undefined
+                  }
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
@@ -274,6 +303,8 @@ export function CommandPalette({
                     setSearch("");
                     inputRef.current?.focus();
                   }}
+                  aria-label={`Switch to ${mode === "search" ? "AI" : "search"} mode`}
+                  aria-pressed={mode === "ai"}
                   className={cn(
                     "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors",
                     mode === "search"
@@ -310,6 +341,9 @@ export function CommandPalette({
               {mode === "search" && (
                 <div
                   ref={listRef}
+                  id="command-palette-list"
+                  role="listbox"
+                  aria-label="Available nodes"
                   className="max-h-[400px] overflow-y-auto overscroll-contain py-2"
                 >
                   {filteredNodes.length === 0 ? (
@@ -346,18 +380,14 @@ export function CommandPalette({
                               );
                               const isSelected = nodeIndex === selectedIndex;
                               const Icon = iconMap[node.type];
-                              const iconColorClass = node.color
-                                .split(" ")
-                                .filter((c) => c.startsWith("text-"))
-                                .join(" ");
-                              const bgColorClass = node.color
-                                .split(" ")
-                                .filter((c) => c.startsWith("bg-"))
-                                .join(" ");
+                              const { icon: iconColorClass, bg: bgColorClass } = getColorClasses(node.color);
 
                               return (
                                 <motion.button
                                   key={node.type}
+                                  id={`node-${node.type}`}
+                                  role="option"
+                                  aria-selected={isSelected}
                                   data-selected={isSelected}
                                   onClick={() => {
                                     onAddNode(node.type);
