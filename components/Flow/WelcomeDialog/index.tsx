@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,9 +56,29 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
   const [vipSuccess, setVipSuccess] = useState(false);
   const [showSkipAlert, setShowSkipAlert] = useState(false);
   const [showSkipKeysAlert, setShowSkipKeysAlert] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const statuses = getKeyStatuses();
   const hasAnyKey = statuses.some((s) => s.hasKey);
+
+  // Animated close - triggers exit animation then completes NUX
+  const handleAnimatedClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    closeTimeoutRef.current = setTimeout(() => {
+      completeNux();
+    }, 500); // Match the dialog overlay animation duration
+  }, [isClosing, completeNux]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Auto-advance to step 2 when user signs in during step 1
   useEffect(() => {
@@ -98,7 +118,7 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
 
   const handleConfirmSkipKeys = () => {
     setShowSkipKeysAlert(false);
-    completeNux();
+    handleAnimatedClose();
   };
 
   const handleSetupApiKeys = () => {
@@ -106,7 +126,7 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
   };
 
   const handleDismissApiKeys = () => {
-    completeNux();
+    handleAnimatedClose();
   };
 
   const handleBackToSignIn = () => {
@@ -118,8 +138,8 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
   };
 
   const handleDone = () => {
-    completeNux();
     onDone?.();
+    handleAnimatedClose();
   };
 
   const handleSaveKey = (provider: ProviderId) => {
@@ -176,7 +196,7 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
 
     return (
     <>
-      <Dialog open={true}>
+      <Dialog open={!isClosing}>
         <DialogShell
           step={isStep3 ? 3 : 2}
           title={isStep3 ? <span className="text-base sm:text-lg">Finish setup by adding your API keys</span> : <span className="text-base sm:text-lg">Unlock creating flows & AI assistant</span>}
@@ -184,7 +204,7 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
           onBack={isStep3 ? handleBackToStep2 : (!user ? handleBackToSignIn : undefined)}
           hero={<ProvidersHero step={isStep3 ? 3 : 2} />}
           preventOutsideClose
-          onClose={completeNux}
+          onClose={handleAnimatedClose}
         >
           {isStep3 ? (
             // Step 3: API Key form
@@ -422,14 +442,14 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
   // Step 1: Sign in (only shown if not signed in)
   return (
     <>
-    <Dialog open={true}>
+    <Dialog open={!isClosing}>
       <DialogShell
         step={1}
         title={<span className="text-xl sm:text-2xl">Welcome to Composer</span>}
         description="A canvas for chaining AI models into creative workflows"
         hero={<DemoHero />}
         preventOutsideClose
-        onClose={completeNux}
+        onClose={handleAnimatedClose}
       >
         <div className="grid gap-6">
           <div className="grid gap-3">
