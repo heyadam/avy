@@ -113,6 +113,17 @@ export interface ImageInputNodeData extends Record<string, unknown>, ExecutionDa
   uploadedImage?: string; // Stringified ImageData JSON, runtime only
 }
 
+export interface AudioInputNodeData extends Record<string, unknown>, ExecutionData {
+  label: string;
+  // Runtime state (not persisted)
+  isRecording?: boolean;       // Whether currently recording
+  recordingDuration?: number;  // Elapsed recording time in seconds
+  awaitingInput?: boolean;     // Execution engine is waiting for recording
+  // Recorded audio data (persisted)
+  audioBuffer?: string;        // Base64-encoded audio data
+  audioMimeType?: string;      // MIME type (e.g., "audio/webm")
+}
+
 // Evaluation test case result
 export interface MagicEvalTestCase {
   input1: string | number | null;
@@ -210,13 +221,14 @@ export type AgentNodeData =
   | PromptNodeData
   | ImageNodeData
   | ImageInputNodeData
+  | AudioInputNodeData
   | MagicNodeData
   | CommentNodeData
   | ReactNodeData
   | RealtimeNodeData;
 
 // Custom node types
-export type NodeType = "text-input" | "preview-output" | "text-generation" | "image-generation" | "image-input" | "ai-logic" | "comment" | "react-component" | "realtime-conversation";
+export type NodeType = "text-input" | "preview-output" | "text-generation" | "image-generation" | "image-input" | "audio-input" | "ai-logic" | "comment" | "react-component" | "realtime-conversation";
 
 // Typed nodes
 export type InputNode = Node<InputNodeData, "text-input">;
@@ -224,6 +236,7 @@ export type OutputNode = Node<OutputNodeData, "preview-output">;
 export type PromptNode = Node<PromptNodeData, "text-generation">;
 export type ImageNode = Node<ImageNodeData, "image-generation">;
 export type ImageInputNode = Node<ImageInputNodeData, "image-input">;
+export type AudioInputNode = Node<AudioInputNodeData, "audio-input">;
 export type MagicNode = Node<MagicNodeData, "ai-logic">;
 export type CommentNode = Node<CommentNodeData, "comment">;
 export type ReactNode = Node<ReactNodeData, "react-component">;
@@ -235,6 +248,7 @@ export type AgentNode =
   | PromptNode
   | ImageNode
   | ImageInputNode
+  | AudioInputNode
   | MagicNode
   | CommentNode
   | ReactNode
@@ -263,6 +277,12 @@ export const nodeDefinitions: NodeDefinition[] = [
     label: "Image Input",
     description: "Upload an image",
     color: "bg-purple-500/10 text-purple-700 dark:text-purple-300",
+  },
+  {
+    type: "audio-input",
+    label: "Audio Input",
+    description: "Record from microphone",
+    color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   },
   {
     type: "ai-logic",
@@ -312,8 +332,15 @@ export const NODE_PORT_SCHEMAS: Record<NodeType, NodePortSchema> = {
     inputs: [],
     outputs: [{ id: "output", label: "image", dataType: "image" }],
   },
+  "audio-input": {
+    inputs: [],
+    outputs: [{ id: "output", label: "audio", dataType: "audio" }],
+  },
   "preview-output": {
-    inputs: [{ id: "input", label: "response", dataType: "response" }],
+    inputs: [
+      { id: "input", label: "response", dataType: "response" },
+      { id: "audio", label: "audio", dataType: "audio", required: false },
+    ],
     outputs: [],
   },
   "text-generation": {

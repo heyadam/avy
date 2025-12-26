@@ -4,6 +4,7 @@ import { OutputNode } from "./OutputNode";
 import { PromptNode } from "./PromptNode";
 import { ImageNode } from "./ImageNode";
 import { ImageInputNode } from "./ImageInputNode";
+import { AudioInputNode } from "./AudioInputNode";
 import { MagicNode } from "./MagicNode";
 import { CommentNode } from "./CommentNode";
 import { ReactNode } from "./ReactNode";
@@ -15,10 +16,11 @@ export const nodeTypes: NodeTypes = {
   "text-generation": PromptNode,
   "image-generation": ImageNode,
   "image-input": ImageInputNode,
+  "audio-input": AudioInputNode,
   "ai-logic": MagicNode,
   "comment": CommentNode,
   "react-component": ReactNode,
   "realtime-conversation": RealtimeNode,
 };
 
-export { InputNode, OutputNode, PromptNode, ImageNode, ImageInputNode, MagicNode, CommentNode, ReactNode, RealtimeNode };
+export { InputNode, OutputNode, PromptNode, ImageNode, ImageInputNode, AudioInputNode, MagicNode, CommentNode, ReactNode, RealtimeNode };

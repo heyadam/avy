@@ -56,7 +56,7 @@ export interface AddEdgeAction {
     sourceHandle?: string;
     target: string;
     targetHandle?: string;
-    data: { dataType: "string" | "image" | "response" };
+    data: { dataType: "string" | "image" | "response" | "audio" };
   };
 }
 

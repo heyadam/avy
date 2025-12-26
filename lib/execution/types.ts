@@ -46,6 +46,8 @@ export interface NodeExecutionState {
   generatedCode?: string;
   /** Explanation for auto-generated code */
   codeExplanation?: string;
+  /** True when execution is waiting for user input (e.g., audio recording) */
+  awaitingInput?: boolean;
 }
 
 export type ExecutionState = Record<string, NodeExecutionState>;

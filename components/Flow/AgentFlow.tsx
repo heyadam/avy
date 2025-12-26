@@ -70,6 +70,7 @@ export interface AgentFlowProps {
 const defaultNodeData: Record<NodeType, Record<string, unknown>> = {
   "text-input": { label: "Input Text", inputValue: "" },
   "image-input": { label: "Input Image" },
+  "audio-input": { label: "Audio Input" },
   "preview-output": { label: "Preview Output" },
   "text-generation": { label: "AI Text", prompt: "", provider: "google", model: "gemini-3-flash-preview", googleThinkingConfig: { thinkingLevel: "low" }, googleSafetyPreset: "default" },
   "image-generation": { label: "AI Image", prompt: "", provider: "google", model: "gemini-2.5-flash-image", aspectRatio: "1:1" },

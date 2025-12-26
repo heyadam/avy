@@ -10,6 +10,7 @@ import {
 } from "./graph-utils";
 import { resolveImageInput, modelSupportsVision, getVisionCapableModel } from "@/lib/vision";
 import type { ProviderId } from "@/lib/providers";
+import { pendingInputRegistry, type AudioInputData } from "./pending-input-registry";
 
 interface ExecuteNodeResult {
   output: string;
@@ -75,7 +76,11 @@ async function executeNode(
   apiKeys?: ApiKeys,
   onStreamUpdate?: (output: string, debugInfo?: DebugInfo, reasoning?: string) => void,
   signal?: AbortSignal,
-  options?: ExecuteOptions
+  options?: ExecuteOptions,
+  /** Edges for checking connections (used by audio-input) */
+  edges?: Edge[],
+  /** Callback to signal awaiting input state (used by audio-input) */
+  onNodeStateChange?: (nodeId: string, state: NodeExecutionState) => void
 ): Promise<ExecuteNodeResult> {
   switch (node.type) {
     case "text-input":
@@ -86,9 +91,52 @@ async function executeNode(
       // Image input node returns its uploaded image data
       return { output: (node.data.uploadedImage as string) || "" };
 
+    case "audio-input": {
+      // Audio input node returns its recorded audio buffer as AudioEdgeData
+      let audioBuffer = node.data.audioBuffer as string | undefined;
+      let audioMimeType = node.data.audioMimeType as string | undefined;
+      let recordingDuration = node.data.recordingDuration as number | undefined;
+
+      // If no recording but node is wired, wait for user to record
+      if (!audioBuffer && edges && onNodeStateChange) {
+        const hasOutgoing = edges.some((e) => e.source === node.id);
+        if (hasOutgoing) {
+          // Signal that we're waiting for input (triggers auto-recording in UI)
+          onNodeStateChange(node.id, { status: "running", awaitingInput: true });
+
+          // Wait for user to complete recording
+          const audioData = await pendingInputRegistry.waitForInput<AudioInputData>(node.id);
+
+          // Check for cancellation
+          if (!audioData) {
+            throw new Error("Recording was cancelled.");
+          }
+
+          // Use the data from the completed recording
+          audioBuffer = audioData.buffer;
+          audioMimeType = audioData.mimeType;
+          recordingDuration = audioData.duration;
+        }
+      }
+
+      if (!audioBuffer) {
+        throw new Error("No audio recorded. Please record audio before running.");
+      }
+
+      // Return AudioEdgeData format for downstream nodes
+      return {
+        output: JSON.stringify({
+          type: "buffer",
+          buffer: audioBuffer,
+          mimeType: audioMimeType || "audio/webm",
+          duration: recordingDuration,
+        }),
+      };
+    }
+
     case "preview-output":
-      // Output node passes through its input
-      return { output: inputs["input"] || inputs["prompt"] || Object.values(inputs)[0] || "" };
+      // Output node passes through its input (supports text and audio inputs)
+      return { output: inputs["input"] || inputs["audio"] || inputs["prompt"] || Object.values(inputs)[0] || "" };
 
     case "text-generation": {
       const startTime = Date.now();
@@ -818,7 +866,9 @@ export async function executeFlow(
           }
         },
         signal,
-        options
+        options,
+        edges,
+        onNodeStateChange
       );
 
       // Store output

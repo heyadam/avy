@@ -6,7 +6,9 @@ import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isImageOutput, parseImageOutput, getImageDataUrl } from "@/lib/image-utils";
 import { isReactOutput, parseReactOutput } from "@/lib/react-utils";
+import { isAudioOutput } from "@/lib/audio-utils";
 import { ReactPreview } from "./ReactPreview";
+import { AudioPreview } from "./AudioPreview";
 
 interface ResponsesContentProps {
   entries: PreviewEntry[];
@@ -26,6 +28,10 @@ function ResponseCard({ entry }: { entry: PreviewEntry }) {
       if (isReactOutput(entry.output)) {
         const reactData = parseReactOutput(entry.output);
         return reactData ? <ReactPreview data={reactData} /> : null;
+      }
+
+      if (isAudioOutput(entry.output)) {
+        return <AudioPreview output={entry.output} />;
       }
 
       if (isImageOutput(entry.output)) {

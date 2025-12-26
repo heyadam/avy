@@ -140,7 +140,21 @@ Image upload entry point. Allows users to upload an image to use in the flow.
 }
 \`\`\`
 
-### 8. realtime-conversation (Realtime Audio)
+### 8. audio-input (Audio Input)
+Microphone recording entry point. Allows users to record audio from their microphone for use in the flow. The audio stream can be connected to other audio-capable nodes like Realtime Audio or Preview Output.
+\`\`\`typescript
+{
+  type: "audio-input",
+  data: {
+    label: string  // Display name
+  }
+}
+\`\`\`
+
+**Output Handles:**
+- \`output\` - Audio stream from microphone (dataType: "audio")
+
+### 9. realtime-conversation (Realtime Audio)
 Real-time voice conversation with OpenAI's Realtime API. Users can have speech-to-speech conversations with the AI model. The node is interactive and manages its own session lifecycle (not triggered by flow execution).
 **Default: voice="marin", vadMode="semantic_vad"**
 \`\`\`typescript
@@ -215,7 +229,8 @@ Edge format:
 ## Connection Rules
 - Text Input nodes have only OUTPUT connections (they start the flow with text)
 - Image Input nodes have only OUTPUT connections (they start the flow with an image)
-- Preview Output nodes have only INPUT connections (they end the flow)
+- Audio Input nodes have only OUTPUT connections (they start the flow with audio from microphone)
+- Preview Output nodes have only INPUT connections (they end the flow, accepts response or audio)
 - Text Generation nodes have both INPUT and OUTPUT connections
 - Image Generation nodes have both INPUT and OUTPUT connections
 - AI Logic nodes have both INPUT and OUTPUT connections (output is string)

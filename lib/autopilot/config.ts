@@ -23,6 +23,7 @@ export const VALID_IMAGE_MODELS: Record<string, string[]> = {
 export const VALID_NODE_TYPES = [
   "text-input",
   "image-input",
+  "audio-input",
   "text-generation",
   "image-generation",
   "ai-logic",
@@ -59,6 +60,7 @@ export function formatModelList(models: Record<string, string[]>): string {
 export const NODE_REQUIRED_FIELDS: Record<ValidNodeType, string[]> = {
   "text-input": ["label"],
   "image-input": ["label"],
+  "audio-input": ["label"],
   "text-generation": ["label"],
   "image-generation": ["label"],
   "ai-logic": ["label"],

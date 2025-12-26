@@ -14,6 +14,7 @@ import {
   MessageSquarePlus,
   Code,
   Mic,
+  AudioWaveform,
   ArrowRight,
   X,
 } from "lucide-react";
@@ -25,6 +26,7 @@ import { springs } from "@/lib/motion/presets";
 const iconMap: Record<NodeType, typeof Keyboard> = {
   "text-input": Keyboard,
   "image-input": Upload,
+  "audio-input": AudioWaveform,
   "preview-output": Square,
   "text-generation": MessageSquare,
   "image-generation": ImageIcon,
@@ -39,7 +41,7 @@ const categorizedNodes = [
   {
     category: "Inputs",
     nodes: nodeDefinitions.filter((n) =>
-      ["text-input", "image-input"].includes(n.type)
+      ["text-input", "image-input", "audio-input"].includes(n.type)
     ),
   },
   {
