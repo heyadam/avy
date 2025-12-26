@@ -63,13 +63,15 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
   const hasAnyKey = statuses.some((s) => s.hasKey);
 
   // Animated close - triggers exit animation then completes NUX
-  const handleAnimatedClose = useCallback(() => {
+  // When triggerOnDone is true, calls onDone callback (to open templates modal)
+  const handleAnimatedClose = useCallback((triggerOnDone = false) => {
     if (isClosing) return;
+    if (triggerOnDone) onDone?.();
     setIsClosing(true);
     closeTimeoutRef.current = setTimeout(() => {
       completeNux();
     }, 500); // Match the dialog overlay animation duration
-  }, [isClosing, completeNux]);
+  }, [isClosing, completeNux, onDone]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -118,7 +120,7 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
 
   const handleConfirmSkipKeys = () => {
     setShowSkipKeysAlert(false);
-    handleAnimatedClose();
+    handleAnimatedClose(true);
   };
 
   const handleSetupApiKeys = () => {
@@ -126,7 +128,7 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
   };
 
   const handleDismissApiKeys = () => {
-    handleAnimatedClose();
+    handleAnimatedClose(true);
   };
 
   const handleBackToSignIn = () => {
@@ -138,8 +140,7 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
   };
 
   const handleDone = () => {
-    onDone?.();
-    handleAnimatedClose();
+    handleAnimatedClose(true);
   };
 
   const handleSaveKey = (provider: ProviderId) => {
@@ -204,7 +205,7 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
           onBack={isStep3 ? handleBackToStep2 : (!user ? handleBackToSignIn : undefined)}
           hero={<ProvidersHero step={isStep3 ? 3 : 2} />}
           preventOutsideClose
-          onClose={handleAnimatedClose}
+          onClose={() => handleAnimatedClose(true)}
         >
           {isStep3 ? (
             // Step 3: API Key form
@@ -449,7 +450,7 @@ export function WelcomeDialog({ onDone }: WelcomeDialogProps) {
         description="A canvas for chaining AI models into creative workflows"
         hero={<DemoHero />}
         preventOutsideClose
-        onClose={handleAnimatedClose}
+        onClose={() => handleAnimatedClose(true)}
       >
         <div className="grid gap-6">
           <div className="grid gap-3">
