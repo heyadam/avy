@@ -21,7 +21,7 @@ import "@xyflow/react/dist/style.css";
 import { nodeTypes } from "./nodes";
 import { edgeTypes } from "./edges/ColoredEdge";
 import { ConnectionContext } from "./ConnectionContext";
-import { NodeToolbar } from "./NodeToolbar";
+import { CommandPalette } from "./CommandPalette";
 import { AutopilotSidebar } from "./AutopilotSidebar";
 import { ActionBar } from "./ActionBar";
 import { FlowHeader } from "./FlowHeader";
@@ -815,10 +815,23 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
         className="flex-1 h-full bg-muted/10 relative"
         onMouseMove={handlePaneMouseMove}
       >
-        <NodeToolbar
-          isOpen={nodesPaletteOpen}
-          onClose={() => setNodesPaletteOpen(false)}
-          onAddNode={handleAddNodeAtCenter}
+        <CommandPalette
+          open={nodesPaletteOpen}
+          onOpenChange={setNodesPaletteOpen}
+          onAddNode={(nodeType) => {
+            handleAddNodeAtCenter(nodeType);
+            setNodesPaletteOpen(false);
+          }}
+          onAIGenerate={(prompt) => {
+            // Forward AI prompt to autopilot
+            setPendingAutopilotMessage({
+              prompt,
+              mode: "create" as AutopilotMode,
+              model: "claude-sonnet-4-5" as AutopilotModel,
+              thinkingEnabled: false
+            });
+            setAutopilotOpen(true);
+          }}
         />
         <CommentEditContext.Provider value={{ markUserEdited }}>
           <ConnectionContext.Provider value={{ isConnecting, connectingFromNodeId }}>
