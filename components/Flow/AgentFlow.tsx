@@ -50,7 +50,7 @@ import type { FlowChanges, AddNodeAction, AddEdgeAction, RemoveEdgeAction, Remov
 import { ResponsesSidebar, type PreviewEntry, type DebugEntry } from "./ResponsesSidebar";
 import { useApiKeys, type ProviderId } from "@/lib/api-keys";
 import type { FlowMetadata } from "@/lib/flow-storage";
-import { useBackgroundSettings, getBackgroundStyle } from "@/lib/hooks/useBackgroundSettings";
+import { useBackgroundSettings, getBackgroundStyle, getShimmerStyle } from "@/lib/hooks/useBackgroundSettings";
 import { ShareDialog } from "./ShareDialog";
 import { useCollaboration, type CollaborationModeProps } from "@/lib/hooks/useCollaboration";
 import { loadFlow } from "@/lib/flows/api";
@@ -880,7 +880,7 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
                     exit={{ opacity: 0, transition: { duration: 0.3 } }}
                     transition={{
                       opacity: {
-                        duration: 2,
+                        duration: bgSettings.shimmerDuration,
                         ease: "easeInOut",
                         repeat: Infinity,
                       },
@@ -890,12 +890,7 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
                       inset: 0,
                       pointerEvents: "none",
                       zIndex: 4,
-                      background: `radial-gradient(
-                        ellipse at 50% 50%,
-                        rgba(139, 92, 246, 0.06) 0%,
-                        rgba(139, 92, 246, 0.03) 50%,
-                        transparent 70%
-                      )`,
+                      background: getShimmerStyle(bgSettings),
                     }}
                   />
                 )}
