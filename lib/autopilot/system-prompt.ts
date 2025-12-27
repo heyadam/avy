@@ -236,16 +236,22 @@ Edges connect nodes and carry data. Each edge has a \`dataType\`:
 - \`"image"\` - Image data (from Image Generation or Image Input nodes)
 - \`"response"\` - Final output going to a Preview Output node (from React Component or other terminal nodes)
 - \`"audio"\` - Audio stream data (from Realtime Audio audio-out)
+- \`"boolean"\` - True/false value (for logic gates and conditionals)
+- \`"pulse"\` - Momentary signal that fires once when a node completes execution
+
+### Pulse Outputs ("done" handle)
+Processing nodes (text-generation, image-generation, ai-logic, react-component, audio-transcription) have a special "done" output that fires a pulse when execution completes. This can be used to trigger downstream actions.
+- To connect from a done pulse: \`sourceHandle: "done"\`, \`data: { dataType: "pulse" }\`
 
 Edge format:
 \`\`\`typescript
 {
   id: string,
   source: string,        // Source node ID
-  sourceHandle?: string, // Optional: specific output handle (e.g., "output", "transcript", "audio-out")
+  sourceHandle?: string, // Optional: specific output handle (e.g., "output", "transcript", "audio-out", "done")
   target: string,        // Target node ID
   targetHandle?: string, // Optional: specific input handle (e.g., "prompt", "system", "image", "instructions", "audio-in")
-  data: { dataType: "string" | "image" | "response" | "audio" }
+  data: { dataType: "string" | "image" | "response" | "audio" | "boolean" | "pulse" }
 }
 \`\`\`
 

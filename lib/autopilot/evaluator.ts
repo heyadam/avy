@@ -55,7 +55,7 @@ const NODE_INPUT_HANDLES: Record<string, Record<string, string[]>> = {
 };
 
 /**
- * Node types that produce each data type as output.
+ * Node types that produce each data type as output (primary output).
  */
 const OUTPUT_DATA_TYPES: Record<string, string> = {
   "text-input": "string",
@@ -68,6 +68,31 @@ const OUTPUT_DATA_TYPES: Record<string, string> = {
   "realtime-conversation": "string", // Primary output is transcript (string)
   "audio-transcription": "string",   // Transcribed text output
 };
+
+/**
+ * Nodes with "done" pulse output (fires when execution completes).
+ */
+const NODES_WITH_DONE_OUTPUT = new Set([
+  "text-generation",
+  "image-generation",
+  "ai-logic",
+  "react-component",
+  "audio-transcription",
+  "audio-input",
+  "realtime-conversation",
+]);
+
+/**
+ * Get the output data type for a node, considering sourceHandle.
+ */
+function getOutputDataType(nodeType: string, sourceHandle?: string | null): string | null {
+  // Handle "done" pulse output
+  if (sourceHandle === "done" && NODES_WITH_DONE_OUTPUT.has(nodeType)) {
+    return "pulse";
+  }
+  // Primary output
+  return OUTPUT_DATA_TYPES[nodeType] || null;
+}
 
 /**
  * Programmatically validate model IDs in the changes.

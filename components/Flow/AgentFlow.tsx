@@ -508,8 +508,13 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
     clearAutopilotHighlights();
   }, [clearAutopilotHighlights]);
 
-  // Determine edge data type based on source node
-  const getEdgeDataType = useCallback((sourceNodeId: string): string => {
+  // Determine edge data type based on source node and handle
+  const getEdgeDataType = useCallback((sourceNodeId: string, sourceHandle?: string | null): string => {
+    // Pulse output from "done" handle
+    if (sourceHandle === "done") {
+      return "pulse";
+    }
+
     const sourceNode = nodes.find((n) => n.id === sourceNodeId);
     if (!sourceNode) return "default";
 
@@ -535,7 +540,7 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
       // Take snapshot before adding edge for undo support
       takeSnapshot();
 
-      const dataType = params.source ? getEdgeDataType(params.source) : "default";
+      const dataType = params.source ? getEdgeDataType(params.source, params.sourceHandle) : "default";
 
       setEdges((eds) => {
         // Remove any existing edge to this target handle (replacement behavior)

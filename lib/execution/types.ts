@@ -48,6 +48,8 @@ export interface NodeExecutionState {
   codeExplanation?: string;
   /** True when execution is waiting for user input (e.g., audio recording) */
   awaitingInput?: boolean;
+  /** True when the "done" pulse has fired (node completed execution) */
+  pulseFired?: boolean;
 }
 
 export type ExecutionState = Record<string, NodeExecutionState>;

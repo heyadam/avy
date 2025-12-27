@@ -980,6 +980,14 @@ export async function executeFlow(
       executedNodes.add(node.id);
       executingNodes.delete(node.id);
 
+      // Nodes with a "done" pulse output
+      const processingNodeTypes = ["text-generation", "image-generation", "ai-logic", "react-component", "audio-transcription", "audio-input", "realtime-conversation"];
+      const hasDoneOutput = processingNodeTypes.includes(node.type || "");
+      if (hasDoneOutput) {
+        // Store pulse output for downstream nodes connected to "done" handle
+        executedOutputs[`${node.id}:done`] = JSON.stringify({ fired: true, timestamp: Date.now() });
+      }
+
       onNodeStateChange(node.id, {
         status: "success",
         output: result.output,
@@ -988,6 +996,7 @@ export async function executeFlow(
         generatedCode: result.generatedCode,
         codeExplanation: result.codeExplanation,
         awaitingInput: false, // Ensure awaiting state is cleared on success
+        pulseFired: hasDoneOutput, // Mark pulse as fired for processing nodes
       });
 
       // If this is an output node, capture the output

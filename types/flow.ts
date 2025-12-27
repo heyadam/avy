@@ -2,7 +2,7 @@ import type { Node, Edge } from "@xyflow/react";
 import type { ExecutionStatus } from "@/lib/execution/types";
 
 // Port data types (for coloring and validation)
-export type PortDataType = "string" | "image" | "response" | "audio";
+export type PortDataType = "string" | "image" | "response" | "audio" | "boolean" | "pulse";
 
 // Audio edge data structure for audio streaming between nodes
 export interface AudioEdgeData {
@@ -350,7 +350,10 @@ export const NODE_PORT_SCHEMAS: Record<NodeType, NodePortSchema> = {
   },
   "audio-input": {
     inputs: [],
-    outputs: [{ id: "output", label: "audio", dataType: "audio" }],
+    outputs: [
+      { id: "output", label: "audio", dataType: "audio" },
+      { id: "done", label: "Done", dataType: "pulse" },
+    ],
   },
   "preview-output": {
     inputs: [
@@ -365,14 +368,20 @@ export const NODE_PORT_SCHEMAS: Record<NodeType, NodePortSchema> = {
       { id: "system", label: "system", dataType: "string", required: false },
       { id: "image", label: "image", dataType: "image", required: false },
     ],
-    outputs: [{ id: "output", label: "string", dataType: "string" }],
+    outputs: [
+      { id: "output", label: "string", dataType: "string" },
+      { id: "done", label: "Done", dataType: "pulse" },
+    ],
   },
   "image-generation": {
     inputs: [
       { id: "image", label: "image", dataType: "image", required: false },
       { id: "prompt", label: "prompt", dataType: "string", required: false },
     ],
-    outputs: [{ id: "output", label: "image", dataType: "image" }],
+    outputs: [
+      { id: "output", label: "image", dataType: "image" },
+      { id: "done", label: "Done", dataType: "pulse" },
+    ],
   },
   "ai-logic": {
     inputs: [
@@ -380,7 +389,10 @@ export const NODE_PORT_SCHEMAS: Record<NodeType, NodePortSchema> = {
       { id: "input1", label: "input1", dataType: "string", required: false },
       { id: "input2", label: "input2", dataType: "string", required: false },
     ],
-    outputs: [{ id: "output", label: "output", dataType: "string" }],
+    outputs: [
+      { id: "output", label: "output", dataType: "string" },
+      { id: "done", label: "Done", dataType: "pulse" },
+    ],
   },
   "comment": {
     inputs: [],
@@ -391,7 +403,10 @@ export const NODE_PORT_SCHEMAS: Record<NodeType, NodePortSchema> = {
       { id: "prompt", label: "prompt", dataType: "string", required: true },
       { id: "system", label: "system", dataType: "string", required: false },
     ],
-    outputs: [{ id: "output", label: "react", dataType: "response" }],
+    outputs: [
+      { id: "output", label: "react", dataType: "response" },
+      { id: "done", label: "Done", dataType: "pulse" },
+    ],
   },
   "realtime-conversation": {
     inputs: [
@@ -401,6 +416,7 @@ export const NODE_PORT_SCHEMAS: Record<NodeType, NodePortSchema> = {
     outputs: [
       { id: "transcript", label: "transcript", dataType: "string" },
       { id: "audio-out", label: "audio", dataType: "audio" },
+      { id: "done", label: "Done", dataType: "pulse" },
     ],
   },
   "audio-transcription": {
@@ -408,6 +424,9 @@ export const NODE_PORT_SCHEMAS: Record<NodeType, NodePortSchema> = {
       { id: "audio", label: "audio", dataType: "audio", required: true },
       { id: "language", label: "language", dataType: "string", required: false },
     ],
-    outputs: [{ id: "output", label: "string", dataType: "string" }],
+    outputs: [
+      { id: "output", label: "string", dataType: "string" },
+      { id: "done", label: "Done", dataType: "pulse" },
+    ],
   },
 };
