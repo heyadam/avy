@@ -38,6 +38,12 @@ All node components are in `components/Flow/nodes/` with editable labels.
 
 **ReactComponentNode** (type: `react-component`): AI-generated React components rendered in sandboxed iframe.
 
+**AudioTranscriptionNode** (type: `audio-transcription`): Speech-to-text using OpenAI transcription:
+- Models: `gpt-4o-transcribe` (default), `gpt-4o-mini-transcribe`
+- Audio input port (required, emerald)
+- Optional language input (ISO 639-1 codes: en, es, fr, etc.)
+- Outputs transcribed text as string
+
 **RealtimeNode** (type: `realtime-conversation`): Real-time voice conversation using OpenAI's Realtime API:
 - Voice selection (10 voices: alloy, ash, ballad, coral, echo, sage, shimmer, verse, marin, cedar)
 - VAD modes (semantic, server, manual PTT)

@@ -36,6 +36,11 @@ Flow types in `types/flow.ts` define node data interfaces with execution state t
 - `transcript`: Array of conversation entries with role, text, and timestamp
 - `audioOutStreamId`: Registry ID for output audio stream
 
+### AudioTranscriptionNodeData
+
+- `model`: Transcription model (`gpt-4o-transcribe` default, `gpt-4o-mini-transcribe`)
+- `language`: Optional ISO 639-1 language code (e.g., `en`, `es`, `fr`)
+
 ### AudioEdgeData
 
 Interface for audio streaming between nodes:
@@ -56,3 +61,4 @@ Valid node types for flow operations:
 - `react-component`
 - `comment`
 - `realtime-conversation`
+- `audio-transcription`

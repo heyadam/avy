@@ -204,7 +204,7 @@ Example - creating a realtime conversation node:
 }
 \`\`\`
 
-### 9. audio-transcription (Transcribe)
+### 10. audio-transcription (Transcribe)
 Audio-to-text transcription node using OpenAI's GPT-4o transcription models. Takes audio input and outputs text.
 **Default: model="gpt-4o-transcribe"**
 \`\`\`typescript

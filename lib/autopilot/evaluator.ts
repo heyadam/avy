@@ -48,6 +48,10 @@ const NODE_INPUT_HANDLES: Record<string, Record<string, string[]>> = {
     instructions: ["string"],
     "audio-in": ["audio"],
   },
+  "audio-transcription": {
+    audio: ["audio"],
+    language: ["string"],
+  },
 };
 
 /**
@@ -62,6 +66,7 @@ const OUTPUT_DATA_TYPES: Record<string, string> = {
   "ai-logic": "string",
   "react-component": "response",
   "realtime-conversation": "string", // Primary output is transcript (string)
+  "audio-transcription": "string",   // Transcribed text output
 };
 
 /**
@@ -238,7 +243,11 @@ function validateEdges(
         issues.push(
           `Edge to "${getNodeLabel(targetId)}": Audio data must connect to "audio-in" handle, not "${targetHandle || "default"}"`
         );
-      } else if (targetType !== "preview-output" && targetType !== "realtime-conversation") {
+      } else if (targetType === "audio-transcription" && targetHandle !== "audio") {
+        issues.push(
+          `Edge to "${getNodeLabel(targetId)}": Audio data must connect to "audio" handle, not "${targetHandle || "default"}"`
+        );
+      } else if (targetType !== "preview-output" && targetType !== "realtime-conversation" && targetType !== "audio-transcription") {
         issues.push(
           `Edge to "${getNodeLabel(targetId)}": Node type "${targetType}" does not accept audio input`
         );
@@ -462,8 +471,9 @@ Please fix these specific issues and regenerate the FlowChanges JSON.
 - text-generation accepts: \`targetHandle: "prompt"\` (string), \`targetHandle: "system"\` (string), OR \`targetHandle: "image"\` (image for vision)
 - image-generation accepts: \`targetHandle: "prompt"\` (string) OR \`targetHandle: "image"\` (image-to-image)
 - realtime-conversation accepts: \`targetHandle: "instructions"\` (string) OR \`targetHandle: "audio-in"\` (audio)
+- audio-transcription accepts: \`targetHandle: "audio"\` (audio, required) OR \`targetHandle: "language"\` (string, optional)
 - preview-output accepts: \`targetHandle: "input"\` (string/image/response) OR \`targetHandle: "audio"\` (audio)
 - Image data can connect to \`targetHandle: "image"\` on text-generation, image-generation, or preview-output
-- Audio data can connect to \`targetHandle: "audio-in"\` on realtime-conversation OR \`targetHandle: "audio"\` on preview-output
+- Audio data can connect to \`targetHandle: "audio"\` on audio-transcription, \`targetHandle: "audio-in"\` on realtime-conversation, OR \`targetHandle: "audio"\` on preview-output
 - All new nodes must be connected via edges (unless adding a single standalone node)`;
 }

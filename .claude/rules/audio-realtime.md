@@ -44,6 +44,15 @@
 - Compact mode for node preview display
 - Proper blob URL cleanup to prevent memory leaks
 
+## Audio Transcription
+
+**AudioTranscriptionNode** (`components/Flow/nodes/AudioTranscriptionNode.tsx`): Speech-to-text conversion using OpenAI's transcription API:
+- Models: `gpt-4o-transcribe` (default, high quality), `gpt-4o-mini-transcribe` (cost-optimized)
+- Audio input port (required, emerald) - accepts `AudioEdgeData` from Audio Input node
+- Optional language input port (cyan) - ISO 639-1 codes (e.g., "en", "es", "fr")
+- Outputs transcribed text as string
+- Execution handled in `app/api/execute/route.ts` (`type: "audio-transcription"`)
+
 ## Realtime Conversation
 
 **RealtimeNode** (`components/Flow/nodes/RealtimeNode.tsx`): Real-time voice conversation using OpenAI's Realtime API:
