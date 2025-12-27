@@ -101,6 +101,16 @@ Exit point that displays results. Can be named to describe what it shows (e.g., 
 }
 \`\`\`
 
+**Input Handles:**
+- \`string\` - Text/JSON content (dataType: "string")
+- \`image\` - Image data (dataType: "image")
+- \`audio\` - Audio data (dataType: "audio")
+
+When connecting to this node, use \`targetHandle\` to specify which input:
+- To connect text/string output: \`targetHandle: "string"\`
+- To connect image output: \`targetHandle: "image"\`
+- To connect audio output: \`targetHandle: "audio"\`
+
 ### 5. ai-logic (AI Logic)
 Custom code transformation node. Uses Claude to generate JavaScript code based on a natural language description. The generated code processes inputs and returns a string output. Useful for data manipulation, formatting, parsing, or custom logic.
 \`\`\`typescript
@@ -261,7 +271,7 @@ Edge format:
 - Text Input nodes have only OUTPUT connections (they start the flow with text)
 - Image Input nodes have only OUTPUT connections (they start the flow with an image)
 - Audio Input nodes have only OUTPUT connections (they start the flow with audio from microphone)
-- Preview Output nodes have only INPUT connections (they end the flow, accepts response or audio)
+- Preview Output nodes have only INPUT connections (they end the flow, accepts string, image, or audio via separate handles)
 - Text Generation nodes have both INPUT and OUTPUT connections
 - Image Generation nodes have both INPUT and OUTPUT connections
 - AI Logic nodes have both INPUT and OUTPUT connections (output is string)

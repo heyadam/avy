@@ -20,6 +20,12 @@ interface ExecuteNodeResult {
   generatedCode?: string;
   /** Explanation for auto-generated code */
   codeExplanation?: string;
+  /** Output node: string/text input */
+  stringOutput?: string;
+  /** Output node: image input */
+  imageOutput?: string;
+  /** Output node: audio input */
+  audioOutput?: string;
 }
 
 /** Options for owner-funded execution */
@@ -137,9 +143,19 @@ async function executeNode(
       };
     }
 
-    case "preview-output":
-      // Output node passes through its input (supports text and audio inputs)
-      return { output: inputs["input"] || inputs["audio"] || inputs["prompt"] || Object.values(inputs)[0] || "" };
+    case "preview-output": {
+      // Output node collects string, image, and audio inputs separately
+      const stringOutput = inputs["string"] || "";
+      const imageOutput = inputs["image"] || "";
+      const audioOutput = inputs["audio"] || "";
+      // Return combined output for display, but individual outputs are set via onNodeStateChange
+      return {
+        output: JSON.stringify({ stringOutput, imageOutput, audioOutput }),
+        stringOutput,
+        imageOutput,
+        audioOutput,
+      };
+    }
 
     case "text-generation": {
       const startTime = Date.now();
@@ -997,6 +1013,10 @@ export async function executeFlow(
         codeExplanation: result.codeExplanation,
         awaitingInput: false, // Ensure awaiting state is cleared on success
         pulseFired: hasDoneOutput, // Mark pulse as fired for processing nodes
+        // Output node specific fields
+        stringOutput: result.stringOutput,
+        imageOutput: result.imageOutput,
+        audioOutput: result.audioOutput,
       });
 
       // If this is an output node, capture the output
