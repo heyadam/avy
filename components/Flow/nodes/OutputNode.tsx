@@ -4,8 +4,10 @@ import { useReactFlow, useEdges, type NodeProps, type Node } from "@xyflow/react
 import type { OutputNodeData } from "@/types/flow";
 import { Square } from "lucide-react";
 import { NodeFrame } from "./NodeFrame";
-import { PortRow } from "./PortLabel";
+import { PortList } from "./PortLabel";
 import { isImageOutput, parseImageOutput, getImageDataUrl } from "@/lib/image-utils";
+import { isAudioOutput } from "@/lib/audio-utils";
+import { AudioPreview } from "@/components/Flow/ResponsesSidebar/AudioPreview";
 
 type OutputNodeType = Node<OutputNodeData, "preview-output">;
 
@@ -13,9 +15,12 @@ export function OutputNode({ id, data }: NodeProps<OutputNodeType>) {
   const { updateNodeData } = useReactFlow();
   const edges = useEdges();
 
-  // Check if input is connected (handle undefined when default handle is used)
+  // Check if inputs are connected
   const isInputConnected = edges.some(
     (edge) => edge.target === id && (edge.targetHandle === "input" || !edge.targetHandle)
+  );
+  const isAudioConnected = edges.some(
+    (edge) => edge.target === id && edge.targetHandle === "audio"
   );
 
   const renderFooter = () => {
@@ -28,6 +33,11 @@ export function OutputNode({ id, data }: NodeProps<OutputNodeType>) {
     }
 
     if (data.executionOutput) {
+      // Show audio preview (compact mode in node)
+      if (isAudioOutput(data.executionOutput)) {
+        return <AudioPreview output={data.executionOutput} compact />;
+      }
+
       // Show image thumbnail preview
       if (isImageOutput(data.executionOutput)) {
         const imageData = parseImageOutput(data.executionOutput);
@@ -66,9 +76,12 @@ export function OutputNode({ id, data }: NodeProps<OutputNodeType>) {
       status={data.executionStatus}
       className="w-[280px]"
       ports={
-        <PortRow
+        <PortList
           nodeId={id}
-          input={{ id: "input", label: "Image or String", colorClass: "amber", isConnected: isInputConnected }}
+          inputs={[
+            { id: "input", label: "Text/Image", colorClass: "amber", isConnected: isInputConnected },
+            { id: "audio", label: "Audio", colorClass: "emerald", isConnected: isAudioConnected },
+          ]}
         />
       }
       footer={renderFooter()}

@@ -10,6 +10,7 @@ import {
 } from "./graph-utils";
 import { resolveImageInput, modelSupportsVision, getVisionCapableModel } from "@/lib/vision";
 import type { ProviderId } from "@/lib/providers";
+import { pendingInputRegistry, type AudioInputData } from "./pending-input-registry";
 
 interface ExecuteNodeResult {
   output: string;
@@ -75,7 +76,11 @@ async function executeNode(
   apiKeys?: ApiKeys,
   onStreamUpdate?: (output: string, debugInfo?: DebugInfo, reasoning?: string) => void,
   signal?: AbortSignal,
-  options?: ExecuteOptions
+  options?: ExecuteOptions,
+  /** Edges for checking connections (used by audio-input) */
+  edges?: Edge[],
+  /** Callback to signal awaiting input state (used by audio-input) */
+  onNodeStateChange?: (nodeId: string, state: NodeExecutionState) => void
 ): Promise<ExecuteNodeResult> {
   switch (node.type) {
     case "text-input":
@@ -86,9 +91,55 @@ async function executeNode(
       // Image input node returns its uploaded image data
       return { output: (node.data.uploadedImage as string) || "" };
 
+    case "audio-input": {
+      // Audio input node returns its recorded audio buffer as AudioEdgeData
+      let audioBuffer = node.data.audioBuffer as string | undefined;
+      let audioMimeType = node.data.audioMimeType as string | undefined;
+      let recordingDuration = node.data.recordingDuration as number | undefined;
+
+      // If no recording but node is wired, wait for user to record
+      if (!audioBuffer && edges && onNodeStateChange) {
+        const hasOutgoing = edges.some((e) => e.source === node.id);
+        if (hasOutgoing) {
+          // Signal that we're waiting for input (triggers auto-recording in UI)
+          onNodeStateChange(node.id, { status: "running", awaitingInput: true });
+
+          // Wait for user to complete recording
+          const audioData = await pendingInputRegistry.waitForInput<AudioInputData>(node.id);
+
+          // Clear awaiting state immediately after input is received
+          onNodeStateChange(node.id, { status: "running", awaitingInput: false });
+
+          // Check for cancellation
+          if (!audioData) {
+            throw new Error("Recording was cancelled.");
+          }
+
+          // Use the data from the completed recording
+          audioBuffer = audioData.buffer;
+          audioMimeType = audioData.mimeType;
+          recordingDuration = audioData.duration;
+        }
+      }
+
+      if (!audioBuffer) {
+        throw new Error("No audio recorded. Please record audio before running.");
+      }
+
+      // Return AudioEdgeData format for downstream nodes
+      return {
+        output: JSON.stringify({
+          type: "buffer",
+          buffer: audioBuffer,
+          mimeType: audioMimeType || "audio/webm",
+          duration: recordingDuration,
+        }),
+      };
+    }
+
     case "preview-output":
-      // Output node passes through its input
-      return { output: inputs["input"] || inputs["prompt"] || Object.values(inputs)[0] || "" };
+      // Output node passes through its input (supports text and audio inputs)
+      return { output: inputs["input"] || inputs["audio"] || inputs["prompt"] || Object.values(inputs)[0] || "" };
 
     case "text-generation": {
       const startTime = Date.now();
@@ -681,6 +732,106 @@ async function executeNode(
       };
     }
 
+    case "audio-transcription": {
+      const startTime = Date.now();
+      let streamChunksReceived = 0;
+
+      // Get audio from connected node
+      const audioInput = inputs["audio"];
+      if (!audioInput) {
+        throw new Error("No audio input connected");
+      }
+
+      // Parse audio data (AudioEdgeData format from AudioInputNode)
+      let audioData: { type: string; buffer: string; mimeType: string };
+      try {
+        audioData = JSON.parse(audioInput);
+        if (audioData.type !== "buffer" || !audioData.buffer) {
+          throw new Error("Only buffer-type audio is supported for transcription");
+        }
+      } catch (e) {
+        if (e instanceof Error && e.message.includes("buffer-type")) throw e;
+        throw new Error("Invalid audio input format");
+      }
+
+      const model = (node.data.model as string) || "gpt-4o-transcribe";
+      const language = inputs["language"] || (node.data.language as string) || undefined;
+
+      const requestBody = options?.shareToken
+        ? {
+            type: "audio-transcription",
+            audioBuffer: audioData.buffer,
+            audioMimeType: audioData.mimeType,
+            model,
+            language,
+            shareToken: options.shareToken,
+            runId: options.runId,
+          }
+        : {
+            type: "audio-transcription",
+            audioBuffer: audioData.buffer,
+            audioMimeType: audioData.mimeType,
+            model,
+            language,
+            apiKeys,
+          };
+
+      const debugInfo: DebugInfo = {
+        startTime,
+        request: { type: "audio-transcription", model },
+        streamChunksReceived: 0,
+        rawRequestBody: JSON.stringify({
+          ...requestBody,
+          audioBuffer: "[BASE64_AUDIO]",
+          apiKeys: "apiKeys" in requestBody ? "[REDACTED]" : undefined,
+          shareToken: "shareToken" in requestBody ? "[REDACTED]" : undefined,
+        }, null, 2),
+      };
+
+      const response = await fetchWithTimeout("/api/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+        signal,
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        let errorMsg = "Transcription failed";
+        try {
+          errorMsg = JSON.parse(text).error || errorMsg;
+        } catch {
+          // Use default error
+        }
+        debugInfo.endTime = Date.now();
+        throw new Error(errorMsg);
+      }
+
+      if (!response.body) {
+        debugInfo.endTime = Date.now();
+        throw new Error("No response body");
+      }
+
+      // Stream transcript chunks
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullOutput = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        fullOutput += chunk;
+        streamChunksReceived++;
+        debugInfo.streamChunksReceived = streamChunksReceived;
+        debugInfo.rawResponseBody = fullOutput;
+        onStreamUpdate?.(fullOutput, debugInfo);
+      }
+
+      debugInfo.endTime = Date.now();
+      return { output: fullOutput, debugInfo };
+    }
+
     default:
       return { output: inputs["prompt"] || inputs["input"] || Object.values(inputs)[0] || "" };
   }
@@ -818,7 +969,9 @@ export async function executeFlow(
           }
         },
         signal,
-        options
+        options,
+        edges,
+        onNodeStateChange
       );
 
       // Store output
@@ -834,6 +987,7 @@ export async function executeFlow(
         debugInfo: result.debugInfo,
         generatedCode: result.generatedCode,
         codeExplanation: result.codeExplanation,
+        awaitingInput: false, // Ensure awaiting state is cleared on success
       });
 
       // If this is an output node, capture the output

@@ -8,6 +8,13 @@ All node components are in `components/Flow/nodes/` with editable labels.
 
 **ImageInputNode** (type: `image-input`): Entry point for image upload.
 
+**AudioInputNode** (type: `audio-input`): Entry point for audio recording:
+- Real-time waveform visualization during recording
+- Automatic recording start when flow executes (if connected)
+- Uses pending-input-registry for async user input during execution
+- Supports webm, mp4, and aac formats (browser-dependent)
+- Outputs audio in `AudioEdgeData` format (base64 buffer with metadata)
+
 ## Processing Nodes
 
 **PromptNode** (type: `text-generation`): LLM prompt execution with three inputs:
@@ -30,6 +37,12 @@ All node components are in `components/Flow/nodes/` with editable labels.
 - Collapsible code/eval views
 
 **ReactComponentNode** (type: `react-component`): AI-generated React components rendered in sandboxed iframe.
+
+**AudioTranscriptionNode** (type: `audio-transcription`): Speech-to-text using OpenAI transcription:
+- Models: `gpt-4o-transcribe` (default), `gpt-4o-mini-transcribe`
+- Audio input port (required, emerald)
+- Optional language input (ISO 639-1 codes: en, es, fr, etc.)
+- Outputs transcribed text as string
 
 **RealtimeNode** (type: `realtime-conversation`): Real-time voice conversation using OpenAI's Realtime API:
 - Voice selection (10 voices: alloy, ash, ballad, coral, echo, sage, shimmer, verse, marin, cedar)

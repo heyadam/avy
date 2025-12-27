@@ -18,6 +18,8 @@ import {
   MessageSquarePlus,
   Code,
   Mic,
+  AudioWaveform,
+  FileAudio,
   ChevronDown,
   CheckCircle2,
   AlertTriangle,
@@ -37,6 +39,7 @@ interface ChangesPreviewProps {
 const iconMap: Record<NodeType, typeof Keyboard> = {
   "text-input": Keyboard,
   "image-input": Upload,
+  "audio-input": AudioWaveform,
   "preview-output": Square,
   "text-generation": MessageSquare,
   "image-generation": ImageIcon,
@@ -44,11 +47,13 @@ const iconMap: Record<NodeType, typeof Keyboard> = {
   "comment": MessageSquarePlus,
   "react-component": Code,
   "realtime-conversation": Mic,
+  "audio-transcription": FileAudio,
 };
 
 const nodeTypeLabels: Record<NodeType, string> = {
   "text-input": "Text Input",
   "image-input": "Image Input",
+  "audio-input": "Audio Input",
   "preview-output": "Output",
   "text-generation": "Text Generation",
   "image-generation": "Image Generation",
@@ -56,6 +61,7 @@ const nodeTypeLabels: Record<NodeType, string> = {
   "comment": "Comment",
   "react-component": "React Component",
   "realtime-conversation": "Realtime Audio",
+  "audio-transcription": "Transcribe",
 };
 
 const dataTypeColors: Record<

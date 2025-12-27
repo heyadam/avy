@@ -70,6 +70,7 @@ export interface AgentFlowProps {
 const defaultNodeData: Record<NodeType, Record<string, unknown>> = {
   "text-input": { label: "Input Text", inputValue: "" },
   "image-input": { label: "Input Image" },
+  "audio-input": { label: "Audio Input" },
   "preview-output": { label: "Preview Output" },
   "text-generation": { label: "AI Text", prompt: "", provider: "google", model: "gemini-3-flash-preview", googleThinkingConfig: { thinkingLevel: "low" }, googleSafetyPreset: "default" },
   "image-generation": { label: "AI Image", prompt: "", provider: "google", model: "gemini-2.5-flash-image", aspectRatio: "1:1" },
@@ -77,6 +78,7 @@ const defaultNodeData: Record<NodeType, Record<string, unknown>> = {
   "comment": { label: "Comment", description: "", color: "gray" },
   "react-component": { label: "React Component", userPrompt: "", provider: "anthropic", model: "claude-sonnet-4-5", stylePreset: "simple" },
   "realtime-conversation": { label: "Realtime Audio", voice: "marin", vadMode: "semantic_vad", instructions: "You are a helpful assistant. Always respond in English." },
+  "audio-transcription": { label: "Transcribe", model: "gpt-4o-transcribe" },
 };
 
 export function AgentFlow({ collaborationMode }: AgentFlowProps) {

@@ -140,7 +140,21 @@ Image upload entry point. Allows users to upload an image to use in the flow.
 }
 \`\`\`
 
-### 8. realtime-conversation (Realtime Audio)
+### 8. audio-input (Audio Input)
+Microphone recording entry point. Allows users to record audio from their microphone for use in the flow. The audio stream can be connected to other audio-capable nodes like Realtime Audio or Preview Output.
+\`\`\`typescript
+{
+  type: "audio-input",
+  data: {
+    label: string  // Display name
+  }
+}
+\`\`\`
+
+**Output Handles:**
+- \`output\` - Audio stream from microphone (dataType: "audio")
+
+### 9. realtime-conversation (Realtime Audio)
 Real-time voice conversation with OpenAI's Realtime API. Users can have speech-to-speech conversations with the AI model. The node is interactive and manages its own session lifecycle (not triggered by flow execution).
 **Default: voice="marin", vadMode="semantic_vad"**
 \`\`\`typescript
@@ -190,6 +204,31 @@ Example - creating a realtime conversation node:
 }
 \`\`\`
 
+### 10. audio-transcription (Transcribe)
+Audio-to-text transcription node using OpenAI's GPT-4o transcription models. Takes audio input and outputs text.
+**Default: model="gpt-4o-transcribe"**
+\`\`\`typescript
+{
+  type: "audio-transcription",
+  data: {
+    label: string,              // Display name
+    model?: "gpt-4o-transcribe" | "gpt-4o-mini-transcribe",
+    language?: string           // Optional ISO 639-1 code (e.g., "en", "es")
+  }
+}
+\`\`\`
+
+**Input Handles:**
+- \`audio\` - Audio data to transcribe (dataType: "audio", required)
+- \`language\` - Optional language hint (dataType: "string")
+
+**Output Handles:**
+- \`output\` - Transcribed text (dataType: "string")
+
+When connecting to this node, use \`targetHandle\` to specify the input:
+- To connect audio: \`targetHandle: "audio"\`
+- To connect language hint: \`targetHandle: "language"\`
+
 ## Edge Connections
 
 Edges connect nodes and carry data. Each edge has a \`dataType\`:
@@ -215,12 +254,14 @@ Edge format:
 ## Connection Rules
 - Text Input nodes have only OUTPUT connections (they start the flow with text)
 - Image Input nodes have only OUTPUT connections (they start the flow with an image)
-- Preview Output nodes have only INPUT connections (they end the flow)
+- Audio Input nodes have only OUTPUT connections (they start the flow with audio from microphone)
+- Preview Output nodes have only INPUT connections (they end the flow, accepts response or audio)
 - Text Generation nodes have both INPUT and OUTPUT connections
 - Image Generation nodes have both INPUT and OUTPUT connections
 - AI Logic nodes have both INPUT and OUTPUT connections (output is string)
 - React Component nodes have both INPUT and OUTPUT connections (output is response dataType)
 - Realtime Audio nodes have both INPUT (instructions, audio-in) and OUTPUT (transcript, audio-out) connections
+- Audio Transcription nodes have both INPUT (audio, language) and OUTPUT (string) connections
 - Data flows left to right: input → processing → output
 
 ## Current Flow State

@@ -19,6 +19,14 @@ Flow types in `types/flow.ts` define node data interfaces with execution state t
 - `googleSafetyPreset`: Safety filtering level (`default`, `strict`, `relaxed`, `none`)
 - `executionReasoning`: Captured thinking/reasoning output from models that support it
 
+### AudioInputNodeData
+
+- `audioBuffer`: Base64-encoded recorded audio buffer
+- `audioMimeType`: MIME type of recorded audio (e.g., `audio/webm`, `audio/mp4`)
+- `recordingDuration`: Duration in seconds
+- `isRecording`: True while recording is in progress
+- `awaitingInput`: True when execution engine is waiting for user to record
+
 ### RealtimeNodeData
 
 - `instructions`: System prompt for the realtime session
@@ -27,6 +35,11 @@ Flow types in `types/flow.ts` define node data interfaces with execution state t
 - `sessionStatus`: Connection state (`disconnected`, `connecting`, `connected`, `error`)
 - `transcript`: Array of conversation entries with role, text, and timestamp
 - `audioOutStreamId`: Registry ID for output audio stream
+
+### AudioTranscriptionNodeData
+
+- `model`: Transcription model (`gpt-4o-transcribe` default, `gpt-4o-mini-transcribe`)
+- `language`: Optional ISO 639-1 language code (e.g., `en`, `es`, `fr`)
 
 ### AudioEdgeData
 
@@ -40,6 +53,7 @@ Interface for audio streaming between nodes:
 Valid node types for flow operations:
 - `text-input`
 - `image-input`
+- `audio-input`
 - `text-generation`
 - `image-generation`
 - `ai-logic`
@@ -47,3 +61,4 @@ Valid node types for flow operations:
 - `react-component`
 - `comment`
 - `realtime-conversation`
+- `audio-transcription`

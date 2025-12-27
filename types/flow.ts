@@ -113,6 +113,17 @@ export interface ImageInputNodeData extends Record<string, unknown>, ExecutionDa
   uploadedImage?: string; // Stringified ImageData JSON, runtime only
 }
 
+export interface AudioInputNodeData extends Record<string, unknown>, ExecutionData {
+  label: string;
+  // Runtime state (not persisted)
+  isRecording?: boolean;       // Whether currently recording
+  recordingDuration?: number;  // Elapsed recording time in seconds
+  awaitingInput?: boolean;     // Execution engine is waiting for recording
+  // Recorded audio data (persisted)
+  audioBuffer?: string;        // Base64-encoded audio data
+  audioMimeType?: string;      // MIME type (e.g., "audio/webm")
+}
+
 // Evaluation test case result
 export interface MagicEvalTestCase {
   input1: string | number | null;
@@ -203,6 +214,13 @@ export interface RealtimeNodeData extends Record<string, unknown>, ExecutionData
   audioOutStreamId?: string;      // Registry ID for output audio stream
 }
 
+// Audio transcription node data
+export interface AudioTranscriptionNodeData extends Record<string, unknown>, ExecutionData {
+  label: string;
+  model?: "gpt-4o-transcribe" | "gpt-4o-mini-transcribe";
+  language?: string;  // Optional ISO 639-1 code (e.g., "en", "es")
+}
+
 // Union type for all node data
 export type AgentNodeData =
   | InputNodeData
@@ -210,13 +228,15 @@ export type AgentNodeData =
   | PromptNodeData
   | ImageNodeData
   | ImageInputNodeData
+  | AudioInputNodeData
   | MagicNodeData
   | CommentNodeData
   | ReactNodeData
-  | RealtimeNodeData;
+  | RealtimeNodeData
+  | AudioTranscriptionNodeData;
 
 // Custom node types
-export type NodeType = "text-input" | "preview-output" | "text-generation" | "image-generation" | "image-input" | "ai-logic" | "comment" | "react-component" | "realtime-conversation";
+export type NodeType = "text-input" | "preview-output" | "text-generation" | "image-generation" | "image-input" | "audio-input" | "ai-logic" | "comment" | "react-component" | "realtime-conversation" | "audio-transcription";
 
 // Typed nodes
 export type InputNode = Node<InputNodeData, "text-input">;
@@ -224,10 +244,12 @@ export type OutputNode = Node<OutputNodeData, "preview-output">;
 export type PromptNode = Node<PromptNodeData, "text-generation">;
 export type ImageNode = Node<ImageNodeData, "image-generation">;
 export type ImageInputNode = Node<ImageInputNodeData, "image-input">;
+export type AudioInputNode = Node<AudioInputNodeData, "audio-input">;
 export type MagicNode = Node<MagicNodeData, "ai-logic">;
 export type CommentNode = Node<CommentNodeData, "comment">;
 export type ReactNode = Node<ReactNodeData, "react-component">;
 export type RealtimeNode = Node<RealtimeNodeData, "realtime-conversation">;
+export type AudioTranscriptionNode = Node<AudioTranscriptionNodeData, "audio-transcription">;
 
 export type AgentNode =
   | InputNode
@@ -235,10 +257,12 @@ export type AgentNode =
   | PromptNode
   | ImageNode
   | ImageInputNode
+  | AudioInputNode
   | MagicNode
   | CommentNode
   | ReactNode
-  | RealtimeNode;
+  | RealtimeNode
+  | AudioTranscriptionNode;
 
 // Edge type
 export type AgentEdge = Edge;
@@ -263,6 +287,12 @@ export const nodeDefinitions: NodeDefinition[] = [
     label: "Image Input",
     description: "Upload an image",
     color: "bg-purple-500/10 text-purple-700 dark:text-purple-300",
+  },
+  {
+    type: "audio-input",
+    label: "Audio Input",
+    description: "Record from microphone",
+    color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   },
   {
     type: "ai-logic",
@@ -300,6 +330,12 @@ export const nodeDefinitions: NodeDefinition[] = [
     description: "Real-time voice conversation",
     color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   },
+  {
+    type: "audio-transcription",
+    label: "Transcribe",
+    description: "Convert audio to text",
+    color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  },
 ];
 
 // Port schemas for each node type
@@ -312,8 +348,15 @@ export const NODE_PORT_SCHEMAS: Record<NodeType, NodePortSchema> = {
     inputs: [],
     outputs: [{ id: "output", label: "image", dataType: "image" }],
   },
+  "audio-input": {
+    inputs: [],
+    outputs: [{ id: "output", label: "audio", dataType: "audio" }],
+  },
   "preview-output": {
-    inputs: [{ id: "input", label: "response", dataType: "response" }],
+    inputs: [
+      { id: "input", label: "response", dataType: "response" },
+      { id: "audio", label: "audio", dataType: "audio", required: false },
+    ],
     outputs: [],
   },
   "text-generation": {
@@ -359,5 +402,12 @@ export const NODE_PORT_SCHEMAS: Record<NodeType, NodePortSchema> = {
       { id: "transcript", label: "transcript", dataType: "string" },
       { id: "audio-out", label: "audio", dataType: "audio" },
     ],
+  },
+  "audio-transcription": {
+    inputs: [
+      { id: "audio", label: "audio", dataType: "audio", required: true },
+      { id: "language", label: "language", dataType: "string", required: false },
+    ],
+    outputs: [{ id: "output", label: "string", dataType: "string" }],
   },
 };

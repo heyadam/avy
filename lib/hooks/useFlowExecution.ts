@@ -8,6 +8,7 @@ import type { NodeExecutionState, ExecutionStatus } from "@/lib/execution/types"
 import type { PreviewEntry, DebugEntry } from "@/components/Flow/ResponsesSidebar/types";
 import type { ApiKeys, ProviderId } from "@/lib/api-keys/types";
 import type { NodeType } from "@/types/flow";
+import { pendingInputRegistry } from "@/lib/execution/pending-input-registry";
 
 export interface UseFlowExecutionProps {
   nodes: Node[];
@@ -110,6 +111,8 @@ export function useFlowExecution({
                   // Persist auto-generated code for ai-logic nodes
                   ...(state.generatedCode && { generatedCode: state.generatedCode }),
                   ...(state.codeExplanation && { codeExplanation: state.codeExplanation }),
+                  // Signal audio-input to start recording
+                  ...(state.awaitingInput !== undefined && { awaitingInput: state.awaitingInput }),
                 },
               }
             : node
@@ -207,6 +210,8 @@ export function useFlowExecution({
   );
 
   const resetExecution = useCallback(() => {
+    // Clear any pending inputs (e.g., audio recording waiting)
+    pendingInputRegistry.clear();
     setNodes((nds) =>
       nds.map((node) => ({
         ...node,
@@ -215,6 +220,7 @@ export function useFlowExecution({
           executionStatus: undefined,
           executionOutput: undefined,
           executionError: undefined,
+          awaitingInput: undefined, // Clear awaiting state
         },
       }))
     );
@@ -288,6 +294,8 @@ export function useFlowExecution({
   }, [nodes, edges, isRunning, updateNodeExecutionState, resetExecution, hasRequiredKey, apiKeys, setKeyError, setIsRunning, useOwnerKeys, shareToken]);
 
   const cancelFlow = useCallback(() => {
+    // Clear any pending inputs (e.g., audio recording waiting)
+    pendingInputRegistry.clear();
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }

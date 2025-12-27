@@ -151,11 +151,6 @@ export function RealtimeNode({ id, data }: NodeProps<RealtimeNodeType>) {
             nodeId={id}
             output={{ id: "transcript", label: "Transcript", colorClass: "cyan", isConnected: isTranscriptConnected }}
           />
-          <PortRow
-            nodeId={id}
-            input={{ id: "audio-in", label: "Audio In", colorClass: "emerald", isConnected: isAudioInConnected }}
-            output={{ id: "audio-out", label: "Audio Out", colorClass: "emerald", isConnected: isAudioOutConnected }}
-          />
         </>
       }
       footer={

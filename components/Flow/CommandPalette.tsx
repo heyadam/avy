@@ -14,6 +14,8 @@ import {
   MessageSquarePlus,
   Code,
   Mic,
+  AudioWaveform,
+  FileAudio,
   ArrowRight,
   X,
 } from "lucide-react";
@@ -25,6 +27,7 @@ import { springs } from "@/lib/motion/presets";
 const iconMap: Record<NodeType, typeof Keyboard> = {
   "text-input": Keyboard,
   "image-input": Upload,
+  "audio-input": AudioWaveform,
   "preview-output": Square,
   "text-generation": MessageSquare,
   "image-generation": ImageIcon,
@@ -32,6 +35,7 @@ const iconMap: Record<NodeType, typeof Keyboard> = {
   "comment": MessageSquarePlus,
   "react-component": Code,
   "realtime-conversation": Mic,
+  "audio-transcription": FileAudio,
 };
 
 // Extended node definitions with categories
@@ -39,13 +43,13 @@ const categorizedNodes = [
   {
     category: "Inputs",
     nodes: nodeDefinitions.filter((n) =>
-      ["text-input", "image-input"].includes(n.type)
+      ["text-input", "image-input", "audio-input"].includes(n.type)
     ),
   },
   {
     category: "AI Generation",
     nodes: nodeDefinitions.filter((n) =>
-      ["text-generation", "image-generation", "react-component", "realtime-conversation"].includes(n.type)
+      ["text-generation", "image-generation", "react-component", "realtime-conversation", "audio-transcription"].includes(n.type)
     ),
   },
   {
