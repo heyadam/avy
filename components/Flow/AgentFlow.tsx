@@ -518,13 +518,24 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
     const sourceNode = nodes.find((n) => n.id === sourceNodeId);
     if (!sourceNode) return "default";
 
+    // Handle nodes with multiple output types
+    if (sourceNode.type === "realtime-conversation") {
+      if (sourceHandle === "audio-out") return "audio";
+      if (sourceHandle === "transcript") return "string";
+      return "string"; // default to transcript
+    }
+
     switch (sourceNode.type) {
       case "image-generation":
       case "image-input":
         return "image";
       case "text-input":
       case "text-generation":
+      case "ai-logic":
+      case "audio-transcription":
         return "string";
+      case "audio-input":
+        return "audio";
       case "react-component":
         return "response";
       default:
@@ -694,19 +705,44 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
       // Take snapshot before adding node for undo support
       takeSnapshot();
 
-      const position = getViewportCenter();
+      const centerPos = getViewportCenter();
+      const baseX = centerPos.x - 100; // Center horizontally (assuming ~200px node width)
+      const baseY = centerPos.y - 50; // Center vertically (assuming ~100px node height)
+
+      // Find an offset position that doesn't overlap with existing nodes
+      const OFFSET_STEP = 40; // Pixels to offset for each overlapping node
+      const PROXIMITY_THRESHOLD = 30; // Consider nodes "overlapping" if within this distance
+
+      let offsetMultiplier = 0;
+      let finalX = baseX;
+      let finalY = baseY;
+
+      // Check if any node is too close to our target position, cascade if needed
+      const isPositionOccupied = (x: number, y: number) =>
+        nodes.some(
+          (n) =>
+            Math.abs(n.position.x - x) < PROXIMITY_THRESHOLD &&
+            Math.abs(n.position.y - y) < PROXIMITY_THRESHOLD
+        );
+
+      while (isPositionOccupied(finalX, finalY) && offsetMultiplier < 20) {
+        offsetMultiplier++;
+        finalX = baseX + OFFSET_STEP * offsetMultiplier;
+        finalY = baseY + OFFSET_STEP * offsetMultiplier;
+      }
+
       const newNode = {
         id: getId(),
         type: nodeType,
         position: {
-          x: position.x - 100, // Center horizontally (assuming ~200px node width)
-          y: position.y - 50, // Center vertically (assuming ~100px node height)
+          x: finalX,
+          y: finalY,
         },
         data: { ...defaultNodeData[nodeType] },
       };
       setNodes((nds) => nds.concat(newNode));
     },
-    [getViewportCenter, setNodes, takeSnapshot]
+    [getViewportCenter, nodes, setNodes, takeSnapshot]
   );
 
   // Get currently selected nodes (excluding comments when wrapping)

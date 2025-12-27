@@ -644,7 +644,8 @@ async function executeNode(
       const stringOutput = inputs["string"] || "";
       const imageOutput = inputs["image"] || "";
       const audioOutput = inputs["audio"] || "";
-      return JSON.stringify({ stringOutput, imageOutput, audioOutput });
+      // Return primary output (image/audio take priority for proper rendering)
+      return imageOutput || audioOutput || stringOutput;
     }
 
     case "text-generation":

@@ -33,13 +33,15 @@ const NODE_INPUT_HANDLES: Record<string, Record<string, string[]>> = {
     system: ["string"],
   },
   "ai-logic": {
-    input: ["string"],
+    transform: ["string"],
+    input1: ["string"],
+    input2: ["string"],
   },
   "preview-output": {
-    // Accepts any data type, explicit handles for different types
-    input: ["string", "image", "response"],
+    // Separate handles for each data type
+    string: ["string"],
+    image: ["image"],
     audio: ["audio"],
-    _default: ["string", "image", "response", "audio"],
   },
   "comment": {
     // No inputs

@@ -148,9 +148,11 @@ async function executeNode(
       const stringOutput = inputs["string"] || "";
       const imageOutput = inputs["image"] || "";
       const audioOutput = inputs["audio"] || "";
-      // Return combined output for display, but individual outputs are set via onNodeStateChange
+      // Return primary output for backward compatibility (image/audio take priority for proper rendering)
+      // Individual outputs are also passed for node component display
+      const primaryOutput = imageOutput || audioOutput || stringOutput;
       return {
-        output: JSON.stringify({ stringOutput, imageOutput, audioOutput }),
+        output: primaryOutput,
         stringOutput,
         imageOutput,
         audioOutput,
