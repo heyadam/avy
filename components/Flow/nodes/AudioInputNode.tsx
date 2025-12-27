@@ -400,7 +400,7 @@ export function AudioInputNode({ id, data }: NodeProps<AudioInputNodeType>) {
                 onClick={startRecording}
                 className={cn(
                   "nodrag flex-1 flex items-center justify-center gap-2 py-2 rounded-md",
-                  "bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium",
+                  "bg-white hover:bg-gray-100 text-gray-900 text-sm font-medium",
                   "transition-colors"
                 )}
               >
