@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { track } from "@vercel/analytics";
 import type { Node, Edge } from "@xyflow/react";
 import { executeFlow } from "@/lib/execution/engine";
 import type { NodeExecutionState, ExecutionStatus } from "@/lib/execution/types";
@@ -272,6 +273,9 @@ export function useFlowExecution({
     setKeyError(null);
     resetExecution();
     setIsRunning(true);
+
+    // Track flow run event
+    track("Flow Run");
 
     // Create new AbortController for this execution
     abortControllerRef.current = new AbortController();

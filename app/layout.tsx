@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/lib/auth";
 import { ApiKeysProvider } from "@/lib/api-keys";
 import { BackgroundSettingsProvider } from "@/lib/hooks/useBackgroundSettings";
@@ -41,6 +42,7 @@ export default function RootLayout({
             <BackgroundSettingsProvider>{children}</BackgroundSettingsProvider>
           </ApiKeysProvider>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );

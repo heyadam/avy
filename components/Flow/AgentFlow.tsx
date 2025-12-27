@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
+import { track } from "@vercel/analytics";
 import {
   ReactFlow,
   Background,
@@ -683,6 +684,7 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
       };
 
       setNodes((nds) => nds.concat(newNode));
+      track("Node Placed", { nodeType: type });
     },
     [setNodes, takeSnapshot]
   );
@@ -741,6 +743,7 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
         data: { ...defaultNodeData[nodeType] },
       };
       setNodes((nds) => nds.concat(newNode));
+      track("Node Placed", { nodeType });
     },
     [getViewportCenter, nodes, setNodes, takeSnapshot]
   );
