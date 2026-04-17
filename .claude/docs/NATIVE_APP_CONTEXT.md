@@ -183,7 +183,7 @@ Auth: Required (must be owner)
 **Notes:**
 - Generates unique `live_id` (4-digit) and `share_token` (12-char)
 - Retries up to 5 times on collision
-- Share URL format: `https://composer.design/f/[live_id]/[share_token]`
+- The `share_token` is the only identifier external clients need — it is what the MCP server (section 6) accepts
 
 **Source**: `/Users/adam/dev/composer/app/api/flows/[id]/publish/route.ts`
 
@@ -940,4 +940,4 @@ Required for full functionality:
 2. **Streaming**: Parse NDJSON for execution responses
 3. **WebRTC**: Use native WebRTC for realtime voice (ephemeral token from API)
 4. **Caching**: Consider Core Data or SQLite for offline flow storage
-5. **Share URLs**: Universal links to `composer.design/f/[liveId]/[token]`
+5. **Share tokens**: There is no web share URL anymore; external clients use the 12-char `share_token` with the MCP server (section 6)

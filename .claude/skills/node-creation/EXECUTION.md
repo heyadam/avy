@@ -236,14 +236,14 @@ case "your-ai-node": {
 
 ## Owner-Funded Execution
 
-When a flow is published with "Owner-Funded Execution" enabled, collaborators run the flow using the owner's API keys instead of their own.
+When a flow is published with "Owner-Funded Execution" enabled, external MCP
+clients run the flow using the owner's API keys instead of their own.
 
 **How it works:**
-1. User visits a live share link (e.g., `/1234/abc123token`)
-2. The live page calls `/api/live/[token]/execute` instead of `/api/execute`
-3. The execution engine automatically passes `shareToken` and `runId` in `options`
-4. Use `buildApiRequestBody()` which handles both paths automatically
-5. Server-side code retrieves owner's encrypted keys via `getOwnerKeysForExecution()`
+1. Caller sends `share_token` to the MCP server (`POST /api/mcp`, tool `run_flow`)
+2. The execution engine automatically passes `shareToken` and `runId` in `options`
+3. Use `buildApiRequestBody()` which adds these fields when present
+4. Server-side code retrieves owner's encrypted keys via `getOwnerKeysForExecution()`
 
 ## Caching Behavior
 

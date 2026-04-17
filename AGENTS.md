@@ -32,8 +32,8 @@ Required for owner-funded execution:
 ## Supabase (MCP Required)
 - Use the Supabase MCP tools (`mcp__supabase__*`) for DB actions.
 - Core tables: `profiles`, `flows`, `user_api_keys`, `flow_execution_log` (all RLS enabled).
-- `flows` now uses `live_id`, `share_token`, `last_accessed_at` for auto-live routing.
-- Key RPCs: `create_flow_with_tokens`, `get_or_create_current_flow`, `get_owner_keys_for_execution`, `check_and_log_run` (rate limiting).
+- `flows` now uses `live_id`, `share_token`, `last_accessed_at` for publishing / MCP access.
+- Key RPCs: `create_flow_with_tokens`, `get_owner_keys_for_execution`, `check_and_log_run` (rate limiting).
 - OAuth redirect URL: `/auth/callback` (see `app/auth/callback/route.ts`).
 
 ## Auth & Profile UI
