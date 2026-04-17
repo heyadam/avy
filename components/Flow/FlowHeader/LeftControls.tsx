@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { PanelLeft, Folder, FilePlus, FolderOpen, Download, Cloud, Globe, Save } from "lucide-react";
 import {
   DropdownMenu,
@@ -14,8 +13,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { AvatarStack } from "@/components/avatar-stack";
-import { LiveSettingsPopover } from "../LiveSettingsPopover";
 import { AnimatedLabel } from "./AnimatedLabel";
 import type { LeftControlsProps } from "./types";
 
@@ -25,41 +22,21 @@ export function LeftControls({
   showLabels,
   isAuthenticated,
   onSaveFlow,
-  isCollaborating,
-  collaborationFlowName,
-  isCollaborationSaving: _isCollaborationSaving,
   onNewFlow,
   onOpenTemplates,
   onOpenMyFlows,
   onOpenFlow,
   onDownload,
   liveSession,
-  isRealtimeConnected,
-  collaborators,
-  isOwner,
-  livePopoverOpen,
-  onLivePopoverChange,
-  shareDialogOpen: _shareDialogOpen,
   onShareDialogChange,
-  onOwnerKeysChange,
-  onDisconnect,
 }: LeftControlsProps) {
-  const router = useRouter();
-
-  // Handle New Flow based on auth state and collaboration mode
   const handleNewFlow = () => {
-    if (isCollaborating) {
-      // Collaborating on someone else's flow: open in new tab
-      window.open("/f/new", "_blank");
-    } else if (isAuthenticated) {
-      // Authenticated user on their own flow: navigate to create new
-      router.push("/f/new");
-    } else {
-      // Anonymous demo mode: clear canvas and show templates
-      onNewFlow();
-      onOpenTemplates();
-    }
+    onNewFlow();
+    onOpenTemplates();
   };
+
+  const shareTooltip = liveSession ? "Share settings" : "Publish this flow";
+
   return (
     <div className="flex items-center gap-2">
       {/* Autopilot */}
@@ -139,61 +116,26 @@ export function LeftControls({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Live button - always shown */}
-      {liveSession ? (
-        <LiveSettingsPopover
-          flowId={liveSession.flowId}
-          liveId={liveSession.liveId}
-          shareToken={liveSession.shareToken}
-          useOwnerKeys={liveSession.useOwnerKeys}
-          isOwner={isOwner}
-          collaboratorCount={collaborators.length}
-          onOwnerKeysChange={isOwner ? onOwnerKeysChange : undefined}
-          onDisconnect={!isOwner && isCollaborating ? onDisconnect : undefined}
-          open={livePopoverOpen}
-          onOpenChange={onLivePopoverChange}
-        >
+      {/* Share button */}
+      <Tooltip>
+        <TooltipTrigger asChild>
           <button
-            className="flex items-center gap-1.5 px-2.5 py-2 text-cyan-400 hover:text-cyan-300 transition-colors rounded-full border border-cyan-500/30 hover:border-cyan-400/50 bg-background/50 backdrop-blur-sm text-sm cursor-pointer"
-            title="Live settings"
+            onClick={() => onShareDialogChange(true)}
+            className={`flex items-center gap-1.5 px-2.5 py-2 transition-colors rounded-full border bg-background/50 backdrop-blur-sm text-sm cursor-pointer ${
+              liveSession
+                ? "text-cyan-400 hover:text-cyan-300 border-cyan-500/30 hover:border-cyan-400/50"
+                : "text-muted-foreground/60 hover:text-foreground border-muted-foreground/20 hover:border-muted-foreground/40"
+            }`}
+            title={shareTooltip}
           >
             <Globe className="w-4 h-4 shrink-0" />
-            <AnimatedLabel show={showLabels}>
-              Share
-              {isRealtimeConnected && (
-                <span className="inline-flex items-center gap-1 ml-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shrink-0" />
-                  <AvatarStack
-                    avatars={collaborators.map(c => ({
-                      name: c.name ?? 'Guest',
-                      image: c.avatar ?? ''
-                    }))}
-                    maxAvatarsAmount={3}
-                    avatarClassName="size-5 ring-1 ring-background [&_[data-slot=avatar-fallback]]:text-[10px]"
-                    className="-space-x-1.5"
-                  />
-                </span>
-              )}
-            </AnimatedLabel>
+            <AnimatedLabel show={showLabels}>Share</AnimatedLabel>
           </button>
-        </LiveSettingsPopover>
-      ) : (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={() => onShareDialogChange(true)}
-              className="flex items-center gap-1.5 px-2.5 py-2 text-muted-foreground/60 hover:text-foreground transition-colors rounded-full border border-muted-foreground/20 hover:border-muted-foreground/40 bg-background/50 backdrop-blur-sm text-sm cursor-pointer"
-              title="Go Live"
-            >
-              <Globe className="w-4 h-4 shrink-0" />
-              <AnimatedLabel show={showLabels}>Share</AnimatedLabel>
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="bg-neutral-800 text-white border-neutral-700">
-            Go Live
-          </TooltipContent>
-        </Tooltip>
-      )}
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="bg-neutral-800 text-white border-neutral-700">
+          {shareTooltip}
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 }

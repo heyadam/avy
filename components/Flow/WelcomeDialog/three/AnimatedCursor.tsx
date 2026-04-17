@@ -14,7 +14,7 @@ interface DragState {
 type MotionPattern = "figure8" | "circular" | "arc" | "zigzag";
 
 /**
- * Cursor colors matching the CollaboratorCursors HSL palette (70% saturation, 55% lightness).
+ * Cursor colors evenly spaced around the HSL wheel (70% saturation, 55% lightness).
  * Using hex values for Three.js compatibility.
  */
 export const CURSOR_COLORS = {

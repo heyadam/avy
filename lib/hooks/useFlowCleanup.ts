@@ -7,8 +7,6 @@ interface UseFlowCleanupOptions {
   flowName: string | undefined;
   /** All nodes in the flow (comment nodes are excluded from count) */
   nodes: Array<{ type?: string }>;
-  /** Whether the current user is the owner of the flow */
-  isOwner: boolean;
 }
 
 /**
@@ -24,13 +22,11 @@ export function useFlowCleanup({
   flowId,
   flowName,
   nodes,
-  isOwner,
 }: UseFlowCleanupOptions): void {
   // Use refs to access latest values in event handler without re-registering
   const flowIdRef = useRef(flowId);
   const flowNameRef = useRef(flowName);
   const nodesRef = useRef(nodes);
-  const isOwnerRef = useRef(isOwner);
 
   // Keep refs in sync immediately after render (before paint)
   // useLayoutEffect guarantees refs are updated before pagehide could fire
@@ -38,18 +34,15 @@ export function useFlowCleanup({
     flowIdRef.current = flowId;
     flowNameRef.current = flowName;
     nodesRef.current = nodes;
-    isOwnerRef.current = isOwner;
-  }, [flowId, flowName, nodes, isOwner]);
+  }, [flowId, flowName, nodes]);
 
   useEffect(() => {
     const handlePageHide = () => {
       const currentFlowId = flowIdRef.current;
       const currentFlowName = flowNameRef.current;
       const currentNodes = nodesRef.current;
-      const currentIsOwner = isOwnerRef.current;
 
-      // Skip if no flow, not owner, or flow already has a name
-      if (!currentFlowId || !currentIsOwner) {
+      if (!currentFlowId) {
         return;
       }
 

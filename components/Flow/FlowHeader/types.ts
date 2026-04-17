@@ -1,5 +1,3 @@
-import type { Collaborator } from "@/lib/hooks/useCollaboration";
-
 export interface LiveSession {
   flowId: string | undefined;
   liveId: string;
@@ -20,22 +18,14 @@ export interface FlowHeaderProps {
   onResponsesToggle: () => void;
   onSettingsOpen: () => void;
 
-  // Live/collaboration state
+  // Published-flow state (null when the current flow has not been published)
   liveSession: LiveSession | null;
-  isCollaborating: boolean;
-  isOwner: boolean;
-  collaborators: Collaborator[];
-  isRealtimeConnected: boolean;
-  collaborationFlowName: string | null;
-  isCollaborationSaving: boolean;
 
   // Flow state
   showLabels: boolean;
   showSettingsWarning: boolean;
 
-  // Popover/dialog state
-  livePopoverOpen: boolean;
-  onLivePopoverChange: (open: boolean) => void;
+  // Share dialog state
   shareDialogOpen: boolean;
   onShareDialogChange: (open: boolean) => void;
 
@@ -47,7 +37,6 @@ export interface FlowHeaderProps {
   onOpenMyFlows: () => void;
   onOpenFlow: () => void;
   onDownload: () => void;
-  onDisconnect?: () => void;
 
   // Published flow callbacks
   onOwnerKeysChange?: (enabled: boolean) => void;
@@ -69,26 +58,15 @@ export interface LeftControlsProps {
   // Flow dropdown
   isAuthenticated: boolean;
   onSaveFlow: () => void;
-  isCollaborating: boolean;
-  collaborationFlowName: string | null;
-  isCollaborationSaving: boolean;
   onNewFlow: () => void;
   onOpenTemplates: () => void;
   onOpenMyFlows: () => void;
   onOpenFlow: () => void;
   onDownload: () => void;
 
-  // Share/Live
+  // Share button
   liveSession: LiveSession | null;
-  isRealtimeConnected: boolean;
-  collaborators: Collaborator[];
-  isOwner: boolean;
-  livePopoverOpen: boolean;
-  onLivePopoverChange: (open: boolean) => void;
-  shareDialogOpen: boolean;
   onShareDialogChange: (open: boolean) => void;
-  onOwnerKeysChange?: (enabled: boolean) => void;
-  onDisconnect?: () => void;
 }
 
 export interface RightControlsProps {

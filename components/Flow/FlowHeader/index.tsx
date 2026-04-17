@@ -31,17 +31,9 @@ export function FlowHeader({
   onResponsesToggle,
   onSettingsOpen,
   liveSession,
-  isCollaborating,
-  isOwner,
-  collaborators,
-  isRealtimeConnected,
-  collaborationFlowName,
-  isCollaborationSaving,
   showLabels,
   showSettingsWarning,
-  livePopoverOpen,
-  onLivePopoverChange,
-  shareDialogOpen,
+  shareDialogOpen: _shareDialogOpen,
   onShareDialogChange,
   isAuthenticated,
   onSaveFlow,
@@ -50,10 +42,7 @@ export function FlowHeader({
   onOpenMyFlows,
   onOpenFlow,
   onDownload,
-  onDisconnect,
-  onOwnerKeysChange,
   isPanning,
-  canvasWidth,
   hasUnseenUpdates,
   onUpdatesOpen,
 }: FlowHeaderProps) {
@@ -88,24 +77,13 @@ export function FlowHeader({
             showLabels={showLabels}
             isAuthenticated={isAuthenticated}
             onSaveFlow={onSaveFlow}
-            isCollaborating={isCollaborating}
-            collaborationFlowName={collaborationFlowName}
-            isCollaborationSaving={isCollaborationSaving}
             onNewFlow={onNewFlow}
             onOpenTemplates={onOpenTemplates}
             onOpenMyFlows={onOpenMyFlows}
             onOpenFlow={onOpenFlow}
             onDownload={onDownload}
             liveSession={liveSession}
-            isRealtimeConnected={isRealtimeConnected}
-            collaborators={collaborators}
-            isOwner={isOwner}
-            livePopoverOpen={livePopoverOpen}
-            onLivePopoverChange={onLivePopoverChange}
-            shareDialogOpen={shareDialogOpen}
             onShareDialogChange={onShareDialogChange}
-            onOwnerKeysChange={onOwnerKeysChange}
-            onDisconnect={onDisconnect}
           />
         </motion.div>
       </TooltipProvider>

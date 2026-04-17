@@ -91,7 +91,7 @@ This is an AI agent workflow builder using Next.js 16 App Router with React Flow
 | Node types | `nodes.md` | All 14 node types and their features |
 | Execution | `execution.md` | Engine, API routes, execution hooks, caching |
 | Autopilot | `autopilot.md` | AI chat interface, flow generation |
-| Collaboration | `collaboration.md` | Live sharing, cursors, owner-funded execution |
+| Publishing | `collaboration.md` | Publish flow, share token, owner-funded execution |
 | Auth & Storage | `auth-storage.md` | Supabase auth, API keys, flow persistence |
 | Audio & Realtime | `audio-realtime.md` | Audio registry, WebRTC, voice conversation |
 | Type System | `types.md` | Node data interfaces, port types |

@@ -1,6 +1,6 @@
 # Composer Native App Context
 
-This document provides context for building a native iOS/macOS app that integrates with Composer's backend. It covers all server-side APIs, data structures, authentication, and real-time collaboration patterns.
+This document provides context for building a native iOS/macOS app that integrates with Composer's backend. It covers all server-side APIs, data structures, authentication, and publishing flows for external execution.
 
 **Live URL**: [composer.design](https://composer.design)
 
@@ -12,7 +12,7 @@ This document provides context for building a native iOS/macOS app that integrat
 2. [API Reference](#2-api-reference)
 3. [Data Models](#3-data-models)
 4. [Authentication & Security](#4-authentication--security)
-5. [Real-Time Collaboration](#5-real-time-collaboration)
+5. [Real-Time Collaboration (Removed)](#5-real-time-collaboration-removed)
 6. [Source File Index](#6-source-file-index)
 
 ---
@@ -162,7 +162,7 @@ Auth: Required (must be owner)
 
 ### 2.2 Publishing & Sharing
 
-Publish flows for collaboration and external access.
+Publish flows for external access via the MCP server.
 
 #### Publish Flow
 ```
@@ -217,53 +217,13 @@ Auth: Required (must be owner)
 
 ---
 
-### 2.3 Live Collaboration (Token-Gated)
+### 2.3 Live Collaboration (Removed)
 
-Access published flows without authentication using share token.
-
-#### Get Live Flow
-```
-GET /api/live/[token]
-Auth: Share token in URL (12 alphanumeric chars)
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "flow": {
-    "id": "uuid",
-    "name": "Shared Flow",
-    "description": "...",
-    "use_owner_keys": true,
-    "allow_public_execute": true
-  },
-  "nodes": [...],
-  "edges": [...]
-}
-```
-
-**Source**: `/Users/adam/dev/composer/app/api/live/[token]/route.ts`
-
-#### Update Live Flow
-```
-PUT /api/live/[token]
-Auth: Share token in URL
-```
-
-**Request:**
-```json
-{
-  "nodes": [...],
-  "edges": [...],
-  "deletedNodeIds": ["node-1"],
-  "deletedEdgeIds": ["edge-1"],
-  "name": "Updated Name",
-  "description": "Updated description"
-}
-```
-
-**Source**: `/Users/adam/dev/composer/app/api/live/[token]/route.ts`
+The `/api/live/[token]` read/write endpoints that used to expose a published
+flow for collaborator editing have been removed along with the rest of the
+real-time multiplayer layer. Published flows are now consumed via the MCP
+server (section 6) using the same `share_token`; there is no direct HTTP
+endpoint for fetching or mutating flow JSON by share token.
 
 ---
 
@@ -330,39 +290,13 @@ x-anthropic-key: sk-ant-...
 
 **Source**: `/Users/adam/dev/composer/app/api/execute/route.ts`
 
-#### Live Flow Execution
-```
-POST /api/live/[token]/execute
-Auth: Share token in URL
-```
+#### Live Flow Execution (Removed)
 
-**Request:**
-```json
-{
-  "inputs": {
-    "Input Label": "value"
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "quotaRemaining": 95,
-  "flowName": "My Flow",
-  "outputs": {
-    "Output Label": "result"
-  },
-  "errors": {}
-}
-```
-
-**Rate Limits:**
-- 10 executions per minute per share_token
-- 100 executions per day per flow
-
-**Source**: `/Users/adam/dev/composer/app/api/live/[token]/execute/route.ts`
+The dedicated `POST /api/live/[token]/execute` endpoint has been removed along
+with the rest of the real-time collaboration layer. To run a published flow
+externally, use the MCP server's `run_flow` tool (section 6), which applies the
+same rate limits (10/min per share_token, 100/day per flow) via the
+`check_and_log_run` RPC.
 
 ---
 
@@ -910,71 +844,19 @@ Enforced via Supabase RPCs (atomic operations):
 
 **Fail-closed**: If RPC fails, deny request (don't allow through).
 
-**Source**: `/Users/adam/dev/composer/app/api/live/[token]/execute/route.ts`
-
 ---
 
-## 5. Real-Time Collaboration
+## 5. Real-Time Collaboration (Removed)
 
-### 5.1 Architecture
+The web app no longer ships a real-time multiplayer layer. The Supabase
+Realtime channels for Presence/Broadcast, the `useCollaboration` hook, and the
+`/api/live/[token]` endpoints were deleted when the feature was retired for
+maintenance reasons.
 
-Uses Supabase Realtime with two APIs:
-
-1. **Presence API**: Track online collaborators
-2. **Broadcast API**: Send low-latency updates
-
-### 5.2 Channel Subscription
-
-```typescript
-// Channel name: live:${shareToken}
-const channel = supabase.channel(`live:${shareToken}`)
-  .on('presence', { event: 'sync' }, handlePresenceSync)
-  .on('broadcast', { event: 'nodes_updated' }, handleNodesUpdated)
-  .on('broadcast', { event: 'positions_updated' }, handlePositionsUpdated)
-  .on('broadcast', { event: 'edges_updated' }, handleEdgesUpdated)
-  .on('broadcast', { event: 'cursor_moved' }, handleCursorMoved)
-  .subscribe();
-```
-
-**Source**: `/Users/adam/dev/composer/lib/hooks/useCollaboration.ts`
-
-### 5.3 Presence Data
-
-```typescript
-interface CollaboratorPresence {
-  oderId: string;
-  name: string;
-  avatar: string | null;
-  isOwner: boolean;
-  sessionId: string;  // For multi-tab deduplication
-}
-```
-
-### 5.4 Broadcast Events
-
-| Event | Payload | Throttle |
-|-------|---------|----------|
-| `nodes_updated` | Full node data | None |
-| `positions_updated` | Position + version | 50ms |
-| `edges_updated` | Full edge data | None |
-| `nodes_deleted` | Node IDs | None |
-| `edges_deleted` | Edge IDs | None |
-| `cursor_moved` | { x, y, userId } | None |
-
-### 5.5 Anti-Replay Mechanisms
-
-1. **isApplyingRemoteRef**: Prevents re-broadcasting received updates
-2. **positionVersionRef**: Ignores stale position updates
-3. **draggingNodesRef**: Skips incoming positions for actively dragging nodes
-4. **sessionSenderId**: Distinguishes own tabs from other users
-
-### 5.6 Auto-Save
-
-- **Debounce**: 500ms after last change
-- **Diff calculation**: Track previous state, send only changes
-- **RPC**: `update_live_flow()` handles upsert logic
-
-**Source**: `/Users/adam/dev/composer/lib/hooks/useCollaboration.ts`
+If a native app needs a live editing session, it should design its own
+transport rather than relying on the removed endpoints. Owner-funded execution
+and the MCP server (sections 4 and 6) continue to work because they key off
+`share_token` directly via Supabase RPCs, not the realtime channel.
 
 ---
 
@@ -988,8 +870,6 @@ Quick reference for key implementation files:
 | `/Users/adam/dev/composer/app/api/flows/route.ts` | Flow CRUD (list, create) |
 | `/Users/adam/dev/composer/app/api/flows/[id]/route.ts` | Flow CRUD (get, update, delete) |
 | `/Users/adam/dev/composer/app/api/flows/[id]/publish/route.ts` | Publishing & sharing |
-| `/Users/adam/dev/composer/app/api/live/[token]/route.ts` | Live flow access |
-| `/Users/adam/dev/composer/app/api/live/[token]/execute/route.ts` | Live execution |
 | `/Users/adam/dev/composer/app/api/execute/route.ts` | Node execution engine |
 | `/Users/adam/dev/composer/app/api/user/keys/route.ts` | API key storage |
 | `/Users/adam/dev/composer/app/api/autopilot/route.ts` | AI flow generation |
@@ -1017,12 +897,10 @@ Quick reference for key implementation files:
 | `/Users/adam/dev/composer/lib/execution/cache/` | Incremental caching |
 | `/Users/adam/dev/composer/lib/execution/types.ts` | Execution types |
 
-### Collaboration
+### Voice / Realtime
 | Path | Purpose |
 |------|---------|
-| `/Users/adam/dev/composer/lib/hooks/useCollaboration.ts` | Realtime sync hook |
-| `/Users/adam/dev/composer/lib/hooks/usePerfectCursor.ts` | Cursor interpolation |
-| `/Users/adam/dev/composer/lib/hooks/useRealtimeSession.ts` | Voice session hook |
+| `/Users/adam/dev/composer/lib/hooks/useRealtimeSession.ts` | OpenAI Realtime voice session hook |
 
 ### Types
 | Path | Purpose |

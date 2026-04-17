@@ -248,8 +248,6 @@ describe("useFlowExecution", () => {
       defaultApiKeys,
       expect.any(AbortSignal),
       expect.objectContaining({
-        shareToken: undefined,
-        runId: undefined,
         forceExecute: false,
         cacheManager: expect.any(Object), // CacheManager instance
       })
