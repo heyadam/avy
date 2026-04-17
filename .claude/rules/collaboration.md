@@ -1,96 +1,56 @@
-# Live Publishing & Collaboration
+# Publishing & Owner-Funded Execution
 
-## Live/Publish System
+> Composer no longer ships a real-time multiplayer layer. The hooks that used to
+> handle Supabase Presence/Broadcast (`useCollaboration`, `CollaboratorCursors`,
+> `usePerfectCursor`) have been removed, along with the `/f/[code]/[token]`
+> collaborator page and the `/api/live/*` routes. What remains is the
+> publishing pipeline that lets external clients (primarily the MCP server) run
+> a saved flow using the owner's credentials.
 
-**ShareDialog** (`components/Flow/ShareDialog.tsx`): Dialog for publishing flows:
-- Save & publish unsaved flows in multi-step flow
-- Toggle "Owner-Funded Execution" for collaborators to use owner's API keys
-- View/copy shareable link
-- Unpublish flows
+## Publish / Unpublish Flow
 
-**LiveSettingsPopover** (`components/Flow/LiveSettingsPopover.tsx`): Popover for published flow settings:
-- View collaborator count with live indicator (green pulse)
-- Copy share URL
-- Owner-Funded Execution toggle (owner only)
-- Unpublish button (owner only)
-- Shows non-owner info when collaborating
+**ShareDialog** (`components/Flow/ShareDialog.tsx`): the single entry point for
+publishing settings.
+- Saves an unnamed flow if it has not been persisted yet
+- Shows the MCP endpoint and the flow's share token (used by `run_flow` /
+  `get_flow_info`)
+- Toggles owner-funded execution
 
-**Live Button** (in header): Globe icon that shows LiveSettingsPopover when published, ShareDialog when not.
-
-**Auto-Unpublish**: Flow is automatically unpublished when owner leaves the page (uses `navigator.sendBeacon` for reliable cleanup).
-
-**New Flow Behavior**: When collaborating on someone else's flow, "New Flow" opens in a new tab to avoid leaving the session.
+**Share Button** (`components/Flow/FlowHeader/LeftControls.tsx`): opens
+`ShareDialog`. It turns cyan once the flow is published so the owner can tell
+at a glance whether a flow is live.
 
 **Publish API Route** (`app/api/flows/[id]/publish/route.ts`):
-- POST: Publishes flow with unique `live_id` and `share_token`
-- DELETE: Unpublishes flow (supports sendBeacon method override)
-
-## Real-time Collaboration
-
-**useCollaboration Hook** (`lib/hooks/useCollaboration.ts`): Core collaboration logic:
-- Manages Supabase Realtime channel subscription for live sync
-- Uses Supabase Presence API for collaborator tracking (join/leave handled automatically)
-- Auth-aware identity: real names and avatars from user profile
-- Session-scoped sender IDs for multi-tab deduplication
-- Debounced auto-save (500ms) with `updateLiveFlow`
-- Broadcasts node/edge changes using Supabase Broadcast API
-- Smooth position interpolation using PerfectCursor library for each node
-- Cursor position broadcasts via Broadcast (low latency)
-- Avoids re-broadcasting received remote changes via `isApplyingRemoteRef` flag
-- Handles position version tracking to ignore stale updates
-- Drags-in-progress detection to ignore incoming position updates during drag
-- Throttled broadcasts (50ms) to avoid network spam
-
-**Collaborator Interface**:
-- `userId`: Auth user ID or session fallback for anonymous users
-- `name`: Real name from profile or "Anonymous"
-- `avatar`: Profile picture URL
-- `cursor`: Current cursor position
-- `isOwner`: Crown indicator for flow owner
-- `isSelf`: True for current user (filtered from cursor display)
-
-**CollaboratorCursors** (`components/Flow/CollaboratorCursors.tsx`): Renders remote collaborator cursor positions:
-- Colored cursor (hue from user ID hash) + name label per collaborator
-- Avatar display next to cursor name
-- Crown icon for flow owner
-- Filters out self cursor (`isSelf: true`)
-- Uses ViewportPortal for canvas integration
-- Scale-compensated for zoom level
-
-**usePerfectCursor Hook** (`lib/hooks/usePerfectCursor.ts`): Wrapper around `perfect-cursors` npm package for smooth cursor/position animations.
-
-**Avatar Stack**: Live button shows collaborator avatars in header when flow is published.
-
-**Live Page Route** (`app/[code]/[token]/page.tsx`): Collaborator entry point:
-- Validates share token format (12 alphanumeric chars)
-- Loads flow data via `loadLiveFlow`
-- Initializes collaboration mode with `useCollaboration`
-
-**Live API Routes**:
-- `app/api/live/[token]/route.ts`: Load live flow data for collaborators
-- `app/api/live/[token]/execute/route.ts`: Execute nodes in live flow (supports owner-funded execution)
+- `POST` creates a `live_id` + `share_token` pair and enables
+  `allow_public_execute` / `use_owner_keys` by default
+- `DELETE` unpublishes and clears all four fields
+- `PATCH` updates `use_owner_keys` and `allow_public_execute` after publish
 
 ## Owner-Funded Execution
 
-When a flow is published with "Owner-Funded Execution" enabled, collaborators can run flows using the owner's API keys.
+When `use_owner_keys=true`, MCP clients can run the flow without bringing their
+own API keys — the owner's encrypted keys are decrypted server-side.
 
-**Security Model**:
-- Owner keys stored encrypted in `user_api_keys.keys_encrypted`
-- Decryption only happens server-side with `ENCRYPTION_KEY` env var
-- Server validates `use_owner_keys` flag in database (never trusts client claims)
-- Share token treated as secret (redacted in debug panels, never logged)
+**Security model**:
+- Keys stored encrypted in `user_api_keys.keys_encrypted`
+- Decryption only happens server-side with `ENCRYPTION_KEY`
+- The server validates `use_owner_keys` against the database (never trusts a
+  client claim)
+- Share tokens are secrets; they are redacted in debug panels and never logged
 
-**Rate Limiting**:
-- Per-minute: 10 unique runs per minute (per `share_token`)
-- Per-day: 100 runs per day (per flow)
-- Same `runId` = same run (handles parallel node execution deduplication)
+**Rate limiting** (Supabase RPCs):
+- Per-minute: 10 runs per share token
+- Per-day: 100 runs per flow
+- Parallel node execution shares a `runId` so it counts as a single run
 
-**Database RPCs** (in Supabase):
-- `get_owner_keys_for_execution(p_share_token)`: Returns encrypted keys if `use_owner_keys=true`
-- `check_and_log_run(p_share_token, p_run_id, ...)`: Atomic rate limit check + logging per run
+**Database RPCs**:
+- `get_owner_keys_for_execution(p_share_token)` — returns encrypted keys when
+  `use_owner_keys=true`
+- `check_and_log_run(p_share_token, p_run_id, ...)` — atomic rate-limit check
+  and logging
 
-**Environment Variables** (required for owner-funded execution):
-- `SUPABASE_SERVICE_ROLE_KEY`: Service role key for accessing owner keys
-- `ENCRYPTION_KEY`: 32-byte hex string for AES-256-GCM encryption
+**Required env vars**:
+- `SUPABASE_SERVICE_ROLE_KEY` — grants access to owner keys
+- `ENCRYPTION_KEY` — 32-byte hex string for AES-256-GCM
 
-See `docs/OWNER_FUNDED_EXECUTION.md` for detailed architecture and troubleshooting.
+See `.claude/rules/mcp.md` for how the MCP server consumes this pipeline.

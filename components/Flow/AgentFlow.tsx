@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { track } from "@vercel/analytics";
 import {
   ReactFlow,
@@ -31,7 +30,6 @@ import { SaveFlowDialog } from "./SaveFlowDialog";
 import { MyFlowsDialog } from "./MyFlowsDialog";
 import { FlowContextMenu } from "./FlowContextMenu";
 import { CommentEditContext } from "./CommentEditContext";
-import { CollaboratorCursors } from "./CollaboratorCursors";
 import { useCommentSuggestions } from "@/lib/hooks/useCommentSuggestions";
 import { useSuggestions } from "@/lib/hooks/useSuggestions";
 import { useClipboard } from "@/lib/hooks/useClipboard";
@@ -56,20 +54,12 @@ import { useApiKeys } from "@/lib/api-keys";
 import { useAuth } from "@/lib/auth";
 import { useBackgroundSettings, getBackgroundStyle, getShimmerStyle } from "@/lib/hooks/useBackgroundSettings";
 import { ShareDialog } from "./ShareDialog";
-import { useCollaboration, type CollaborationModeProps } from "@/lib/hooks/useCollaboration";
 import { loadFlow } from "@/lib/flows/api";
 import { AnimatePresence, motion } from "motion/react";
 
 let id = 0;
 const getId = () => `node_${id++}`;
 const setIdCounter = (newId: number) => { id = newId; };
-const CURSOR_BROADCAST_THROTTLE_MS = 50;
-
-// ID counter initialized at 0, updated when loading templates or flows
-
-export interface AgentFlowProps {
-  collaborationMode?: CollaborationModeProps;
-}
 
 const defaultNodeData: Record<NodeType, Record<string, unknown>> = {
   "text-input": { label: "Input Text", inputValue: "" },
@@ -89,14 +79,11 @@ const defaultNodeData: Record<NodeType, Record<string, unknown>> = {
   "threejs-options": { label: "3D Options", cameraText: "", lightText: "", mouseText: "" },
 };
 
-export function AgentFlow({ collaborationMode }: AgentFlowProps) {
-  const router = useRouter();
+export function AgentFlow() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
-  const lastCursorBroadcastRef = useRef<number>(0);
-  const lastCursorPositionRef = useRef<{ x: number; y: number } | null>(null);
 
   // API keys context
   const { keys: apiKeys, hasRequiredKey, getKeyStatuses, isDevMode, isLoaded } = useApiKeys();
@@ -121,8 +108,6 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
     apiKeys,
     hasRequiredKey,
     setNodes,
-    shareToken: collaborationMode?.shareToken,
-    useOwnerKeys: collaborationMode?.useOwnerKeys,
   });
 
   // Canvas width for responsive sizing (labels, logo)
@@ -275,49 +260,13 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
     downloadFlow(flow);
   }, [nodes, edges, flowMetadata]);
 
-  // Published flow info state (for owner collaboration mode and ShareDialog)
+  // Published flow info state (drives the Share button + ShareDialog when a flow is published)
   const [publishedFlowInfo, setPublishedFlowInfo] = useState<{
     flowId: string;
     liveId: string;
     shareToken: string;
     useOwnerKeys: boolean;
   } | null>(null);
-
-  // Build owner collaboration mode when flow is published and we're not already in collaborator mode
-  const ownerCollaborationMode = useMemo(() => {
-    if (collaborationMode || !publishedFlowInfo?.shareToken) return undefined;
-    return {
-      shareToken: publishedFlowInfo.shareToken,
-      liveId: publishedFlowInfo.liveId,
-      initialFlow: null, // Owner already has flow loaded
-      isOwner: true,
-    };
-  }, [collaborationMode, publishedFlowInfo]);
-
-  // Use prop-based collaboration mode (for /[code]/[token] route) or owner mode (for / route with published flow)
-  const effectiveCollaborationMode = collaborationMode ?? ownerCollaborationMode;
-
-  // Collaboration mode hook
-  const {
-    isCollaborating,
-    initialized: collaborationInitialized,
-    liveId,
-    shareToken,
-    flowName: collaborationFlowName,
-    isSaving: isCollaborationSaving,
-    isRealtimeConnected,
-    collaborators,
-    broadcastCursor,
-    isOwner,
-  } = useCollaboration({
-    collaborationMode: effectiveCollaborationMode,
-    nodes,
-    edges,
-    setNodes,
-    setEdges,
-    reactFlowInstance,
-    setIdCounter,
-  });
 
   const liveSession = useMemo(() => {
     if (publishedFlowInfo && currentFlowId) {
@@ -328,28 +277,16 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
         useOwnerKeys: publishedFlowInfo.useOwnerKeys,
       };
     }
-
-    if (isCollaborating && liveId && shareToken) {
-      return {
-        flowId: collaborationMode?.initialFlow?.flow.id,
-        liveId,
-        shareToken,
-        useOwnerKeys: collaborationMode?.initialFlow?.flow.use_owner_keys ?? false,
-      };
-    }
-
     return null;
-  }, [publishedFlowInfo, currentFlowId, isCollaborating, liveId, shareToken, collaborationMode]);
+  }, [publishedFlowInfo, currentFlowId]);
 
   // Flow cleanup on page unload (delete empty "Untitled" flows, rename non-empty to "Draft")
   useFlowCleanup({
     flowId: currentFlowId,
     flowName: flowMetadata?.name,
     nodes,
-    isOwner,
   });
 
-  // Templates modal hook (after useCollaboration so we have isCollaborating and isOwner)
   const {
     isOpen: templatesModalOpen,
     open: openTemplatesModal,
@@ -357,9 +294,6 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
     dismissPermanently: dismissTemplatesPermanently,
   } = useTemplatesModal({
     isLoaded,
-    isCollaborating,
-    collaborationInitialized,
-    isOwner,
     nodes,
     edges,
   });
@@ -387,14 +321,6 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
 
   // Share dialog state
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-
-  // Live settings popover state
-  const [livePopoverOpen, setLivePopoverOpen] = useState(false);
-
-  const handleDisconnect = useCallback(() => {
-    setLivePopoverOpen(false);
-    router.replace("/");
-  }, [router]);
 
   // Fetch published state when flow loads
   useEffect(() => {
@@ -436,12 +362,11 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
 
   // Auto-open settings dialog when no API keys are configured
   // Only show if NUX is complete (step 2 of NUX guides users to API keys)
-  // Skip in collaboration mode - collaborators may use owner's keys
   useEffect(() => {
-    if (isLoaded && !isDevMode && !hasAnyKey && isNuxComplete() && !isCollaborating) {
+    if (isLoaded && !isDevMode && !hasAnyKey && isNuxComplete()) {
       setSettingsOpen(true);
     }
-  }, [isLoaded, isDevMode, hasAnyKey, isCollaborating]);
+  }, [isLoaded, isDevMode, hasAnyKey]);
 
   const [pendingAutopilotMessage, setPendingAutopilotMessage] = useState<PendingAutopilotMessage | null>(null);
 
@@ -623,62 +548,6 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
   }, []);
-
-  const broadcastCursorFromClient = useCallback(
-    (clientX: number, clientY: number) => {
-      if (!isCollaborating || !reactFlowInstance.current) return;
-
-      const wrapper = reactFlowWrapper.current;
-      if (!wrapper) return;
-
-      const now = Date.now();
-      if (now - lastCursorBroadcastRef.current < CURSOR_BROADCAST_THROTTLE_MS) {
-        return;
-      }
-
-      const position = reactFlowInstance.current.screenToFlowPosition({
-        x: clientX,
-        y: clientY,
-      });
-
-      const lastPosition = lastCursorPositionRef.current;
-      if (
-        lastPosition &&
-        Math.abs(lastPosition.x - position.x) < 0.25 &&
-        Math.abs(lastPosition.y - position.y) < 0.25
-      ) {
-        return;
-      }
-
-      lastCursorBroadcastRef.current = now;
-      lastCursorPositionRef.current = position;
-      broadcastCursor(position);
-    },
-    [broadcastCursor, isCollaborating]
-  );
-
-  const handlePaneMouseMove = useCallback(
-    (event: MouseEvent) => {
-      broadcastCursorFromClient(event.clientX, event.clientY);
-    },
-    [broadcastCursorFromClient]
-  );
-
-  useEffect(() => {
-    if (!isCollaborating) return;
-
-    const handlePointerMove = (event: PointerEvent) => {
-      const wrapper = reactFlowWrapper.current;
-      if (!wrapper) return;
-      const target = event.target;
-      if (target instanceof HTMLElement && !wrapper.contains(target)) return;
-
-      broadcastCursorFromClient(event.clientX, event.clientY);
-    };
-
-    window.addEventListener("pointermove", handlePointerMove, { passive: true });
-    return () => window.removeEventListener("pointermove", handlePointerMove);
-  }, [broadcastCursorFromClient, isCollaborating]);
 
   const onDrop = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
@@ -882,7 +751,6 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
       <div
         ref={reactFlowWrapper}
         className="flex-1 h-full bg-muted/10 relative"
-        onMouseMove={handlePaneMouseMove}
       >
         <CommandPalette
           open={nodesPaletteOpen}
@@ -965,7 +833,6 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
                 )}
               </AnimatePresence>
               <Controls />
-              <CollaboratorCursors collaborators={collaborators} />
             </ReactFlow>
             </FlowContextMenu>
           </ConnectionContext.Provider>
@@ -981,17 +848,9 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
           onResponsesToggle={() => setResponsesOpen(!responsesOpen)}
           onSettingsOpen={() => setSettingsOpen(true)}
           liveSession={liveSession}
-          isCollaborating={isCollaborating}
-          isOwner={isOwner}
-          collaborators={collaborators}
-          isRealtimeConnected={isRealtimeConnected}
-          collaborationFlowName={collaborationFlowName}
-          isCollaborationSaving={isCollaborationSaving}
           showLabels={showLabels}
           showSettingsWarning={showSettingsWarning}
           onSaveFlow={() => setSaveDialogOpen(true)}
-          livePopoverOpen={livePopoverOpen}
-          onLivePopoverChange={setLivePopoverOpen}
           shareDialogOpen={shareDialogOpen}
           onShareDialogChange={setShareDialogOpen}
           isAuthenticated={!!user}
@@ -1000,7 +859,6 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
           onOpenMyFlows={() => setMyFlowsDialogOpen(true)}
           onOpenFlow={handleOpenFlow}
           onDownload={handleDownload}
-          onDisconnect={handleDisconnect}
           onOwnerKeysChange={(enabled) => setPublishedFlowInfo(prev => prev ? { ...prev, useOwnerKeys: enabled } : null)}
           isPanning={isPanning}
           canvasWidth={canvasWidth}
@@ -1056,7 +914,6 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
         onOpenChange={setShareDialogOpen}
         flowId={currentFlowId}
         flowName={flowMetadata?.name || "Untitled Flow"}
-        liveId={publishedFlowInfo?.liveId}
         shareToken={publishedFlowInfo?.shareToken}
         useOwnerKeys={publishedFlowInfo?.useOwnerKeys}
         onOwnerKeysChange={(enabled) => setPublishedFlowInfo(prev => prev ? { ...prev, useOwnerKeys: enabled } : null)}
@@ -1070,7 +927,7 @@ export function AgentFlow({ collaborationMode }: AgentFlowProps) {
         onSelectTemplate={handleSelectTemplate}
         onSubmitPrompt={handleTemplatesPromptSubmit}
       />
-      <WelcomeDialog onDone={isCollaborating ? undefined : () => {
+      <WelcomeDialog onDone={() => {
         handleNewFlow();
         openTemplatesModal();
       }} />

@@ -56,25 +56,6 @@ export interface FlowEdgeRecord {
 }
 
 /**
- * Live flow data returned by get_live_flow RPC
- */
-export interface LiveFlowData {
-  flow: {
-    id: string;
-    user_id: string;
-    name: string;
-    description: string | null;
-    live_id: string;
-    allow_public_execute: boolean;
-    use_owner_keys: boolean;
-    created_at: string;
-    updated_at: string;
-  };
-  nodes: FlowNodeRecord[];
-  edges: FlowEdgeRecord[];
-}
-
-/**
  * Flow item for list display (subset of FlowRecord)
  */
 export interface FlowListItem {

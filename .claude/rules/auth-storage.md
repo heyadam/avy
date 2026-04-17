@@ -53,8 +53,8 @@
 - Flows saved with `.avy.json` extension
 
 **Cloud Flow Storage** (`lib/flows/`): Supabase-backed flow persistence for authenticated users:
-- `api.ts`: Client-side API calls for CRUD operations (listFlows, createFlow, updateFlow, loadFlow, deleteFlow, publishFlow, unpublishFlow, loadLiveFlow, updateLiveFlow, updatePublishSettings, getUserKeysStatus)
-- `types.ts`: FlowRecord (with `live_id`, `share_token`, `use_owner_keys`), FlowListItem, LiveFlowData, LiveFlowChanges, response interfaces
+- `api.ts`: Client-side API calls for CRUD operations (listFlows, createFlow, updateFlow, loadFlow, deleteFlow, publishFlow, unpublishFlow, updatePublishSettings, getUserKeysStatus)
+- `types.ts`: FlowRecord (with `live_id`, `share_token`, `use_owner_keys`), FlowListItem, response interfaces
 - Metadata stored in `flows` table, flow JSON stored in Supabase Storage
 - API routes: `app/api/flows/route.ts` (list, create), `app/api/flows/[id]/route.ts` (get, update, delete), `app/api/flows/[id]/publish/route.ts` (publish, unpublish)
 

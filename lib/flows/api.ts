@@ -4,9 +4,6 @@ import type {
   FlowSaveResponse,
   FlowLoadResponse,
   FlowDeleteResponse,
-  LiveFlowData,
-  FlowNodeRecord,
-  FlowEdgeRecord,
 } from "./types";
 
 /**
@@ -22,17 +19,6 @@ export interface PublishFlowResponse {
 }
 
 /**
- * Response from load live flow API
- */
-export interface LiveFlowResponse {
-  success: boolean;
-  flow?: LiveFlowData["flow"];
-  nodes?: FlowNodeRecord[];
-  edges?: FlowEdgeRecord[];
-  error?: string;
-}
-
-/**
  * Response from user keys API
  */
 export interface UserKeysStatusResponse {
@@ -41,19 +27,6 @@ export interface UserKeysStatusResponse {
   hasGoogle?: boolean;
   hasAnthropic?: boolean;
   error?: string;
-}
-
-/**
- * Changes to send when updating a live flow
- */
-export interface LiveFlowChanges {
-  nodes?: FlowNodeRecord[];
-  edges?: FlowEdgeRecord[];
-  deletedNodeIds?: string[];
-  deletedEdgeIds?: string[];
-  name?: string;
-  description?: string;
-  allowPublicExecute?: boolean;
 }
 
 /**
@@ -240,51 +213,6 @@ export async function updatePublishSettings(
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to update settings",
-    };
-  }
-}
-
-/**
- * Load a live flow by share token
- */
-export async function loadLiveFlow(token: string): Promise<LiveFlowResponse> {
-  try {
-    const res = await fetch(`/api/live/${token}`);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      return { success: false, error: data.error || `Failed to load live flow: ${res.status}` };
-    }
-    return await res.json();
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to load live flow",
-    };
-  }
-}
-
-/**
- * Update a live flow via share token
- */
-export async function updateLiveFlow(
-  token: string,
-  changes: LiveFlowChanges
-): Promise<FlowDeleteResponse> {
-  try {
-    const res = await fetch(`/api/live/${token}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(changes),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      return { success: false, error: data.error || `Failed to update live flow: ${res.status}` };
-    }
-    return await res.json();
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to update live flow",
     };
   }
 }

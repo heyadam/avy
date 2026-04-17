@@ -8,9 +8,6 @@ const STORAGE_KEY = "avy-show-templates-modal";
 
 interface UseTemplatesModalOptions {
   isLoaded: boolean;
-  isCollaborating: boolean;
-  collaborationInitialized: boolean;
-  isOwner: boolean;
   nodes: Node[];
   edges: Edge[];
 }
@@ -41,28 +38,18 @@ function shouldShowTemplatesModal(): boolean {
  */
 export function useTemplatesModal({
   isLoaded,
-  isCollaborating,
-  collaborationInitialized,
-  isOwner,
   nodes,
   edges,
 }: UseTemplatesModalOptions): UseTemplatesModalReturn {
   const [isOpen, setIsOpen] = useState(false);
   const hasAutoOpenedRef = useRef(false);
 
-  // Auto-open conditions:
-  // 1. API keys loaded
-  // 2. NUX complete
-  // 3. Not permanently dismissed
-  // 4. Either: not collaborating (demo mode) OR is owner (auto-live mode)
-  // 5. If collaborating, must wait for initialization before checking nodes
-  // 6. Flow is empty (no nodes/edges)
+  // Auto-open when API keys are loaded, NUX is complete, the user has not
+  // permanently dismissed the modal, and the canvas is empty.
   const shouldAutoOpen =
     isLoaded &&
     isNuxComplete() &&
     shouldShowTemplatesModal() &&
-    (!isCollaborating || isOwner) &&
-    (!isCollaborating || collaborationInitialized) &&
     nodes.length === 0 &&
     edges.length === 0;
 

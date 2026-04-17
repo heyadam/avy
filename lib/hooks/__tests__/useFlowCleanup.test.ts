@@ -30,22 +30,6 @@ describe("useFlowCleanup", () => {
         flowId: null,
         flowName: "Untitled",
         nodes: [{ type: "text-input" }],
-        isOwner: true,
-      })
-    );
-
-    triggerPageHide();
-
-    expect(mockSendBeacon).not.toHaveBeenCalled();
-  });
-
-  it("should not trigger cleanup when user is not owner", () => {
-    renderHook(() =>
-      useFlowCleanup({
-        flowId: "flow-123",
-        flowName: "Untitled",
-        nodes: [{ type: "text-input" }],
-        isOwner: false,
       })
     );
 
@@ -60,7 +44,6 @@ describe("useFlowCleanup", () => {
         flowId: "flow-123",
         flowName: "My Saved Flow",
         nodes: [{ type: "text-input" }],
-        isOwner: true,
       })
     );
 
@@ -69,13 +52,12 @@ describe("useFlowCleanup", () => {
     expect(mockSendBeacon).not.toHaveBeenCalled();
   });
 
-  it("should trigger cleanup for Untitled flows owned by user", () => {
+  it("should trigger cleanup for Untitled flows", () => {
     renderHook(() =>
       useFlowCleanup({
         flowId: "flow-123",
         flowName: "Untitled",
         nodes: [{ type: "text-input" }],
-        isOwner: true,
       })
     );
 
@@ -93,7 +75,6 @@ describe("useFlowCleanup", () => {
         flowId: "flow-123",
         flowName: "Untitled",
         nodes: [],
-        isOwner: true,
       })
     );
 
@@ -116,7 +97,6 @@ describe("useFlowCleanup", () => {
           { type: "text-generation" },
           { type: "comment" },
         ],
-        isOwner: true,
       })
     );
 
@@ -135,7 +115,6 @@ describe("useFlowCleanup", () => {
         flowId: "flow-123",
         flowName: "Untitled",
         nodes: [{ type: "comment" }, { type: "comment" }],
-        isOwner: true,
       })
     );
 
@@ -154,7 +133,6 @@ describe("useFlowCleanup", () => {
         flowId: "flow-123",
         flowName: "Untitled",
         nodes: [{ type: undefined }, { type: "text-input" }],
-        isOwner: true,
       })
     );
 
@@ -169,14 +147,13 @@ describe("useFlowCleanup", () => {
 
   it("should use latest values via refs on pagehide", () => {
     const { rerender } = renderHook(
-      ({ flowId, flowName, nodes, isOwner }) =>
-        useFlowCleanup({ flowId, flowName, nodes, isOwner }),
+      ({ flowId, flowName, nodes }) =>
+        useFlowCleanup({ flowId, flowName, nodes }),
       {
         initialProps: {
           flowId: "flow-123",
           flowName: "Untitled",
           nodes: [{ type: "text-input" }],
-          isOwner: true,
         },
       }
     );
@@ -186,7 +163,6 @@ describe("useFlowCleanup", () => {
       flowId: "flow-456",
       flowName: "Untitled",
       nodes: [{ type: "text-input" }, { type: "text-generation" }],
-      isOwner: true,
     });
 
     triggerPageHide();
@@ -209,7 +185,6 @@ describe("useFlowCleanup", () => {
         flowId: "flow-123",
         flowName: "Untitled",
         nodes: [{ type: "text-input" }],
-        isOwner: true,
       })
     );
 
@@ -231,7 +206,6 @@ describe("useFlowCleanup", () => {
         flowId: "flow-123",
         flowName: "Untitled",
         nodes: [{ type: "text-input" }],
-        isOwner: true,
       })
     );
 

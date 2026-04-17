@@ -15,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import {
   Copy,
   Check,
-  ExternalLink,
   Loader2,
   AlertTriangle,
   Globe,
@@ -29,9 +28,7 @@ interface ShareDialogProps {
   onOpenChange: (open: boolean) => void;
   flowId: string | null;
   flowName: string;
-  /** Flow's live_id (always populated for saved flows) */
-  liveId?: string | null;
-  /** Flow's share_token (always populated for saved flows) */
+  /** Flow's share_token (populated once the flow is published) */
   shareToken?: string | null;
   /** Current owner-funded execution setting */
   useOwnerKeys?: boolean;
@@ -48,7 +45,6 @@ export function ShareDialog({
   onOpenChange,
   flowId,
   flowName,
-  liveId,
   shareToken,
   useOwnerKeys: initialUseOwnerKeys = false,
   onOwnerKeysChange,
@@ -56,7 +52,8 @@ export function ShareDialog({
   isSaving = false,
 }: ShareDialogProps) {
   const { user } = useAuth();
-  const [copied, setCopied] = useState(false);
+  const [copiedToken, setCopiedToken] = useState(false);
+  const [copiedMcpUrl, setCopiedMcpUrl] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Save flow state (for when flow is not saved yet)
@@ -94,23 +91,22 @@ export function ShareDialog({
     }
   }, [open, flowId]);
 
-  // Build share URL using new /f/ format
-  const shareUrl =
-    liveId && shareToken
-      ? `${window.location.origin}/f/${liveId}/${shareToken}`
-      : null;
+  const mcpUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/api/mcp`
+      : "/api/mcp";
 
-  const handleCopy = async () => {
-    if (!shareUrl) return;
-
-    await navigator.clipboard.writeText(shareUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopyToken = async () => {
+    if (!shareToken) return;
+    await navigator.clipboard.writeText(shareToken);
+    setCopiedToken(true);
+    setTimeout(() => setCopiedToken(false), 2000);
   };
 
-  const handleOpenInNewTab = () => {
-    if (!shareUrl) return;
-    window.open(shareUrl, "_blank");
+  const handleCopyMcpUrl = async () => {
+    await navigator.clipboard.writeText(mcpUrl);
+    setCopiedMcpUrl(true);
+    setTimeout(() => setCopiedMcpUrl(false), 2000);
   };
 
   const handleToggleOwnerKeys = async (enabled: boolean) => {
@@ -144,7 +140,7 @@ export function ShareDialog({
     const savedFlowId = await onSaveFlow(saveName.trim());
 
     if (savedFlowId) {
-      // Flow saved successfully - close dialog, user can reopen to see share URL
+      // Flow saved successfully - close dialog, user can reopen to see share settings
       onOpenChange(false);
     }
   };
@@ -157,10 +153,10 @@ export function ShareDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5" />
-              Share Flow
+              Share flow
             </DialogTitle>
             <DialogDescription className="text-neutral-400">
-              Sign in to share your flow with others.
+              Sign in to share your flow.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-6">
@@ -182,10 +178,10 @@ export function ShareDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5" />
-              Share Flow
+              Share flow
             </DialogTitle>
             <DialogDescription className="text-neutral-400">
-              Name your flow to save it and get a shareable link.
+              Name your flow to save it and get a share token.
             </DialogDescription>
           </DialogHeader>
 
@@ -198,7 +194,7 @@ export function ShareDialog({
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-neutral-300">Flow Name</Label>
+              <Label className="text-neutral-300">Flow name</Label>
               <Input
                 value={saveName}
                 onChange={(e) => setSaveName(e.target.value)}
@@ -215,7 +211,7 @@ export function ShareDialog({
             </div>
 
             <p className="text-sm text-neutral-400">
-              Your flow will be saved to the cloud with a shareable link.
+              Your flow will be saved to the cloud with a share token you can use with the MCP server.
             </p>
 
             <Button
@@ -231,7 +227,7 @@ export function ShareDialog({
               ) : (
                 <>
                   <Globe className="h-4 w-4 mr-2" />
-                  Save Flow
+                  Save flow
                 </>
               )}
             </Button>
@@ -248,10 +244,10 @@ export function ShareDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Globe className="h-5 w-5" />
-            Share Flow
+            Share flow
           </DialogTitle>
           <DialogDescription className="text-neutral-400">
-            Share &ldquo;{flowName}&rdquo; with collaborators
+            Run &ldquo;{flowName}&rdquo; programmatically via the MCP server
           </DialogDescription>
         </DialogHeader>
 
@@ -263,42 +259,62 @@ export function ShareDialog({
         )}
 
         <div className="space-y-4">
-          {/* Share URL */}
-          {shareUrl ? (
+          {/* MCP URL */}
+          <div className="space-y-2">
+            <Label className="text-neutral-300">MCP endpoint</Label>
+            <div className="flex gap-2">
+              <Input
+                readOnly
+                value={mcpUrl}
+                className="bg-neutral-800 border-neutral-600 text-neutral-200 font-mono text-sm"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleCopyMcpUrl}
+                className="shrink-0 bg-neutral-800 border-neutral-600 hover:bg-neutral-700"
+              >
+                {copiedMcpUrl ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Share Token */}
+          {shareToken ? (
             <div className="space-y-2">
-              <Label className="text-neutral-300">Share URL</Label>
+              <Label className="text-neutral-300">Share token</Label>
               <div className="flex gap-2">
                 <Input
                   readOnly
-                  value={shareUrl}
+                  value={shareToken}
                   className="bg-neutral-800 border-neutral-600 text-neutral-200 font-mono text-sm"
                 />
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={handleCopy}
+                  onClick={handleCopyToken}
                   className="shrink-0 bg-neutral-800 border-neutral-600 hover:bg-neutral-700"
                 >
-                  {copied ? (
+                  {copiedToken ? (
                     <Check className="h-4 w-4 text-green-500" />
                   ) : (
                     <Copy className="h-4 w-4" />
                   )}
                 </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleOpenInNewTab}
-                  className="shrink-0 bg-neutral-800 border-neutral-600 hover:bg-neutral-700"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
               </div>
+              <p className="text-xs text-neutral-500">
+                Pass this token to <code className="text-neutral-300">run_flow</code> or{" "}
+                <code className="text-neutral-300">get_flow_info</code>.
+              </p>
             </div>
           ) : (
             <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-md text-amber-400 text-sm">
               <AlertTriangle className="h-4 w-4 shrink-0" />
-              <span>Share URL not available. Try refreshing the page.</span>
+              <span>Share token not available. Try refreshing the page.</span>
             </div>
           )}
 
@@ -306,8 +322,7 @@ export function ShareDialog({
           <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-md text-amber-400 text-sm">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <span>
-              Anyone with this link can edit your flow, including prompts and
-              settings. Only share with people you trust.
+              Anyone with this token can run your flow. Treat it like a password.
             </span>
           </div>
 
@@ -317,10 +332,10 @@ export function ShareDialog({
               <div className="flex-1">
                 <Label className="text-sm font-medium flex items-center gap-2">
                   <Key className="h-4 w-4" />
-                  Owner-Funded Execution
+                  Owner-funded execution
                 </Label>
                 <p className="text-xs text-neutral-400 mt-1">
-                  Use your API keys for collaborators&apos; executions
+                  Use your API keys when the flow runs via MCP
                 </p>
               </div>
               <Switch
@@ -333,7 +348,7 @@ export function ShareDialog({
             </div>
             {!hasStoredKeys && !isLoadingKeyStatus && (
               <p className="text-xs text-amber-400">
-                Store your API keys in Settings to enable this feature
+                Store your API keys in Settings to enable this feature.
               </p>
             )}
             {isLoadingKeyStatus && (

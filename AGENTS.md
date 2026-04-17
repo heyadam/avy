@@ -32,8 +32,8 @@ Required for owner-funded execution:
 ## Supabase (MCP Required)
 - Use the Supabase MCP tools (`mcp__supabase__*`) for DB actions.
 - Core tables: `profiles`, `flows`, `user_api_keys`, `flow_execution_log` (all RLS enabled).
-- `flows` now uses `live_id`, `share_token`, `last_accessed_at` for auto-live routing.
-- Key RPCs: `create_flow_with_tokens`, `get_or_create_current_flow`, `get_owner_keys_for_execution`, `check_and_log_run` (rate limiting).
+- `flows` now uses `live_id`, `share_token`, `last_accessed_at` for publishing / MCP access.
+- Key RPCs: `create_flow_with_tokens`, `get_owner_keys_for_execution`, `check_and_log_run` (rate limiting).
 - OAuth redirect URL: `/auth/callback` (see `app/auth/callback/route.ts`).
 
 ## Auth & Profile UI
@@ -42,14 +42,11 @@ Required for owner-funded execution:
 - **Top Bar**: `components/Flow/AgentFlow.tsx` renders the profile control.
 - **Proxy**: `proxy.ts` uses `lib/supabase/proxy.ts` to refresh Supabase sessions.
 
-## Live Sharing & Collaboration (Auto-Live)
-- **UI**: `components/Flow/ShareDialog.tsx` (share settings) + `components/Flow/LiveSettingsPopover.tsx` (owner-funded toggle).
-- **Share URL**: `/f/{live_id}/{share_token}` (always-on for saved flows).
-- **Primary editor route**: `app/f/[code]/[token]/page.tsx` (owners + collaborators); legacy `/[code]/[token]` redirects in `app/[code]/[token]/page.tsx`.
-- **Current/new flow routing**: `GET /api/flows/current` + `app/f/new/page.tsx` for create-and-redirect.
-- **Real-time sync**: Supabase Broadcast (node/edge changes) + Presence (collaborator tracking).
-- **Owner-funded execution**: Owner can share API keys with collaborators (rate-limited: 10/min, 100/day).
-- **Token reset**: `app/api/flows/[id]/publish` still exists for manual token regeneration (no auto-unpublish).
+## Publishing & Owner-Funded Execution
+- **UI**: `components/Flow/ShareDialog.tsx` is the single entry point for publishing (save, show MCP endpoint + share token, toggle owner-funded execution).
+- **Publish/unpublish**: `app/api/flows/[id]/publish/route.ts` manages `live_id`, `share_token`, `use_owner_keys`, and `allow_public_execute`.
+- **Consumer**: The MCP server (`app/api/mcp/`) executes published flows via share token. There is no in-app real-time sync or collaborator view anymore.
+- **Owner-funded execution**: flow owners can authorize MCP callers to run their flow using the owner's encrypted API keys (rate-limited: 10/min, 100/day).
 
 ## Architecture Highlights
 - Node types live in `components/Flow/nodes/`.
@@ -60,11 +57,9 @@ Required for owner-funded execution:
   - `useAutopilotIntegration.ts`: Autopilot apply/undo, highlight management
   - `useNodeParenting.ts`: Comment auto-parenting, deletion cascading
   - `useFlowOperations.ts`: Flow save/load/template operations
-  - `useCollaboration.ts`: Real-time sync, Supabase Presence, cursor tracking
   - `useUndoRedo.ts`: Snapshot-based undo/redo with keyboard shortcuts
   - `useResizableSidebar.ts`: Drag-to-resize with SSR-safe localStorage persistence
 - Realtime sessions: `useRealtimeSession.ts` (OpenAI Realtime voice sessions).
-- Collaboration: `CollaboratorCursors.tsx` + `usePerfectCursor.ts` for smooth cursor animations.
 - Motion animations: `lib/motion/presets.ts` (spring configs) + sidebars use motion.dev for open/close.
 - Encryption: `lib/encryption.ts` (AES-256-GCM for API key storage).
 - Service client: `lib/supabase/service.ts` (server-only, for owner key access).
@@ -97,7 +92,7 @@ Detailed architecture documentation is auto-loaded from these rule files:
 | `nodes.md` | All 11 node types and their features |
 | `execution.md` | Engine, API routes, execution hooks, caching |
 | `autopilot.md` | AI chat interface, flow generation |
-| `collaboration.md` | Live sharing, cursors, owner-funded execution |
+| `collaboration.md` | Publishing, share tokens, owner-funded execution |
 | `auth-storage.md` | Supabase auth, API keys, flow persistence |
 | `audio-realtime.md` | Audio registry, WebRTC, voice conversation |
 | `types.md` | Node data interfaces, port types |
